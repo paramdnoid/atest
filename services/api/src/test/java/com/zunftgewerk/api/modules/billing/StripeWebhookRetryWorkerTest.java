@@ -8,6 +8,7 @@ import com.zunftgewerk.api.modules.billing.service.StripeBillingService;
 import com.zunftgewerk.api.modules.billing.service.StripeWebhookRetryWorker;
 import com.zunftgewerk.api.modules.license.repository.EntitlementRepository;
 import com.zunftgewerk.api.modules.plan.repository.SubscriptionRepository;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -41,7 +42,8 @@ class StripeWebhookRetryWorkerTest {
             billingAuditLogRepository,
             subscriptionRepository,
             entitlementRepository,
-            new ObjectMapper()
+            new ObjectMapper(),
+            new SimpleMeterRegistry()
         );
         stripeBillingService = spy(realBillingService);
 
@@ -51,8 +53,9 @@ class StripeWebhookRetryWorkerTest {
 
         retryWorker = new StripeWebhookRetryWorker(webhookEventRepository, stripeBillingService);
         ReflectionTestUtils.setField(retryWorker, "workerEnabled", true);
+        ReflectionTestUtils.setField(retryWorker, "ingestWorkerEnabled", true);
+        ReflectionTestUtils.setField(retryWorker, "ingestBatchSize", 50);
         ReflectionTestUtils.setField(retryWorker, "retryBatchSize", 50);
-        ReflectionTestUtils.setField(retryWorker, "retryMaxAttempts", 5);
         ReflectionTestUtils.setField(retryWorker, "deadLetterRecoveryEnabled", true);
         ReflectionTestUtils.setField(retryWorker, "deadLetterCooldownSeconds", 3600L);
         ReflectionTestUtils.setField(retryWorker, "deadLetterMaxRecoveryAttempts", 3);
@@ -68,6 +71,23 @@ class StripeWebhookRetryWorkerTest {
         assertThat(event.getStatus()).isEqualTo("PROCESSED");
         assertThat(event.getProcessedAt()).isNotNull();
         assertThat(event.getNextRetryAt()).isNull();
+        verify(webhookEventRepository).save(event);
+    }
+
+    @Test
+    void shouldProcessReceivedEventsViaIngestWorker() {
+        StripeWebhookEventEntity event = new StripeWebhookEventEntity();
+        event.setEventId("evt_received");
+        event.setEventType("noop.event");
+        event.setStatus("RECEIVED");
+        event.setPayload("{\"id\":\"evt_received\",\"type\":\"noop.event\",\"data\":{\"object\":{}}}");
+        event.setReceivedAt(OffsetDateTime.now().minusMinutes(1));
+        when(webhookEventRepository.findByStatusOrderByReceivedAtAsc(any(), any())).thenReturn(List.of(event));
+
+        retryWorker.processReceivedEvents();
+
+        assertThat(event.getStatus()).isEqualTo("PROCESSED");
+        assertThat(event.getProcessedAt()).isNotNull();
         verify(webhookEventRepository).save(event);
     }
 

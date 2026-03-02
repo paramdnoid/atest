@@ -78,3 +78,5 @@ zunftgewerk:
       recovery-interval-seconds: ${STRIPE_DEAD_LETTER_RECOVERY_INTERVAL_SECONDS:300}
       cooldown-seconds: ${STRIPE_DEAD_LETTER_COOLDOWN_SECONDS:3600}
       max-recovery-attempts: ${STRIPE_DEAD_LETTER_MAX_RECOVERY_ATTEMPTS:3}
+    ops:
+      recovery-token: ${STRIPE_OPS_RECOVERY_TOKEN:}

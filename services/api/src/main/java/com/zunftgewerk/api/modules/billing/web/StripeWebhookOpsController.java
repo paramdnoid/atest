@@ -4,9 +4,12 @@ import com.zunftgewerk.api.modules.billing.service.StripeWebhookRetryWorker;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -18,14 +21,26 @@ public class StripeWebhookOpsController {
 
     private final StripeWebhookRetryWorker retryWorker;
 
+    @Value("${zunftgewerk.stripe.ops.recovery-token:}")
+    private String recoveryToken;
+
     public StripeWebhookOpsController(StripeWebhookRetryWorker retryWorker) {
         this.retryWorker = retryWorker;
     }
 
     @PostMapping("/recover")
-    public ResponseEntity<RecoverDeadLetterResponse> recoverDeadLetters(
-        @Valid @RequestBody(required = false) RecoverDeadLetterRequest request
+    public ResponseEntity<?> recoverDeadLetters(
+        @Valid @RequestBody(required = false) RecoverDeadLetterRequest request,
+        @RequestHeader(value = "X-Stripe-Ops-Token", required = false) String suppliedToken
     ) {
+        if (recoveryToken == null || recoveryToken.isBlank()) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ErrorResponse("Stripe ops recovery token is not configured"));
+        }
+        if (!recoveryToken.equals(suppliedToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("Invalid ops token"));
+        }
+
         String eventId = request == null ? null : request.eventId();
         Integer limit = request == null ? null : request.limit();
 
@@ -50,5 +65,8 @@ public class StripeWebhookOpsController {
         int skippedCount,
         List<String> eventIds
     ) {
+    }
+
+    public record ErrorResponse(String error) {
     }
 }

@@ -17,6 +17,20 @@ public interface StripeWebhookEventRepository extends JpaRepository<StripeWebhoo
 
     Optional<StripeWebhookEventEntity> findByEventIdAndStatus(String eventId, String status);
 
+    long countByStatus(String status);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        SELECT event
+        FROM StripeWebhookEventEntity event
+        WHERE event.status = :status
+        ORDER BY event.receivedAt ASC
+        """)
+    List<StripeWebhookEventEntity> findByStatusOrderByReceivedAtAsc(
+        @Param("status") String status,
+        Pageable pageable
+    );
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
         SELECT event

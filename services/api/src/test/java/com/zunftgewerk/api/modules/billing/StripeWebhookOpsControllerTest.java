@@ -9,7 +9,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -20,7 +19,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = StripeWebhookOpsController.class)
+@WebMvcTest(
+    controllers = StripeWebhookOpsController.class,
+    properties = "zunftgewerk.stripe.ops.recovery-token=test-token"
+)
 @Import(SecurityConfig.class)
 class StripeWebhookOpsControllerTest {
 
@@ -31,20 +33,20 @@ class StripeWebhookOpsControllerTest {
     private StripeWebhookRetryWorker retryWorker;
 
     @Test
-    void shouldRejectUnauthenticatedRecoveryRequests() throws Exception {
+    void shouldRejectRequestsWithoutOpsToken() throws Exception {
         mockMvc.perform(post("/internal/billing/stripe-webhooks/dead-letter/recover")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"limit\":10}"))
-            .andExpect(status().isForbidden());
+            .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @WithMockUser(username = "ops-user")
-    void shouldAllowAuthenticatedRecoveryRequests() throws Exception {
+    void shouldAllowRequestsWithValidOpsToken() throws Exception {
         when(retryWorker.recoverDeadLettersManually(eq(null), eq(10)))
             .thenReturn(new StripeWebhookRetryWorker.RecoveryResult(1, 0, List.of("evt_1")));
 
         mockMvc.perform(post("/internal/billing/stripe-webhooks/dead-letter/recover")
+                .header("X-Stripe-Ops-Token", "test-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"limit\":10}"))
             .andExpect(status().isOk())

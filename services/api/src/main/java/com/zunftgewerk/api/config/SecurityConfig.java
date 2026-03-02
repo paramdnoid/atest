@@ -19,6 +19,7 @@ public class SecurityConfig {
                     "/actuator/info",
                     "/.well-known/jwks.json",
                     "/webhooks/stripe",
+                    "/internal/billing/stripe-webhooks/dead-letter/recover",
                     "/auth/**"
                 ).permitAll()
                 .anyRequest().authenticated())

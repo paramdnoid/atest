@@ -19,6 +19,9 @@ import com.zunftgewerk.api.modules.license.entity.EntitlementEntity;
 import com.zunftgewerk.api.modules.license.repository.EntitlementRepository;
 import com.zunftgewerk.api.modules.plan.entity.SubscriptionEntity;
 import com.zunftgewerk.api.modules.plan.repository.SubscriptionRepository;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class StripeBillingService {
@@ -38,6 +42,7 @@ public class StripeBillingService {
     private final SubscriptionRepository subscriptionRepository;
     private final EntitlementRepository entitlementRepository;
     private final ObjectMapper objectMapper;
+    private final MeterRegistry meterRegistry;
 
     @Value("${zunftgewerk.stripe.webhook-secret:}")
     private String webhookSecret;
@@ -56,20 +61,26 @@ public class StripeBillingService {
         BillingAuditLogRepository billingAuditLogRepository,
         SubscriptionRepository subscriptionRepository,
         EntitlementRepository entitlementRepository,
-        ObjectMapper objectMapper
+        ObjectMapper objectMapper,
+        MeterRegistry meterRegistry
     ) {
         this.webhookEventRepository = webhookEventRepository;
         this.billingAuditLogRepository = billingAuditLogRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.entitlementRepository = entitlementRepository;
         this.objectMapper = objectMapper;
+        this.meterRegistry = meterRegistry;
+        Gauge.builder("stripe_webhook_dead_letter_events", webhookEventRepository, repo -> repo.countByStatus("DEAD_LETTER"))
+            .description("Number of Stripe webhook events currently in dead-letter state")
+            .register(meterRegistry);
     }
 
     @Transactional
     public void processWebhook(String payload, String signatureHeader) {
-        Event event = processEventPayload(payload, signatureHeader, false);
+        Event event = processEventPayload(payload, signatureHeader, false, true);
 
         if (webhookEventRepository.findByEventId(event.getId()).isPresent()) {
+            meterRegistry.counter("stripe_webhook_ingested_total", "result", "duplicate").increment();
             return;
         }
 
@@ -80,21 +91,53 @@ public class StripeBillingService {
         webhookEvent.setStatus("RECEIVED");
         webhookEvent.setPayload(payload);
         webhookEvent.setRetryCount(0);
+        webhookEvent.setNextRetryAt(null);
         webhookEventRepository.save(webhookEvent);
+        meterRegistry.counter("stripe_webhook_ingested_total", "result", "accepted", "event_type", event.getType()).increment();
+    }
 
+    @Transactional
+    public void processQueuedWebhookEvent(StripeWebhookEventEntity webhookEvent) {
+        long startedNanos = System.nanoTime();
         try {
-            handleEvent(event);
+            replayWebhookPayload(webhookEvent.getPayload());
             markProcessed(webhookEvent, OffsetDateTime.now());
+            meterRegistry.counter(
+                "stripe_webhook_processed_total",
+                "status",
+                "processed",
+                "event_type",
+                normalizeEventType(webhookEvent.getEventType())
+            ).increment();
         } catch (RuntimeException ex) {
             markFailure(webhookEvent, ex, OffsetDateTime.now());
-            throw ex;
+            meterRegistry.counter(
+                "stripe_webhook_processed_total",
+                "status",
+                "failed",
+                "event_type",
+                normalizeEventType(webhookEvent.getEventType())
+            ).increment();
+            if ("DEAD_LETTER".equalsIgnoreCase(webhookEvent.getStatus())) {
+                meterRegistry.counter(
+                    "stripe_webhook_processed_total",
+                    "status",
+                    "dead_letter",
+                    "event_type",
+                    normalizeEventType(webhookEvent.getEventType())
+                ).increment();
+            }
         } finally {
             webhookEventRepository.save(webhookEvent);
+            Timer.builder("stripe_webhook_processing_latency")
+                .tag("event_type", normalizeEventType(webhookEvent.getEventType()))
+                .register(meterRegistry)
+                .record(System.nanoTime() - startedNanos, TimeUnit.NANOSECONDS);
         }
     }
 
     public void replayWebhookPayload(String payload) {
-        Event event = processEventPayload(payload, "", true);
+        Event event = processEventPayload(payload, "", true, false);
         handleEvent(event);
     }
 
@@ -157,11 +200,12 @@ public class StripeBillingService {
             subscriptionRepository.save(subscription);
             recordBillingAudit(tenantId, "SEAT_QUANTITY_SYNC", Map.of("activeSeats", activeSeats));
         } catch (StripeException ex) {
+            meterRegistry.counter("stripe_webhook_seat_sync_failures_total").increment();
             throw new IllegalStateException("Failed to sync seat quantity", ex);
         }
     }
 
-    private Event processEventPayload(String payload, String signatureHeader, boolean isReplay) {
+    private Event processEventPayload(String payload, String signatureHeader, boolean isReplay, boolean verifySignature) {
         if (isReplay) {
             try {
                 Event replayEvent = Event.GSON.fromJson(payload, Event.class);
@@ -174,10 +218,11 @@ public class StripeBillingService {
             }
         }
 
-        if (webhookSecret != null && !webhookSecret.isBlank()) {
+        if (verifySignature && webhookSecret != null && !webhookSecret.isBlank()) {
             try {
                 return Webhook.constructEvent(payload, signatureHeader, webhookSecret);
             } catch (SignatureVerificationException ex) {
+                meterRegistry.counter("stripe_webhook_verify_failures_total").increment();
                 throw new IllegalArgumentException("Stripe signature verification failed", ex);
             }
         }
@@ -189,6 +234,9 @@ public class StripeBillingService {
             }
             return event;
         } catch (RuntimeException ex) {
+            if (verifySignature) {
+                meterRegistry.counter("stripe_webhook_verify_failures_total").increment();
+            }
             throw new IllegalArgumentException("Webhook payload is invalid", ex);
         }
     }
@@ -389,5 +437,12 @@ public class StripeBillingService {
         } catch (Exception ex) {
             throw new IllegalStateException("Failed to persist billing audit", ex);
         }
+    }
+
+    private String normalizeEventType(String eventType) {
+        if (eventType == null || eventType.isBlank()) {
+            return "unknown";
+        }
+        return eventType;
     }
 }

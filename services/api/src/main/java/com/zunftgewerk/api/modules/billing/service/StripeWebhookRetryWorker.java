@@ -25,8 +25,11 @@ public class StripeWebhookRetryWorker {
     @Value("${zunftgewerk.stripe.retries.batch-size:50}")
     private int retryBatchSize;
 
-    @Value("${zunftgewerk.stripe.retries.max-attempts:5}")
-    private int retryMaxAttempts;
+    @Value("${zunftgewerk.stripe.ingest.worker-enabled:true}")
+    private boolean ingestWorkerEnabled;
+
+    @Value("${zunftgewerk.stripe.ingest.batch-size:50}")
+    private int ingestBatchSize;
 
     @Value("${zunftgewerk.stripe.dead-letter.recovery-enabled:true}")
     private boolean deadLetterRecoveryEnabled;
@@ -45,6 +48,22 @@ public class StripeWebhookRetryWorker {
         this.stripeBillingService = stripeBillingService;
     }
 
+    @Scheduled(fixedDelayString = "#{${zunftgewerk.stripe.ingest.scan-interval-seconds:5} * 1000}")
+    @Transactional
+    public void processReceivedEvents() {
+        if (!workerEnabled || !ingestWorkerEnabled) {
+            return;
+        }
+
+        List<StripeWebhookEventEntity> receivedEvents = webhookEventRepository.findByStatusOrderByReceivedAtAsc(
+            "RECEIVED",
+            PageRequest.of(0, ingestBatchSize)
+        );
+        for (StripeWebhookEventEntity event : receivedEvents) {
+            stripeBillingService.processQueuedWebhookEvent(event);
+        }
+    }
+
     @Scheduled(fixedDelayString = "#{${zunftgewerk.stripe.retries.scan-interval-seconds:30} * 1000}")
     @Transactional
     public void retryFailedEvents() {
@@ -60,18 +79,7 @@ public class StripeWebhookRetryWorker {
         );
 
         for (StripeWebhookEventEntity event : dueEvents) {
-            try {
-                stripeBillingService.replayWebhookPayload(event.getPayload());
-                stripeBillingService.markProcessed(event, OffsetDateTime.now());
-            } catch (RuntimeException ex) {
-                stripeBillingService.markFailure(event, ex, OffsetDateTime.now());
-                if (event.getRetryCount() >= retryMaxAttempts || "DEAD_LETTER".equals(event.getStatus())) {
-                    event.setStatus("DEAD_LETTER");
-                    event.setDeadLetteredAt(OffsetDateTime.now());
-                    event.setNextRetryAt(null);
-                }
-            }
-            webhookEventRepository.save(event);
+            stripeBillingService.processQueuedWebhookEvent(event);
         }
     }
 
