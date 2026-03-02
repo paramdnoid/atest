@@ -35,16 +35,50 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,info,prometheus,metrics
+  endpoint:
+    prometheus:
+      enabled: true
+    health:
+      show-details: when-authorized
   health:
     mail:
       enabled: false
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: zunftgewerk-api
+      environment: ${ENVIRONMENT:local}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      slo:
+        http.server.requests: 5ms,10ms,25ms,50ms,100ms,250ms,500ms,1000ms
+  tracing:
+    sampling:
+      probability: ${OTEL_SAMPLING_PROBABILITY:0.1}
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
 
 grpc:
   server:
     port: ${GRPC_PORT:9090}
 
 zunftgewerk:
+  features:
+    sync-engine-v1: ${FEATURE_SYNC_ENGINE_V1:true}
+    stripe-billing: ${FEATURE_STRIPE_BILLING:true}
+    custom-roles: ${FEATURE_CUSTOM_ROLES:true}
+    passkey-auth: ${FEATURE_PASSKEY_AUTH:true}
+    mfa-enforcement-admin: ${FEATURE_MFA_ENFORCEMENT_ADMIN:false}
+    auth-v2-enabled: ${FEATURE_AUTH_V2_ENABLED:true}
+    stripe-webhook-enabled: ${FEATURE_STRIPE_WEBHOOK_ENABLED:true}
+    sync-vector-resolver-enabled: ${FEATURE_SYNC_VECTOR_RESOLVER_ENABLED:true}
+  app:
+    landing-url: ${LANDING_BASE_URL:http://localhost:3000}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001}
   email:

@@ -5,8 +5,9 @@ import { cookies } from "next/headers";
 import { getSession } from "@/lib/session";
 import { DevicesPanel } from "@/components/dashboard/devices-panel";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { TeamMembersPanel, type TeamMember } from "@/components/dashboard/team-members-panel";
 
-export const metadata: Metadata = { title: "Geräte" };
+export const metadata: Metadata = { title: "Team & Geräte" };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -38,6 +39,29 @@ async function fetchBillingSummary(cookieHeader: string) {
   return res.json();
 }
 
+type TeamMembersResult =
+  | { members: TeamMember[]; error: false }
+  | { members: []; error: true };
+
+async function fetchTeamMembers(cookieHeader: string): Promise<TeamMembersResult> {
+  try {
+    const res = await fetch(`${API_URL}/v1/team/members`, {
+      headers: { Cookie: cookieHeader },
+      cache: "no-store",
+    });
+    if (!res.ok) return { members: [], error: true };
+    const data = await res.json();
+    const members: TeamMember[] = Array.isArray(data.members)
+      ? data.members
+      : Array.isArray(data)
+        ? data
+        : [];
+    return { members, error: false };
+  } catch {
+    return { members: [], error: true };
+  }
+}
+
 export default async function EmployeesPage() {
   const session = await getSession();
   if (!session) redirect("/login");
@@ -50,10 +74,11 @@ export default async function EmployeesPage() {
     .map((c) => `${c.name}=${c.value}`)
     .join("; ");
 
-  const [devices, registrationToken, billing] = await Promise.all([
+  const [devices, registrationToken, billing, teamResult] = await Promise.all([
     fetchDevices(cookieHeader),
     isAdmin ? fetchRegistrationToken(cookieHeader) : Promise.resolve(null),
     fetchBillingSummary(cookieHeader),
+    fetchTeamMembers(cookieHeader),
   ]);
 
   const licensedCount = billing?.licensedCount ?? 0;
@@ -61,8 +86,12 @@ export default async function EmployeesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Geräte"
-        description="Verwalte Gerätezugänge und Lizenzen für deinen Workspace."
+        title="Team & Geräte"
+        description="Verwalte Teammitglieder, Gerätezugänge und Lizenzen für deinen Workspace."
+      />
+      <TeamMembersPanel
+        members={teamResult.members}
+        error={teamResult.error}
       />
       <DevicesPanel
         devices={devices}

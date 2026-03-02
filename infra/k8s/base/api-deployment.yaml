@@ -12,12 +12,19 @@ spec:
     metadata:
       labels:
         app: zunftgewerk-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "8080"
     spec:
       containers:
         - name: api
-          image: ghcr.io/example/zunftgewerk-api:latest
+          image: ghcr.io/zunftgewerk/zunftgewerk-api:latest
           ports:
-            - containerPort: 9090
+            - name: http
+              containerPort: 8080
+            - name: grpc
+              containerPort: 9090
           env:
             - name: DATABASE_URL
               valueFrom:

@@ -5,7 +5,24 @@ import { SectionContainer } from "@/components/section-container";
 
 import { PricingCards, type PublicPlan } from "./pricing-cards";
 
-const staticPlans: PublicPlan[] = [
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+
+// Shape returned by GET /v1/plans
+type ApiPlan = {
+  planId: string;
+  displayName: string;
+  description?: string | null;
+  maxDevices?: number | null;
+  billingCycle?: string | null;
+  amountCents?: number | null;
+  amountCentsYearly?: number | null;
+  trialDays?: number | null;
+  isPopular?: boolean | null;
+  ctaText?: string | null;
+  features?: string[] | null;
+};
+
+const STATIC_PLANS: PublicPlan[] = [
   {
     tier: "free",
     name: "Free",
@@ -32,8 +49,7 @@ const staticPlans: PublicPlan[] = [
   {
     tier: "starter",
     name: "Starter",
-    description:
-      "Für kleine Teams mit professionellen Anforderungen.",
+    description: "Für kleine Teams mit professionellen Anforderungen.",
     priceMonthly: 19900,
     priceYearly: 214920,
     trialDays: 30,
@@ -79,8 +95,43 @@ const staticPlans: PublicPlan[] = [
   },
 ];
 
-export function PricingSection() {
-  const hasYearly = staticPlans.some(
+function mapApiPlanToPublicPlan(api: ApiPlan): PublicPlan {
+  const tier = api.planId;
+  const staticFallback = STATIC_PLANS.find((p) => p.tier === tier);
+  return {
+    tier,
+    name: api.displayName,
+    description: api.description ?? staticFallback?.description ?? null,
+    priceMonthly: api.amountCents ?? 0,
+    priceYearly: api.amountCentsYearly ?? staticFallback?.priceYearly ?? null,
+    trialDays: api.trialDays ?? 30,
+    isPopular: api.isPopular ?? staticFallback?.isPopular ?? false,
+    ctaText: api.ctaText ?? staticFallback?.ctaText ?? "Plan wählen",
+    ctaLink: `/onboarding?plan=${tier}`,
+    features:
+      api.features && api.features.length > 0
+        ? api.features.map((f) => ({ label: f }))
+        : (staticFallback?.features ?? []),
+  };
+}
+
+async function fetchPlans(): Promise<PublicPlan[]> {
+  try {
+    const res = await fetch(`${API_URL}/v1/plans`, {
+      next: { revalidate: 300 }, // revalidate every 5 minutes
+    });
+    if (!res.ok) return STATIC_PLANS;
+    const data: ApiPlan[] = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return STATIC_PLANS;
+    return data.map(mapApiPlanToPublicPlan);
+  } catch {
+    return STATIC_PLANS;
+  }
+}
+
+export async function PricingSection() {
+  const plans = await fetchPlans();
+  const hasYearly = plans.some(
     (p) => p.priceYearly != null && p.priceYearly > 0
   );
 
@@ -122,7 +173,7 @@ export function PricingSection() {
           <div aria-hidden="true" className="premium-divider mx-auto mt-4 w-56" />
         </FadeIn>
 
-        <PricingCards plans={staticPlans} hasYearlyOption={hasYearly} />
+        <PricingCards plans={plans} hasYearlyOption={hasYearly} />
 
         <FadeIn delay={0.3}>
           <p className="text-muted-foreground mt-8 text-center text-sm">

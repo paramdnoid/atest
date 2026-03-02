@@ -10,13 +10,11 @@ import com.zunftgewerk.api.modules.plan.repository.SubscriptionRepository;
 import com.zunftgewerk.api.modules.plan.service.PlanCatalog;
 import com.zunftgewerk.api.modules.tenant.repository.MembershipRepository;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
@@ -32,6 +30,9 @@ public class BillingRestController {
     private final MembershipRepository membershipRepository;
     private final DeviceRepository deviceRepository;
     private final BillingAuditLogRepository billingAuditLogRepository;
+
+    @Value("${zunftgewerk.app.landing-url:http://localhost:3000}")
+    private String landingUrl;
 
     public BillingRestController(
         RefreshTokenService refreshTokenService,
@@ -58,10 +59,8 @@ public class BillingRestController {
         }
 
         UUID tenantId = session.tenantId();
-
         SubscriptionEntity sub = subscriptionRepository.findByTenantId(tenantId).orElse(null);
 
-        // Resolve plan info from catalog
         String planCode = sub != null ? sub.getPlanId() : "free";
         PlanCatalog.PlanDefinition planDef = PlanCatalog.plans().stream()
             .filter(p -> p.planId().equals(planCode))
@@ -85,13 +84,9 @@ public class BillingRestController {
         long memberCount = membershipRepository.findByTenantId(tenantId).size();
         long licensedCount = deviceRepository.countLicensedByTenantId(tenantId);
 
-        // Recent billing events from audit log
         List<Map<String, Object>> recentEvents = billingAuditLogRepository
-            .findAll(PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt")))
-            .getContent()
+            .findByTenantIdOrderByCreatedAtDesc(tenantId, PageRequest.of(0, 5))
             .stream()
-            .filter(e -> tenantId.equals(e.getTenantId()))
-            .limit(5)
             .map(e -> {
                 Map<String, Object> ev = new HashMap<>();
                 ev.put("type", e.getEventType());
@@ -108,6 +103,140 @@ public class BillingRestController {
         response.put("licensedCount", licensedCount);
         response.put("recentEvents", recentEvents);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/events")
+    public ResponseEntity<?> getEvents(
+        @RequestHeader(value = "Cookie", required = false) String cookieHeader,
+        @RequestParam(defaultValue = "10") int limit,
+        @RequestParam(defaultValue = "0") int offset
+    ) {
+        var session = resolveSession(cookieHeader);
+        if (session == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+
+        int page = limit > 0 ? offset / limit : 0;
+        List<BillingAuditLogEntity> events = billingAuditLogRepository
+            .findByTenantIdOrderByCreatedAtDesc(
+                session.tenantId(),
+                PageRequest.of(page, Math.max(limit, 1), Sort.by(Sort.Direction.DESC, "createdAt"))
+            );
+
+        List<Map<String, Object>> result = events.stream().map(e -> {
+            Map<String, Object> ev = new HashMap<>();
+            ev.put("id", e.getId());
+            ev.put("type", e.getEventType());
+            ev.put("description", e.getDetailsJson());
+            ev.put("createdAt", e.getCreatedAt());
+            return ev;
+        }).toList();
+
+        return ResponseEntity.ok(Map.of("events", result));
+    }
+
+    @PostMapping("/checkout")
+    public ResponseEntity<?> createCheckoutSession(
+        @RequestHeader(value = "Cookie", required = false) String cookieHeader,
+        @RequestBody Map<String, String> body
+    ) {
+        var session = resolveSession(cookieHeader);
+        if (session == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+
+        String planId = body.getOrDefault("planId", "starter");
+        String billingCycle = body.getOrDefault("billingCycle", "monthly");
+
+        PlanCatalog.PlanDefinition plan = PlanCatalog.plans().stream()
+            .filter(p -> p.planId().equals(planId))
+            .findFirst()
+            .orElse(null);
+
+        if (plan == null || plan.amountCents() == 0) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Ungültiger Plan"));
+        }
+
+        try {
+            boolean yearly = billingCycle.toLowerCase().startsWith("year");
+            com.stripe.param.checkout.SessionCreateParams params =
+                com.stripe.param.checkout.SessionCreateParams.builder()
+                    .setMode(com.stripe.param.checkout.SessionCreateParams.Mode.SUBSCRIPTION)
+                    .setClientReferenceId(session.tenantId().toString())
+                    .setSuccessUrl(landingUrl + "/dashboard/billing?session_id={CHECKOUT_SESSION_ID}")
+                    .setCancelUrl(landingUrl + "/dashboard/billing")
+                    .addLineItem(
+                        com.stripe.param.checkout.SessionCreateParams.LineItem.builder()
+                            .setQuantity(1L)
+                            .setPriceData(
+                                com.stripe.param.checkout.SessionCreateParams.LineItem.PriceData.builder()
+                                    .setCurrency("eur")
+                                    .setUnitAmount((long) plan.amountCents())
+                                    .setProductData(
+                                        com.stripe.param.checkout.SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                            .setName(plan.displayName())
+                                            .build()
+                                    )
+                                    .setRecurring(
+                                        com.stripe.param.checkout.SessionCreateParams.LineItem.PriceData.Recurring.builder()
+                                            .setInterval(
+                                                yearly
+                                                    ? com.stripe.param.checkout.SessionCreateParams.LineItem.PriceData.Recurring.Interval.YEAR
+                                                    : com.stripe.param.checkout.SessionCreateParams.LineItem.PriceData.Recurring.Interval.MONTH
+                                            )
+                                            .build()
+                                    )
+                                    .build()
+                            )
+                            .build()
+                    )
+                    .build();
+
+            com.stripe.model.checkout.Session stripeSession =
+                com.stripe.model.checkout.Session.create(params);
+
+            return ResponseEntity.ok(Map.of(
+                "url", stripeSession.getUrl(),
+                "sessionId", stripeSession.getId()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                .body(Map.of("error", "Stripe-Fehler: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/portal")
+    public ResponseEntity<?> createPortalSession(
+        @RequestHeader(value = "Cookie", required = false) String cookieHeader,
+        @RequestBody Map<String, String> body
+    ) {
+        var session = resolveSession(cookieHeader);
+        if (session == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+
+        SubscriptionEntity sub = subscriptionRepository.findByTenantId(session.tenantId()).orElse(null);
+        if (sub == null || sub.getStripeCustomerId() == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Kein aktives Abonnement mit Stripe-Kundenkonto"));
+        }
+
+        String returnPath = body.getOrDefault("returnPath", "/dashboard/billing");
+
+        try {
+            com.stripe.param.billingportal.SessionCreateParams params =
+                com.stripe.param.billingportal.SessionCreateParams.builder()
+                    .setCustomer(sub.getStripeCustomerId())
+                    .setReturnUrl(landingUrl + returnPath)
+                    .build();
+
+            com.stripe.model.billingportal.Session portalSession =
+                com.stripe.model.billingportal.Session.create(params);
+
+            return ResponseEntity.ok(Map.of("url", portalSession.getUrl()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                .body(Map.of("error", "Stripe-Fehler: " + e.getMessage()));
+        }
     }
 
     private RefreshTokenService.PeekedSession resolveSession(String cookieHeader) {

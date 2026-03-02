@@ -85,6 +85,24 @@ public class RefreshTokenService {
         }
     }
 
+    /**
+     * Revokes all active refresh tokens for a given user. Used during account deletion
+     * to immediately invalidate all sessions before the user record is removed.
+     *
+     * @param userId the UUID of the user whose tokens should be revoked
+     */
+    @Transactional
+    public void revokeAllForUser(UUID userId) {
+        List<RefreshTokenEntity> userTokens = refreshTokenRepository.findByUserId(userId);
+        OffsetDateTime now = OffsetDateTime.now();
+        for (RefreshTokenEntity token : userTokens) {
+            if (token.getRevokedAt() == null) {
+                token.setRevokedAt(now);
+                refreshTokenRepository.save(token);
+            }
+        }
+    }
+
     @Transactional
     public FamilyRevocationResult revokeFamilyByRawToken(String rawRefreshToken) {
         if (rawRefreshToken == null || rawRefreshToken.isBlank()) {

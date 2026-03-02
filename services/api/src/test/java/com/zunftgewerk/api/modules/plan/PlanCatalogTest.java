@@ -8,9 +8,31 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PlanCatalogTest {
 
     @Test
-    void shouldContainStarterBusinessAndEnterprisePlans() {
+    void shouldContainExpectedPlans() {
         assertThat(PlanCatalog.plans())
             .extracting(PlanCatalog.PlanDefinition::planId)
-            .containsExactly("starter", "business", "enterprise");
+            .containsExactly("free", "starter", "professional");
+    }
+
+    @Test
+    void shouldHaveCorrectSeatLimits() {
+        assertThat(PlanCatalog.plans())
+            .allSatisfy(plan -> assertThat(plan.includedSeats()).isGreaterThan(0));
+    }
+
+    @Test
+    void shouldHaveFreeplanWithZeroCost() {
+        PlanCatalog.PlanDefinition freePlan = PlanCatalog.plans().stream()
+            .filter(p -> "free".equals(p.planId()))
+            .findFirst()
+            .orElseThrow();
+        assertThat(freePlan.amountCents()).isZero();
+    }
+
+    @Test
+    void shouldHavePaidPlansWithPositiveCost() {
+        assertThat(PlanCatalog.plans().stream()
+            .filter(p -> !"free".equals(p.planId())))
+            .allSatisfy(plan -> assertThat(plan.amountCents()).isPositive());
     }
 }

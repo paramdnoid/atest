@@ -1,0 +1,31 @@
+# Build stage
+FROM eclipse-temurin:21-jdk-alpine AS builder
+WORKDIR /build
+
+# Copy Gradle wrapper and config first (layer cache)
+COPY services/api/gradlew services/api/gradlew
+COPY services/api/gradle/ services/api/gradle/
+COPY services/api/build.gradle.kts services/api/settings.gradle.kts services/api/gradle.properties services/api/
+
+# Copy proto contracts (referenced as ../../packages/proto from services/api)
+COPY packages/proto/ packages/proto/
+
+# Copy source
+COPY services/api/src/ services/api/src/
+
+RUN chmod +x services/api/gradlew && \
+    cd services/api && \
+    ./gradlew bootJar -x test --no-daemon
+
+# Runtime stage
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+
+RUN addgroup -S spring && adduser -S spring -G spring
+USER spring
+
+COPY --from=builder /build/services/api/build/libs/*.jar app.jar
+
+EXPOSE 8080 9090
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

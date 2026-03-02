@@ -1,8 +1,8 @@
 {
   "syncEngineV1": true,
-  "stripeBilling": false,
+  "stripeBilling": true,
   "customRoles": true,
-  "passkeyAuth": false,
+  "passkeyAuth": true,
   "mfaEnforcementAdmin": false,
   "authV2Enabled": true,
   "stripeWebhookEnabled": true,

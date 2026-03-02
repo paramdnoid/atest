@@ -22,7 +22,13 @@ public class SecurityConfig {
                     "/webhooks/stripe",
                     "/internal/billing/stripe-webhooks/dead-letter/recover",
                     "/v1/auth/**",
-                    "/v1/onboarding/status"
+                    "/v1/onboarding/status",
+                    "/v1/workspace/**",
+                    "/v1/billing/**",
+                    "/v1/devices/**",
+                    "/v1/team/**",
+                    "/v1/admin/**",
+                    "/v1/account/**"
                 ).permitAll()
                 .anyRequest().authenticated())
             .httpBasic(AbstractHttpConfigurer::disable)

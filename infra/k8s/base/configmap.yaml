@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zunftgewerk-config
+  namespace: zunftgewerk
+data:
+  api-url: "https://api.zunftgewerk.app"
+  landing-url: "https://zunftgewerk.app"
+  web-url: "https://app.zunftgewerk.app"
+  cors-allowed-origins: "https://zunftgewerk.app,https://app.zunftgewerk.app"
+  passkey-rp-id: "app.zunftgewerk.app"
+  passkey-origin: "https://app.zunftgewerk.app"

@@ -5,6 +5,7 @@ import { CircleCheck, CircleX, Loader2, RefreshCcw } from "lucide-react";
 
 import { OnboardingStepper } from "@/components/onboarding/onboarding-stepper";
 import { AccountStep } from "@/components/onboarding/steps/account-step";
+import { BillingStep } from "@/components/onboarding/steps/billing-step";
 import { CompleteStep } from "@/components/onboarding/steps/complete-step";
 import { PlanStep } from "@/components/onboarding/steps/plan-step";
 import { SigninStep } from "@/components/onboarding/steps/signin-step";
@@ -250,7 +251,15 @@ export function OnboardingWizard({
                   />
                 )}
 
-                {(flow.currentStep === "billing" || flow.currentStep === "complete") && (
+                {flow.currentStep === "billing" && (
+                  <BillingStep
+                    selectedPlan={flow.selectedPlan}
+                    billingInterval={flow.billingInterval}
+                    onSkipToComplete={() => flow.setCurrentStep("complete")}
+                  />
+                )}
+
+                {flow.currentStep === "complete" && (
                   <CompleteStep />
                 )}
               </motion.div>

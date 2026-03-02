@@ -11,5 +11,6 @@ import java.util.UUID;
 public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity, UUID> {
     Optional<RefreshTokenEntity> findByTokenHash(String tokenHash);
     List<RefreshTokenEntity> findByFamilyId(UUID familyId);
+    List<RefreshTokenEntity> findByUserId(UUID userId);
     void deleteByExpiresAtBefore(OffsetDateTime cutoff);
 }

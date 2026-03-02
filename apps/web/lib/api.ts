@@ -10,6 +10,7 @@ export type ApiRequest = {
 export async function apiRequest<T>({ path, method = 'GET', body, token }: ApiRequest): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {})

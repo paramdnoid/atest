@@ -1,0 +1,48 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: zunftgewerk-ingress
+  namespace: zunftgewerk
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - zunftgewerk.app
+        - app.zunftgewerk.app
+        - api.zunftgewerk.app
+      secretName: zunftgewerk-tls
+  rules:
+    - host: zunftgewerk.app
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: zunftgewerk-landing
+                port:
+                  number: 3000
+    - host: app.zunftgewerk.app
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: zunftgewerk-web
+                port:
+                  number: 3001
+    - host: api.zunftgewerk.app
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: zunftgewerk-api
+                port:
+                  number: 8080

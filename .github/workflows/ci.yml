@@ -19,6 +19,7 @@ jobs:
       - run: pnpm install --frozen-lockfile=false
       - run: pnpm --filter @zunftgewerk/landing build
       - run: pnpm --filter @zunftgewerk/web build
+      - run: pnpm --filter @zunftgewerk/mobile exec tsc --noEmit
 
   api:
     runs-on: ubuntu-latest
@@ -30,3 +31,200 @@ jobs:
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v3
       - run: cd services/api && gradle test
+      - run: cd services/api && gradle jacocoTestReport
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: services/api/build/reports/jacoco/test/html/
+          retention-days: 7
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [web, api]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: zunftgewerk
+          POSTGRES_USER: zunftgewerk
+          POSTGRES_PASSWORD: zunftgewerk
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+      E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+      E2E_ADMIN_TOTP_SECRET: ${{ secrets.E2E_ADMIN_TOTP_SECRET }}
+      MFA_ENCRYPTION_KEY: ${{ secrets.MFA_ENCRYPTION_KEY }}
+      PGPASSWORD: zunftgewerk
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile=false
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @zunftgewerk/web exec playwright install --with-deps chromium
+
+      - name: Build testClasses (downloads Argon2 jars for seeding)
+        run: cd services/api && gradle testClasses
+
+      - name: Start API in background
+        run: |
+          cd services/api
+          DATABASE_URL=jdbc:postgresql://localhost:5432/zunftgewerk \
+          DATABASE_USERNAME=zunftgewerk \
+          DATABASE_PASSWORD=zunftgewerk \
+          REDIS_HOST=localhost \
+          REDIS_PORT=6379 \
+          MFA_ENCRYPTION_KEY="${MFA_ENCRYPTION_KEY}" \
+          nohup gradle bootRun --no-daemon > /tmp/api.log 2>&1 &
+          echo "API PID: $!"
+
+      - name: Wait for API to be ready
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
+              echo "API ready after ${i}s"
+              break
+            fi
+            echo "Waiting... (${i}s)"
+            sleep 2
+          done
+          curl -sf http://localhost:8080/actuator/health || (cat /tmp/api.log && exit 1)
+
+      - name: Seed E2E test user
+        run: bash scripts/e2e-seed-ci.sh
+
+      - name: Run E2E tests
+        run: pnpm --filter @zunftgewerk/web test:e2e
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3001
+          E2E_API_BASE_URL: http://localhost:8080
+          PASSKEY_ORIGIN: http://127.0.0.1:3001
+          CI: true
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [docker, e2e]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Apply manifests
+        run: kubectl apply -k infra/k8s/base/
+
+      - name: Update image tags to current commit SHA
+        run: |
+          OWNER="${{ github.repository_owner }}"
+          SHA="${{ github.sha }}"
+          kubectl set image deployment/zunftgewerk-api \
+            api=ghcr.io/${OWNER}/zunftgewerk-api:${SHA} \
+            -n zunftgewerk
+          kubectl set image deployment/zunftgewerk-landing \
+            landing=ghcr.io/${OWNER}/zunftgewerk-landing:${SHA} \
+            -n zunftgewerk
+          kubectl set image deployment/zunftgewerk-web \
+            web=ghcr.io/${OWNER}/zunftgewerk-web:${SHA} \
+            -n zunftgewerk
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/zunftgewerk-api -n zunftgewerk --timeout=5m
+          kubectl rollout status deployment/zunftgewerk-landing -n zunftgewerk --timeout=5m
+          kubectl rollout status deployment/zunftgewerk-web -n zunftgewerk --timeout=5m
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: [web, api]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.api
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/zunftgewerk-api:latest,ghcr.io/${{ github.repository_owner }}/zunftgewerk-api:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Landing image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.landing
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/zunftgewerk-landing:latest,ghcr.io/${{ github.repository_owner }}/zunftgewerk-landing:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Web image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.web
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/zunftgewerk-web:latest,ghcr.io/${{ github.repository_owner }}/zunftgewerk-web:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

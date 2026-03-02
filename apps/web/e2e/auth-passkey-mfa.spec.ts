@@ -38,10 +38,10 @@ async function loginWithPasswordToMfaStage(page: Page): Promise<void> {
   await expect(mfaStatus).toBeVisible();
 }
 
-async function submitMfa(page: Page, code: string): Promise<void> {
+async function submitMfaAndExpectDashboard(page: Page, code: string): Promise<void> {
   await page.locator('input[placeholder="123456"]').fill(code);
-  await page.getByRole('button', { name: 'MFA bestaetigen' }).click();
-  await expect(page.getByText('MFA bestaetigt.')).toBeVisible();
+  await page.getByRole('button', { name: 'MFA bestätigen' }).click();
+  await page.waitForURL('**/dashboard', { timeout: 15_000 });
 }
 
 async function registerPasskeyAndCompleteMfa(page: Page): Promise<void> {
@@ -52,7 +52,7 @@ async function registerPasskeyAndCompleteMfa(page: Page): Promise<void> {
   await expect(page.getByText('MFA erforderlich. Bitte Code eingeben.')).toBeVisible();
 
   const code = await generateStableTotpCode(cfg.adminTotpSecret);
-  await submitMfa(page, code);
+  await submitMfaAndExpectDashboard(page, code);
 }
 
 async function authenticateWithPasskeyToMfaStage(page: Page): Promise<void> {
@@ -80,37 +80,39 @@ test.describe('auth webauthn + mfa step-up', () => {
     }
   });
 
-  test('happy path: passkey authenticate + mfa step-up succeeds', async ({ page }) => {
+  test('happy path: password login + mfa → passkey register + mfa → passkey auth + mfa', async ({ page }) => {
+    // Step 1: Password login with MFA step-up
     const firstCode = await generateStableTotpCode(cfg.adminTotpSecret);
     await loginWithPasswordToMfaStage(page);
-    await submitMfa(page, firstCode);
-    await expect(page.getByText('Access Token:')).toBeVisible();
-    await expect(page.getByText('MFA-Verifikation fehlgeschlagen')).toHaveCount(0);
+    await submitMfaAndExpectDashboard(page, firstCode);
 
+    // Step 2: Register passkey with MFA step-up
     await openSignIn(page);
     await registerPasskeyAndCompleteMfa(page);
-    await expect(page.getByText('Access Token:')).toBeVisible();
 
+    // Step 3: Authenticate with registered passkey + MFA step-up
     await openSignIn(page);
     await authenticateWithPasskeyToMfaStage(page);
     const secondCode = await generateStableTotpCode(cfg.adminTotpSecret);
-    await submitMfa(page, secondCode);
+    await submitMfaAndExpectDashboard(page, secondCode);
 
-    await expect(page.getByText('Access Token:')).toBeVisible();
+    await expect(page).toHaveURL(/\/dashboard/);
     await expect(page.getByText('MFA-Verifikation fehlgeschlagen')).toHaveCount(0);
   });
 
-  test('negative: passkey authenticate + invalid mfa code is rejected', async ({ page }) => {
+  test('negative: invalid mfa code is rejected, stays on signin', async ({ page }) => {
+    // Register passkey first (requires MFA step-up)
     await registerPasskeyAndCompleteMfa(page);
-    await expect(page.getByText('Access Token:')).toBeVisible();
 
+    // Navigate back to signin and authenticate with passkey
     await openSignIn(page);
     await authenticateWithPasskeyToMfaStage(page);
 
+    // Submit invalid TOTP code
     await page.locator('input[placeholder="123456"]').fill('000000');
-    await page.getByRole('button', { name: 'MFA bestaetigen' }).click();
+    await page.getByRole('button', { name: 'MFA bestätigen' }).click();
 
     await expect(page.getByText(/MFA-Verifikation fehlgeschlagen|Invalid MFA code/i)).toBeVisible();
-    await expect(page.getByText('Access Token:')).toHaveCount(0);
+    await expect(page).toHaveURL(/\/signin/);
   });
 });
