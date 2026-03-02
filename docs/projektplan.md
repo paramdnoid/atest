@@ -1,19 +1,19 @@
 # Vollständiger Projektplan — Zunftgewerk
 
 > Erstellt: 2026-03-02 | Basis: vollständiges Monorepo-Audit
-> Zuletzt aktualisiert: 2026-03-02 (Session 5 — MFA Management implementiert ✅)
+> Zuletzt aktualisiert: 2026-03-02 (Session 6 — Code-Qualität & Bug-Fixes ✅)
 
 ---
 
-## Status-Übersicht
+## Status-Übersicht (Stand: 2026-03-02, Session 6)
 
 | Bereich | Fertig | Kommentar |
 |---|---|---|
-| `apps/landing` | ~98% | Dynamische Preise ✅, Billing-Step ✅, Employees ✅, MFA Management ✅ |
-| `apps/web` | ~91% | Dashboard ✅, alle Seiten ✅, Auth ✅, Cookie-Fix ✅, MFA Management ✅ |
-| `services/api` | ~99% | Billing ✅, Team-API ✅, Feature-Flags ✅, DSGVO-Delete ✅, Audit-Export ✅ |
-| `apps/mobile` | ~65% | Auth + Navigation + Dashboard + Sync-Stub + Settings; formale iOS/Android-Abnahme noch offen |
-| CI/CD | 100% | Docker ✅, K8s ✅, E2E ✅, Jacoco ✅, Deploy ✅, Mobile TypeCheck ✅ |
+| `apps/landing` | **99%** | Dynamische Preise ✅, Billing-Step ✅, Employees ✅, MFA Management ✅, **Code-Qualität ✅** |
+| `apps/web` | **92%** | Dashboard ✅, alle Seiten ✅, Auth ✅, Cookie-Fix ✅, MFA Management ✅, **router.refresh() Bug ✅** |
+| `services/api` | **99%** | Billing ✅, Team-API ✅, Feature-Flags ✅, DSGVO-Delete ✅, Audit-Export ✅ |
+| `apps/mobile` | **65%** | Auth + Navigation + Dashboard + Sync-Stub + Settings; formale iOS/Android-Abnahme noch offen |
+| CI/CD | **100%** | Docker ✅, K8s ✅, E2E ✅, Jacoco ✅, Deploy ✅, Mobile TypeCheck ✅ |
 
 ---
 
@@ -36,7 +36,13 @@
 
 - ✅ `stripeBilling: true` gesetzt
 - ✅ `passkeyAuth: true` gesetzt
-- ⏳ `mfaEnforcementAdmin` — nach Tests aktivieren (Vorsicht: blockiert Admin-Login ohne MFA)
+- ⏳ `mfaEnforcementAdmin` — **noch zu testen**:
+  - Backend-Logik existiert und ist getestet
+  - **Nächste Schritte**:
+    1. Manuell mit Admin-User anmelden → sollte MFA erzwingen
+    2. Nach erfolgreichem Test: `mfaEnforcementAdmin: true` in `application.yml` setzen
+    3. `.env.example` dokumentieren
+  - **Vorsicht**: blockiert Admin-Login ohne aktive MFA
 
 ### ✅ P1.3 — Stripe Billing testen & verbinden
 
@@ -83,8 +89,13 @@
 - ✅ `infra/k8s/base/ingress.yaml` — nginx Ingress mit TLS für 3 Domains
 - ✅ `infra/k8s/base/configmap.yaml` — Prod-Config-Werte
 - ✅ `infra/k8s/base/kustomization.yaml` — alle Ressourcen verknüpft
-- ✅ `infra/k8s/base/secrets-template.yaml` — Template mit Anleitung (alle Werte `REPLACE_ME`); `KUBECONFIG_B64` GitHub Secret erforderlich für `deploy`-Job
-- ⏳ **Secrets-Management**: `zunftgewerk-secrets` K8s Secret manuell anlegen (JWT-Keys, Stripe, MFA-Key); `KUBECONFIG_B64` in GitHub Repo-Secrets setzen
+- ✅ `infra/k8s/base/secrets-template.yaml` — Template mit Anleitung (alle Werte `REPLACE_ME`)
+- ⏳ **Secrets-Management (noch zu erledigen)**:
+  1. `zunftgewerk-secrets` K8s Secret **manuell anlegen** (JWT-Keys, Stripe, MFA-Encryption-Key, etc.)
+     - Vorlage: `infra/k8s/base/secrets-template.yaml`
+  2. `KUBECONFIG_B64` Secret **in GitHub Repo-Settings** setzen
+     - Base64-encoded kubeconfig file für Production-Cluster
+  3. Nach Setup: `.github/workflows/ci.yml` `deploy`-Job kann deployen
 
 ### ✅ P2.3 — Dynamische Preispläne
 
@@ -159,7 +170,7 @@ Per CLAUDE.md existieren:
 - ✅ `IdentityService.disableMfa()` mit Transaktion und Audit-Recording
 - ✅ `SecurityConfig` aktualisiert: `/v1/auth/mfa/**` als `permitAll` (Cookie/Bearer-Auth im Controller)
 
-**Frontend-Komponenten (Next.js `apps/web`):**
+**Frontend-Komponenten (Next.js `apps/landing`):**
 - ✅ `lib/mfa-api.ts` — Token-Akquisition, JWT-Parsing, Enable/Disable/Status-Funktionen
 - ✅ `components/dashboard/mfa-section.tsx` — MFA-Status-Badge und Button-Controls
 - ✅ `components/dashboard/mfa-setup-dialog.tsx` — 4-stufiger Dialog (Loading → QR-Code → Backup-Codes → Bestätigung)
@@ -168,6 +179,17 @@ Per CLAUDE.md existieren:
 - ✅ `react-qr-code` Package integriert für QR-Code-Rendering
 - ✅ TypeScript-Typprüfung: Alle Komponenten bestehen `pnpm typecheck`
 - ✅ Backend-Compilation: `gradle testClasses` erfolgreich
+
+**Code-Qualität (Session 6) — ✅ ABGESCHLOSSEN:**
+- ✅ Alle UI-Strings → Deutsch (Setup-Dialog, Disable-Dialog, Fehlermeldungen, Toast-Meldungen)
+- ✅ Base64url JWT-Dekodierung gefixt (`-`/`_` → `+`/`/` Konvertierung vor `atob()`)
+- ✅ `enableMfa()` & `disableMfa()` nutzen `fetchApi()` statt direkter `fetch()`
+- ✅ `enableMfa()` propagiert echte Server-Fehler (`{ error: string }` statt `null`)
+- ✅ Clipboard-Operationen: async/await + try/catch + Toast-Fehlerbehandlung
+- ✅ Beide Dialoge nutzen `DialogFooter` statt raw `<div>`
+- ✅ Fehlerfarbe: `text-red-600` → `text-destructive` (Design-System-konsistent)
+- ✅ Cancel-Button: raw `<button>` → `<Button variant="outline">`
+- ✅ Bug-Fix `apps/web` signin: `router.refresh()` nach Login-Redirect (beide Flows)
 
 ---
 
@@ -260,6 +282,65 @@ Residual Risk (bewusst deferred):
 - `SyncGrpcService` ist komplett implementiert
 - Mobile-App `syncClient.ts` hat `SyncTransport` Interface — aber kein gRPC-Client
 - Proto-Definitionen in `packages/proto/` — Code-Gen für Mobile fehlt
+
+---
+
+## 📋 Noch zu erledigende Punkte (Session 7+)
+
+### Kritisch für Production (P1 + P2)
+
+| Priority | Task | Owner | Dauer | Blockers |
+|---|---|---|---|---|
+| **P1.2** | `mfaEnforcementAdmin` Flag aktivieren | QA/Dev | ~30min | — |
+| **P2.2** | K8s Secrets anlegen + `KUBECONFIG_B64` GitHub Secret setzen | DevOps/Admin | ~1h | — |
+
+**P1.2 Checklist:**
+- [ ] MFA im Settings aktivieren mit Admin-User
+- [ ] Neu anmelden als Admin → MFA wird erzwungen ✓
+- [ ] `mfaEnforcementAdmin: true` in `application.yml` setzen
+- [ ] `.env.example` aktualisieren
+
+**P2.2 Checklist:**
+- [ ] `infra/k8s/base/secrets-template.yaml` mit echten Werten befüllen:
+  - `JWT_PRIVATE_KEY_PEM`, `JWT_PUBLIC_KEY_PEM`
+  - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+  - `MFA_ENCRYPTION_KEY`
+  - `OPENROUTESERVICE_API_KEY` (falls verwendet)
+- [ ] `kubectl apply -f infra/k8s/base/secrets-template.yaml` in Prod-Cluster
+- [ ] `KUBECONFIG_B64` (base64-encoded kubeconfig) zu GitHub Repo-Secrets hinzufügen
+- [ ] CI `deploy`-Job testen
+
+### Optional / Niedrig-Priorität (P4)
+
+| Priority | Task | Owner | Dauer | Blockers |
+|---|---|---|---|---|
+| **P4.1** | Mobile iOS Acceptance Testing (12 Test-Cases) | Mobile QA | ~2h | iOS Simulator |
+| **P4.1** | Mobile Android Acceptance Testing (12 Test-Cases) | Mobile QA | ~2h | Android SDK/Emulator |
+| **P4.4** | gRPC Sync: Proto Code-Gen für Mobile | Dev | ~1 Woche | — |
+
+**P4.1 iOS Acceptance Checklist (siehe Tabelle weiter unten):**
+```
+AUTH-01 .. GUARD-01 → müssen alle auf iOS Simulator oder Device PASS sein
+```
+
+**P4.1 Android Acceptance:** Android SDK/Emulator erforderlich (nicht in dieser Umgebung)
+
+---
+
+## 📊 Session 6 Summary
+
+### ✅ Abgeschlossen
+1. **Code-Qualität MFA**: Alle UI-Strings → Deutsch, Error-Handling, API-Konsistenz
+2. **Bug-Fixes**:
+   - Base64url JWT-Dekodierung gefixt
+   - `router.refresh()` nach Login-Redirect in `apps/web`
+   - Clipboard-Fehlerbehandlung in Setup-Dialog
+3. **TypeScript-Checks**: Alle Komponenten ✓, keine Fehler
+
+### ⏳ Nächste Schritte
+1. Manual Test: MFA mit Admin-User → Flag aktivieren (P1.2, ~30min)
+2. K8s Secrets Setup (P2.2, ~1h)
+3. Optional: Mobile Acceptance (P4.1, ~4h Gesamtaufwand)
 
 ---
 

@@ -29,9 +29,12 @@ export function extractUserIdFromJwt(token: string): string | null {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
-    const decoded = atob(parts[1]);
-    const payload = JSON.parse(decoded);
-    return payload.sub || null;
+    // Base64url → Base64 conversion
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, "=");
+    const decoded = atob(padded);
+    const payload = JSON.parse(decoded) as { sub?: string };
+    return payload.sub ?? null;
   } catch (err) {
     console.error("Failed to extract user ID from JWT:", err);
     return null;
@@ -55,29 +58,28 @@ export async function fetchMfaStatus(): Promise<{ mfaEnabled: boolean } | null> 
 
 /**
  * Calls POST /v1/auth/mfa/enable with Bearer JWT.
- * Returns the enrollment data or null on failure.
+ * Returns the enrollment data or { error: string } on failure.
  */
-export async function enableMfa(accessToken: string, userId: string): Promise<MfaEnrollment | null> {
+export async function enableMfa(accessToken: string, userId: string): Promise<MfaEnrollment | { error: string }> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/v1/auth/mfa/enable`, {
+    const response = await fetchApi("/v1/auth/mfa/enable", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify({ userId }),
-      credentials: "include",
     });
 
+    const data = await response.json();
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to enable MFA");
+      return { error: data.error || "MFA-Aktivierung fehlgeschlagen" };
     }
 
-    return await response.json();
+    return data as MfaEnrollment;
   } catch (err) {
     console.error("Failed to enable MFA:", err);
-    return null;
+    return { error: (err as Error).message || "MFA-Aktivierung fehlgeschlagen" };
   }
 }
 
@@ -91,7 +93,7 @@ export async function disableMfa(
   backupCode: string | null
 ): Promise<{ disabled: boolean } | { error: string }> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/v1/auth/mfa/disable`, {
+    const response = await fetchApi("/v1/auth/mfa/disable", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -101,17 +103,16 @@ export async function disableMfa(
         code: code || null,
         backupCode: backupCode || null
       }),
-      credentials: "include",
     });
 
     const data = await response.json();
     if (!response.ok) {
-      return { error: data.error || "Failed to disable MFA" };
+      return { error: data.error || "MFA-Deaktivierung fehlgeschlagen" };
     }
 
     return { disabled: true };
   } catch (err) {
     console.error("Failed to disable MFA:", err);
-    return { error: (err as Error).message || "An error occurred" };
+    return { error: (err as Error).message || "Ein Fehler ist aufgetreten" };
   }
 }

@@ -8,9 +8,11 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { LoadingButton } from "@/components/ui/loading-button";
+import { Button } from "@/components/ui/button";
 import { acquireAccessToken, disableMfa } from "@/lib/mfa-api";
 
 interface MfaDisableDialogProps {
@@ -26,7 +28,7 @@ export function MfaDisableDialog({ open, onOpenChange, onSuccess }: MfaDisableDi
 
   const handleSubmit = async () => {
     if (!code.trim()) {
-      setError("Code is required");
+      setError("Bitte Code eingeben.");
       return;
     }
 
@@ -36,7 +38,7 @@ export function MfaDisableDialog({ open, onOpenChange, onSuccess }: MfaDisableDi
     try {
       const accessToken = await acquireAccessToken();
       if (!accessToken) {
-        setError("Failed to acquire access token");
+        setError("Sitzung abgelaufen. Bitte neu anmelden.");
         setPending(false);
         return;
       }
@@ -55,13 +57,13 @@ export function MfaDisableDialog({ open, onOpenChange, onSuccess }: MfaDisableDi
         return;
       }
 
-      toast.success("MFA disabled successfully");
+      toast.success("MFA wurde erfolgreich deaktiviert.");
       setCode("");
       setError("");
       onOpenChange(false);
       onSuccess();
     } catch (err) {
-      setError((err as Error).message || "An error occurred");
+      setError((err as Error).message || "Ein Fehler ist aufgetreten.");
     } finally {
       setPending(false);
     }
@@ -79,15 +81,15 @@ export function MfaDisableDialog({ open, onOpenChange, onSuccess }: MfaDisableDi
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Disable 2FA</DialogTitle>
+          <DialogTitle>Zwei-Faktor-Authentifizierung deaktivieren</DialogTitle>
           <DialogDescription>
-            Enter your 6-digit code or a backup code to disable two-factor authentication.
+            Geben Sie Ihren 6-stelligen Code oder einen Backup-Code ein, um die Zwei-Faktor-Authentifizierung zu deaktivieren.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <Input
-            placeholder="Enter 6-digit code or backup code"
+            placeholder="6-stelliger Code oder Backup-Code"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             onKeyDown={(e) => {
@@ -98,21 +100,17 @@ export function MfaDisableDialog({ open, onOpenChange, onSuccess }: MfaDisableDi
             disabled={pending}
             autoComplete="off"
           />
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
-        <div className="flex justify-end gap-2">
-          <button
-            onClick={() => handleOpenChange(false)}
-            disabled={pending}
-            className="px-4 py-2 text-sm font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-          >
-            Cancel
-          </button>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={pending}>
+            Abbrechen
+          </Button>
           <LoadingButton onClick={handleSubmit} pending={pending} variant="destructive">
-            Disable MFA
+            MFA deaktivieren
           </LoadingButton>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

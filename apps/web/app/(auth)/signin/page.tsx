@@ -32,18 +32,29 @@ export default function SignInPage() {
     [],
   );
 
+  function resetMfaState() {
+    setStage('CREDENTIALS');
+    setUserId('');
+    setMfaToken('');
+    setMfaCode('');
+    setBackupCode('');
+  }
+
   function applyLoginResponse(response: LoginResponse) {
     setUserId(response.userId);
 
     if (response.state === 'MFA_REQUIRED') {
       setStage('MFA');
       setMfaToken(response.mfaToken);
+      setMfaCode('');
+      setBackupCode('');
       setStatus('MFA erforderlich. Bitte Code eingeben.');
       return;
     }
 
     localStorage.setItem('zg_access_token', response.accessToken);
     router.push('/dashboard');
+    router.refresh();
   }
 
   const handleCredentialLogin = async (event: FormEvent) => {
@@ -90,8 +101,23 @@ export default function SignInPage() {
       const response = await verifyMfa(userId, mfaToken, mfaCode, backupCode);
       localStorage.setItem('zg_access_token', response.accessToken);
       router.push('/dashboard');
+      router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'MFA-Verifikation fehlgeschlagen');
+      const message = err instanceof Error ? err.message : 'MFA-Verifikation fehlgeschlagen';
+      const normalized = message.toLowerCase();
+      const tokenExpiredOrInvalid =
+        normalized.includes('jwt expired') ||
+        normalized.includes('invalid mfa token') ||
+        normalized.includes('invalid jwt signature') ||
+        normalized.includes('jwt verification failed');
+
+      if (tokenExpiredOrInvalid) {
+        resetMfaState();
+        setStatus('MFA-Session abgelaufen. Bitte erneut anmelden.');
+        return;
+      }
+
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -112,6 +138,7 @@ export default function SignInPage() {
               <input
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                 type="email"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@betrieb.ch"
@@ -123,6 +150,7 @@ export default function SignInPage() {
               <input
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                 type="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
@@ -159,6 +187,9 @@ export default function SignInPage() {
               <label className="mb-1 block text-sm font-medium">TOTP Code</label>
               <input
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                type="text"
+                autoComplete="one-time-code"
+                inputMode="numeric"
                 value={mfaCode}
                 onChange={(e) => setMfaCode(e.target.value)}
                 placeholder="123456"
@@ -168,6 +199,8 @@ export default function SignInPage() {
               <label className="mb-1 block text-sm font-medium">Backup Code (optional)</label>
               <input
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                type="text"
+                autoComplete="off"
                 value={backupCode}
                 onChange={(e) => setBackupCode(e.target.value)}
                 placeholder="backup-code"

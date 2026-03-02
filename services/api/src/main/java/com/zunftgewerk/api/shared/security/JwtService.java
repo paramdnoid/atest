@@ -12,6 +12,7 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 import java.security.KeyFactory;
@@ -40,6 +41,7 @@ public class JwtService {
     private final String audience;
     private final String kid;
     private final Duration accessTtl;
+    private final Duration mfaTtl;
 
     private final RSAPrivateKey privateKey;
     private final RSAPublicKey publicKey;
@@ -49,19 +51,33 @@ public class JwtService {
         @Value("${zunftgewerk.security.jwt-audience}") String audience,
         @Value("${zunftgewerk.security.jwt-kid}") String kid,
         @Value("${zunftgewerk.security.jwt-access-ttl-seconds}") long accessTtlSeconds,
+        @Value("${zunftgewerk.security.jwt-mfa-ttl-seconds:900}") long mfaTtlSeconds,
         @Value("${zunftgewerk.security.jwt-private-key-pem:}") String privateKeyPem,
-        @Value("${zunftgewerk.security.jwt-public-key-pem:}") String publicKeyPem
+        @Value("${zunftgewerk.security.jwt-public-key-pem:}") String publicKeyPem,
+        Environment environment
     ) {
         this.issuer = issuer;
         this.audience = audience;
         this.kid = kid;
         this.accessTtl = Duration.ofSeconds(accessTtlSeconds);
+        this.mfaTtl = Duration.ofSeconds(mfaTtlSeconds);
 
         try {
-            if (!privateKeyPem.isBlank() && !publicKeyPem.isBlank()) {
+            boolean hasPrivateKey = privateKeyPem != null && !privateKeyPem.isBlank();
+            boolean hasPublicKey = publicKeyPem != null && !publicKeyPem.isBlank();
+            if (hasPrivateKey != hasPublicKey) {
+                throw new IllegalStateException("Both JWT_PRIVATE_KEY_PEM and JWT_PUBLIC_KEY_PEM must be configured together");
+            }
+
+            if (hasPrivateKey) {
                 this.privateKey = (RSAPrivateKey) parsePrivateKey(privateKeyPem);
                 this.publicKey = (RSAPublicKey) parsePublicKey(publicKeyPem);
             } else {
+                if (SecurityRuntimePolicy.requiresStrictSecrets(environment)) {
+                    throw new IllegalStateException(
+                        "JWT_PRIVATE_KEY_PEM and JWT_PUBLIC_KEY_PEM are required outside local/test environments"
+                    );
+                }
                 KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
                 generator.initialize(2048);
                 KeyPair keyPair = generator.generateKeyPair();
@@ -95,7 +111,7 @@ public class JwtService {
 
     public String issueMfaToken(UUID userId, UUID tenantId, List<String> roles) {
         Instant now = Instant.now();
-        Instant exp = now.plus(Duration.ofMinutes(5));
+        Instant exp = now.plus(mfaTtl);
 
         JWTClaimsSet claims = new JWTClaimsSet.Builder()
             .issuer(issuer)

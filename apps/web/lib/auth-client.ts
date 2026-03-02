@@ -40,7 +40,7 @@ export type LoginMfaRequiredResponse = {
 export type LoginResponse = LoginAuthenticatedResponse | LoginMfaRequiredResponse;
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
-  return postJson<LoginResponse>('/auth/login', { email, password });
+  return postJson<LoginResponse>('/v1/auth/login', { email, password });
 }
 
 export type PasskeyBeginResponse = {
@@ -51,7 +51,7 @@ export type PasskeyBeginResponse = {
 };
 
 export async function beginPasskey(email: string, mode: 'register' | 'authenticate'): Promise<PasskeyBeginResponse> {
-  return postJson<PasskeyBeginResponse>('/auth/passkey/begin', { email, mode });
+  return postJson<PasskeyBeginResponse>('/v1/auth/passkey/begin', { email, mode });
 }
 
 export async function verifyPasskey(
@@ -60,11 +60,11 @@ export async function verifyPasskey(
   credentialJson: string,
   mode: 'register' | 'authenticate'
 ): Promise<LoginResponse> {
-  return postJson<LoginResponse>('/auth/passkey/verify', { email, challengeId, credentialJson, mode });
+  return postJson<LoginResponse>('/v1/auth/passkey/verify', { email, challengeId, credentialJson, mode });
 }
 
 export async function verifyMfa(userId: string, mfaToken: string, code?: string, backupCode?: string) {
-  return postJson<{ verified: boolean; accessToken: string; expiresAt: string }>('/auth/mfa/verify', {
+  return postJson<{ verified: boolean; accessToken: string; expiresAt: string }>('/v1/auth/mfa/verify', {
     userId,
     mfaToken,
     code: code ?? '',
@@ -73,5 +73,5 @@ export async function verifyMfa(userId: string, mfaToken: string, code?: string,
 }
 
 export async function refreshSession() {
-  return postJson<{ accessToken: string; expiresAt: string }>('/auth/refresh', {});
+  return postJson<{ accessToken: string; expiresAt: string }>('/v1/auth/refresh', {});
 }

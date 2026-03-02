@@ -25,24 +25,14 @@ spec:
               containerPort: 8080
             - name: grpc
               containerPort: 9090
+          envFrom:
+            - secretRef:
+                name: zunftgewerk-secrets
           env:
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: zunftgewerk-secrets
-                  key: database-url
-            - name: DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: zunftgewerk-secrets
-                  key: database-username
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: zunftgewerk-secrets
-                  key: database-password
             - name: JWT_ISSUER
               value: zunftgewerk-prod
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
           resources:
             requests:
               cpu: "250m"

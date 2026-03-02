@@ -9,6 +9,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,21 +39,21 @@ export function MfaSetupDialog({ open, onOpenChange, onSuccess }: MfaSetupDialog
     const initEnrollment = async () => {
       const accessToken = await acquireAccessToken();
       if (!accessToken) {
-        setErrorMessage("Failed to acquire access token");
+        setErrorMessage("Sitzung abgelaufen. Bitte neu anmelden.");
         setStep("error");
         return;
       }
 
       const userId = extractUserIdFromJwt(accessToken);
       if (!userId) {
-        setErrorMessage("Failed to extract user ID from token");
+        setErrorMessage("Authentifizierung fehlgeschlagen.");
         setStep("error");
         return;
       }
 
       const enrollmentData = await enableMfa(accessToken, userId);
-      if (!enrollmentData) {
-        setErrorMessage("Failed to enable MFA");
+      if ("error" in enrollmentData) {
+        setErrorMessage(enrollmentData.error);
         setStep("error");
         return;
       }
@@ -72,21 +73,29 @@ export function MfaSetupDialog({ open, onOpenChange, onSuccess }: MfaSetupDialog
     onOpenChange(false);
   };
 
-  const handleCopyCode = (code: string, index: number) => {
-    navigator.clipboard.writeText(code);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
+  const handleCopyCode = async (code: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch {
+      toast.error("Kopieren fehlgeschlagen.");
+    }
   };
 
-  const handleCopyAllCodes = () => {
+  const handleCopyAllCodes = async () => {
     if (!enrollment) return;
-    const allCodes = enrollment.backupCodes.join("\n");
-    navigator.clipboard.writeText(allCodes);
-    toast.success("All backup codes copied!");
+    try {
+      const allCodes = enrollment.backupCodes.join("\n");
+      await navigator.clipboard.writeText(allCodes);
+      toast.success("Alle Backup-Codes kopiert!");
+    } catch {
+      toast.error("Kopieren fehlgeschlagen.");
+    }
   };
 
   const handleSuccess = () => {
-    toast.success("MFA enabled successfully!");
+    toast.success("MFA wurde erfolgreich aktiviert.");
     handleClose();
     onSuccess();
   };
@@ -97,8 +106,8 @@ export function MfaSetupDialog({ open, onOpenChange, onSuccess }: MfaSetupDialog
         {step === "loading" && (
           <>
             <DialogHeader>
-              <DialogTitle>Setting up 2FA</DialogTitle>
-              <DialogDescription>Please wait while we generate your setup...</DialogDescription>
+              <DialogTitle>Zwei-Faktor-Authentifizierung einrichten</DialogTitle>
+              <DialogDescription>Bitte warten, wir richten Ihre MFA ein...</DialogDescription>
             </DialogHeader>
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
@@ -109,25 +118,25 @@ export function MfaSetupDialog({ open, onOpenChange, onSuccess }: MfaSetupDialog
         {step === "error" && (
           <>
             <DialogHeader>
-              <DialogTitle>Setup Error</DialogTitle>
+              <DialogTitle>Fehler beim Einrichten</DialogTitle>
             </DialogHeader>
             <div className="py-4">
-              <p className="text-sm text-red-600">{errorMessage}</p>
+              <p className="text-sm text-destructive">{errorMessage}</p>
             </div>
-            <div className="flex justify-end gap-2">
+            <DialogFooter>
               <Button onClick={handleClose} variant="outline">
-                Close
+                Schließen
               </Button>
-            </div>
+            </DialogFooter>
           </>
         )}
 
         {step === "qr" && enrollment && (
           <>
             <DialogHeader>
-              <DialogTitle>Scan QR Code</DialogTitle>
+              <DialogTitle>QR-Code scannen</DialogTitle>
               <DialogDescription>
-                Use your authenticator app (Google Authenticator, Authy, etc.) to scan this QR code.
+                Scannen Sie diesen QR-Code mit Ihrer Authenticator-App (z. B. Google Authenticator, Authy).
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col items-center gap-6 py-6">
@@ -135,26 +144,26 @@ export function MfaSetupDialog({ open, onOpenChange, onSuccess }: MfaSetupDialog
                 <QRCode value={enrollment.provisioningUri} size={192} level="M" />
               </div>
               <div>
-                <p className="text-xs text-gray-600 mb-2">Or enter this code manually:</p>
+                <p className="text-xs text-gray-600 mb-2">Oder Code manuell eingeben:</p>
                 <code className="block p-3 bg-gray-100 rounded text-sm font-mono text-center">
                   {enrollment.secret}
                 </code>
               </div>
             </div>
-            <div className="flex justify-end gap-2">
+            <DialogFooter>
               <Button onClick={() => setStep("backup")} className="gap-2">
-                Continue to Backup Codes
+                Weiter zu Backup-Codes
               </Button>
-            </div>
+            </DialogFooter>
           </>
         )}
 
         {step === "backup" && enrollment && (
           <>
             <DialogHeader>
-              <DialogTitle>Backup Codes</DialogTitle>
+              <DialogTitle>Backup-Codes</DialogTitle>
               <DialogDescription>
-                Save these codes in a safe place. You can use one code if you lose access to your authenticator.
+                Bewahren Sie diese Codes an einem sicheren Ort auf. Sie können einen Code verwenden, wenn Sie den Zugriff auf Ihre Authenticator-App verlieren.
               </DialogDescription>
             </DialogHeader>
             <div className="py-6">
@@ -173,12 +182,12 @@ export function MfaSetupDialog({ open, onOpenChange, onSuccess }: MfaSetupDialog
                 ))}
               </div>
             </div>
-            <div className="flex justify-between gap-2">
+            <DialogFooter>
               <Button onClick={handleCopyAllCodes} variant="outline">
-                Copy All
+                Alle kopieren
               </Button>
-              <Button onClick={handleSuccess}>Done</Button>
-            </div>
+              <Button onClick={handleSuccess}>Fertig</Button>
+            </DialogFooter>
           </>
         )}
       </DialogContent>

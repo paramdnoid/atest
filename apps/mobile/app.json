@@ -2,10 +2,13 @@
   "expo": {
     "name": "Zunftgewerk",
     "slug": "zunftgewerk",
+    "scheme": "zunftgewerk",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.zunftgewerk.mobile"
@@ -13,6 +16,8 @@
     "android": {
       "package": "com.zunftgewerk.mobile"
     },
-    "plugins": []
+    "plugins": [
+      "expo-router"
+    ]
   }
 }
