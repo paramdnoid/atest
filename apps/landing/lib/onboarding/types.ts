@@ -18,6 +18,31 @@ export type OnboardingPlan = {
   featureHighlights: string[];
 };
 
+export type OnboardingAddress = {
+  formatted: string;
+  line1: string;
+  line2: string;
+  postalCode: string;
+  city: string;
+  countryCode: "DE" | "AT" | "CH" | "";
+  latitude: number | null;
+  longitude: number | null;
+  provider: string;
+  providerPlaceId: string;
+};
+
+export type AddressSuggestion = {
+  placeId: string;
+  label: string;
+  line1: string;
+  postalCode: string;
+  city: string;
+  countryCode: "DE" | "AT" | "CH";
+  latitude: number;
+  longitude: number;
+  provider: string;
+};
+
 export type OnboardingStatus = {
   authenticated: boolean;
   userId: string | null;

@@ -1,0 +1,51 @@
+import { cookies } from "next/headers";
+
+export type Session = {
+  userId: string;
+  email: string;
+  workspaceId: string;
+  role: string;
+  canManageBilling: boolean;
+  subscription: {
+    planCode: string;
+    status: string;
+    billingInterval: string;
+    hasStripeCustomer: boolean;
+    hasStripeSubscription: boolean;
+  } | null;
+  billingState: string;
+};
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+
+export async function getSession(): Promise<Session | null> {
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore
+    .getAll()
+    .map((c) => `${c.name}=${c.value}`)
+    .join("; ");
+
+  try {
+    const res = await fetch(`${API_URL}/v1/onboarding/status`, {
+      headers: { Cookie: cookieHeader },
+      cache: "no-store",
+    });
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    if (!data.authenticated || !data.userId || !data.workspaceId) return null;
+
+    return {
+      userId: data.userId,
+      email: data.email,
+      workspaceId: data.workspaceId,
+      role: data.role ?? "member",
+      canManageBilling: data.canManageBilling ?? false,
+      subscription: data.subscription ?? null,
+      billingState: data.billingState ?? "none",
+    };
+  } catch {
+    return null;
+  }
+}

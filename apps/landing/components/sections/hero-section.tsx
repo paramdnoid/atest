@@ -139,8 +139,8 @@ export function HeroSection() {
           <FadeIn delay={0.5} duration={0.7} direction="left">
             <motion.div
               className="relative mx-auto mt-6 w-full max-w-[calc(100vw-2rem)] perspective-[520px] sm:mt-8 sm:max-w-xl sm:perspective-[600px] lg:mt-0 lg:ml-auto lg:max-w-[min(58vw,52rem)] lg:origin-center xl:max-w-[min(56vw,56rem)]"
-              initial={prefersReduced !== false ? false : { opacity: 0, y: 36, scale: 0.97 }}
-              animate={prefersReduced !== false ? {} : { opacity: 1, y: 0, scale: 1 }}
+              initial={prefersReduced === true ? false : { opacity: 0, y: 36, scale: 0.97 }}
+              animate={prefersReduced === true ? {} : { opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
             >
               <div className="group relative transform-none transition-transform duration-700 ease-out sm:transform-[rotateY(-14deg)_rotateX(5deg)] hover:sm:transform-[rotateY(-4deg)_rotateX(2deg)]">

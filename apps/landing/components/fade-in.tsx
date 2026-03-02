@@ -40,7 +40,9 @@ export const FadeIn = memo(function FadeIn({
   const isInView = useInView(ref, { once, amount });
   const prefersReducedMotion = useReducedMotion();
 
-  if (prefersReducedMotion !== false) {
+  // null = SSR / preference not yet resolved → render motion.div (matches client default)
+  // true = user explicitly wants reduced motion → render plain div
+  if (prefersReducedMotion === true) {
     return <div className={className}>{children}</div>;
   }
 
@@ -80,7 +82,7 @@ export const StaggerChildren = memo(function StaggerChildren({
   const isInView = useInView(ref, { once, amount });
   const prefersReducedMotion = useReducedMotion();
 
-  if (prefersReducedMotion !== false) {
+  if (prefersReducedMotion === true) {
     return <div className={className}>{children}</div>;
   }
 
@@ -111,7 +113,7 @@ export const StaggerItem = memo(function StaggerItem({
 }) {
   const prefersReducedMotion = useReducedMotion();
 
-  if (prefersReducedMotion !== false) {
+  if (prefersReducedMotion === true) {
     return <div className={className}>{children}</div>;
   }
 

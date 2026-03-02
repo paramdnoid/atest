@@ -61,10 +61,14 @@ function FeaturesScene() {
 }
 
 export function FeaturesSceneWrapper() {
+  const [mounted, setMounted] = useState(false);
   const prefersReducedMotion = useReducedMotion();
 
-  // null = preference not yet known; true = user prefers reduced motion
-  if (prefersReducedMotion !== false) return null;
+  useEffect(() => setMounted(true), []);
+
+  // Render nothing until after hydration so server and client initial output match.
+  // Also skip for users who prefer reduced motion.
+  if (!mounted || prefersReducedMotion) return null;
 
   return (
     <SceneErrorBoundary>

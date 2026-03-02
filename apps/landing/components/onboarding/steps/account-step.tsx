@@ -4,11 +4,13 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Building2, UserRound } from "lucide-react";
 
+import { AddressAutocomplete } from "@/components/onboarding/address-autocomplete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { cn } from "@/lib/utils";
+import type { AddressSuggestion, OnboardingAddress } from "@/lib/onboarding/types";
 
 export type AccountFormValues = {
   fullName: string;
@@ -16,11 +18,24 @@ export type AccountFormValues = {
   email: string;
   password: string;
   tradeSlug: string;
-  addressLine1: string;
-  addressPostalCode: string;
-  addressCity: string;
-  addressCountryCode: string;
+  addressQuery: string;
+  address: OnboardingAddress;
 };
+
+function buildDefaultAddress(): OnboardingAddress {
+  return {
+    formatted: "",
+    line1: "",
+    line2: "",
+    postalCode: "",
+    city: "",
+    countryCode: "DE",
+    latitude: null,
+    longitude: null,
+    provider: "",
+    providerPlaceId: "",
+  };
+}
 
 export function buildDefaultAccountValues(): AccountFormValues {
   return {
@@ -29,10 +44,8 @@ export function buildDefaultAccountValues(): AccountFormValues {
     email: "",
     password: "",
     tradeSlug: "",
-    addressLine1: "",
-    addressPostalCode: "",
-    addressCity: "",
-    addressCountryCode: "DE",
+    addressQuery: "",
+    address: buildDefaultAddress(),
   };
 }
 
@@ -54,7 +67,17 @@ export function AccountStep({
   const [subStep, setSubStep] = useState<"access" | "business">("access");
 
   return (
-    <div className="space-y-3">
+    <form
+      className="space-y-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (subStep === "access") {
+          setSubStep("business");
+        } else {
+          onSubmit();
+        }
+      }}
+    >
       <div className="onboarding-segmented-control billing-enterprise-panel rounded-xl border border-border/70 p-1.5">
         <div className="grid grid-cols-2 gap-1.5 text-[11px] font-semibold uppercase tracking-[0.09em]">
           {(["access", "business"] as const).map((tab) => (
@@ -95,6 +118,7 @@ export function AccountStep({
               <Label htmlFor="full-name">Vollständiger Name</Label>
               <Input
                 id="full-name"
+                name="name"
                 className="h-10"
                 value={values.fullName}
                 onChange={(e) => onChange({ ...values, fullName: e.target.value })}
@@ -106,6 +130,7 @@ export function AccountStep({
               <Label htmlFor="account-email">E-Mail</Label>
               <Input
                 id="account-email"
+                name="email"
                 type="email"
                 className="h-10"
                 value={values.email}
@@ -134,6 +159,7 @@ export function AccountStep({
               <Label htmlFor="account-password">Passwort (mindestens 12 Zeichen)</Label>
               <Input
                 id="account-password"
+                name="new-password"
                 type="password"
                 className="h-10"
                 value={values.password}
@@ -144,7 +170,7 @@ export function AccountStep({
             </div>
           </div>
           <div className="mt-4 flex justify-end">
-            <Button type="button" onClick={() => setSubStep("business")}>
+            <Button type="submit">
               Weiter zu Betrieb
             </Button>
           </div>
@@ -164,6 +190,7 @@ export function AccountStep({
               <Label htmlFor="workspace-name">Name des Betriebs</Label>
               <Input
                 id="workspace-name"
+                name="organization"
                 className="h-10"
                 value={values.workspaceName}
                 onChange={(e) => onChange({ ...values, workspaceName: e.target.value })}
@@ -173,22 +200,54 @@ export function AccountStep({
             </div>
             <div className="space-y-1.5 md:col-span-2">
               <Label htmlFor="address-line1">Straße & Hausnummer</Label>
-              <Input
+              <AddressAutocomplete
                 id="address-line1"
+                value={values.addressQuery}
+                onChange={(v) => onChange({ ...values, addressQuery: v })}
+                onSelect={(s: AddressSuggestion) =>
+                  onChange({
+                    ...values,
+                    addressQuery: s.line1,
+                    address: {
+                      ...values.address,
+                      formatted: s.label,
+                      line1: s.line1,
+                      postalCode: s.postalCode,
+                      city: s.city,
+                      countryCode: s.countryCode,
+                      latitude: s.latitude,
+                      longitude: s.longitude,
+                      provider: s.provider,
+                      providerPlaceId: s.placeId,
+                    },
+                  })
+                }
+              />
+            </div>
+            <div className="space-y-1.5 md:col-span-2">
+              <Label htmlFor="address-line2">Adresszusatz</Label>
+              <Input
+                id="address-line2"
+                name="address-line2"
                 className="h-10"
-                value={values.addressLine1}
-                onChange={(e) => onChange({ ...values, addressLine1: e.target.value })}
-                placeholder="Musterstraße 1"
-                autoComplete="street-address"
+                value={values.address.line2}
+                onChange={(e) =>
+                  onChange({ ...values, address: { ...values.address, line2: e.target.value } })
+                }
+                placeholder="Etage, Appartement, c/o …"
+                autoComplete="address-line2"
               />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="address-postal">PLZ</Label>
               <Input
                 id="address-postal"
+                name="postal-code"
                 className="h-10"
-                value={values.addressPostalCode}
-                onChange={(e) => onChange({ ...values, addressPostalCode: e.target.value })}
+                value={values.address.postalCode}
+                onChange={(e) =>
+                  onChange({ ...values, address: { ...values.address, postalCode: e.target.value } })
+                }
                 placeholder="12345"
                 autoComplete="postal-code"
               />
@@ -197,9 +256,12 @@ export function AccountStep({
               <Label htmlFor="address-city">Ort</Label>
               <Input
                 id="address-city"
+                name="address-level2"
                 className="h-10"
-                value={values.addressCity}
-                onChange={(e) => onChange({ ...values, addressCity: e.target.value })}
+                value={values.address.city}
+                onChange={(e) =>
+                  onChange({ ...values, address: { ...values.address, city: e.target.value } })
+                }
                 placeholder="Berlin"
                 autoComplete="address-level2"
               />
@@ -208,8 +270,18 @@ export function AccountStep({
               <Label htmlFor="address-country">Land</Label>
               <select
                 id="address-country"
-                value={values.addressCountryCode}
-                onChange={(e) => onChange({ ...values, addressCountryCode: e.target.value })}
+                name="country"
+                autoComplete="country"
+                value={values.address.countryCode}
+                onChange={(e) =>
+                  onChange({
+                    ...values,
+                    address: {
+                      ...values.address,
+                      countryCode: e.target.value as "DE" | "AT" | "CH",
+                    },
+                  })
+                }
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px] focus-visible:outline-none"
               >
                 <option value="DE">Deutschland</option>
@@ -223,10 +295,9 @@ export function AccountStep({
               Zurück
             </Button>
             <LoadingButton
-              type="button"
+              type="submit"
               pending={pending}
               pendingText="Konto erstellen..."
-              onClick={onSubmit}
             >
               Konto erstellen
             </LoadingButton>
@@ -241,6 +312,6 @@ export function AccountStep({
           </Button>
         </div>
       )}
-    </div>
+    </form>
   );
 }

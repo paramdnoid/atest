@@ -164,7 +164,7 @@ function FeatureList({
           </>
         );
 
-        if (prefersReduced !== false) {
+        if (prefersReduced === true) {
           return (
             <li key={feature.label} className="flex items-start gap-2.5">
               {item}

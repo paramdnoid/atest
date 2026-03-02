@@ -24,6 +24,9 @@ public class TenantEntity {
     @Column(name = "address_json")
     private String addressJson;
 
+    @Column(name = "device_registration_token")
+    private String deviceRegistrationToken;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
@@ -65,5 +68,13 @@ public class TenantEntity {
 
     public void setAddressJson(String addressJson) {
         this.addressJson = addressJson;
+    }
+
+    public String getDeviceRegistrationToken() {
+        return deviceRegistrationToken;
+    }
+
+    public void setDeviceRegistrationToken(String deviceRegistrationToken) {
+        this.deviceRegistrationToken = deviceRegistrationToken;
     }
 }

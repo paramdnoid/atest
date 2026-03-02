@@ -9,9 +9,9 @@ public final class PlanCatalog {
 
     public static List<PlanDefinition> plans() {
         return List.of(
-            new PlanDefinition("starter", "Starter", 5, "monthly", 4900),
-            new PlanDefinition("business", "Business", 25, "monthly", 19900),
-            new PlanDefinition("enterprise", "Enterprise", 9999, "yearly", 0)
+            new PlanDefinition("free", "Free", 5, "monthly", 0),
+            new PlanDefinition("starter", "Starter", 5, "monthly", 19900),
+            new PlanDefinition("professional", "Professional", 10, "monthly", 39900)
         );
     }
 

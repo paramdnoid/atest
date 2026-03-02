@@ -1,5 +1,6 @@
 package com.zunftgewerk.api.modules.identity.service;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
@@ -26,6 +27,12 @@ public class EmailService {
     @Autowired(required = false)
     private JavaMailSender mailSender;
 
+    @Autowired
+    private MeterRegistry meterRegistry;
+
+    @Value("${spring.mail.host:localhost}")
+    private String smtpHost;
+
     @Value("${zunftgewerk.email.from:noreply@localhost}")
     private String fromAddress;
 
@@ -35,6 +42,10 @@ public class EmailService {
     @Value("${zunftgewerk.email.api-base-url:http://localhost:8080}")
     private String apiBaseUrl;
 
+    private boolean isDevMode() {
+        return mailSender == null || "localhost".equals(smtpHost) || smtpHost.isBlank();
+    }
+
     /**
      * Sends the email-verification link to a newly registered user.
      *
@@ -43,7 +54,7 @@ public class EmailService {
      */
     public void sendVerificationEmail(String toEmail, String rawToken) {
         String link = apiBaseUrl + "/v1/auth/verify-email?token=" + rawToken;
-        if (mailSender == null) {
+        if (isDevMode()) {
             log.info("[EMAIL] Verification → {} | from={} | link={}", toEmail, fromAddress, link);
             return;
         }
@@ -56,7 +67,8 @@ public class EmailService {
             helper.setText(buildVerificationHtml(link), true);
             mailSender.send(msg);
             log.debug("[EMAIL] Verification sent → {}", toEmail);
-        } catch (MessagingException | UnsupportedEncodingException ex) {
+        } catch (Exception ex) {
+            meterRegistry.counter("email_send_failures_total", "type", "verification").increment();
             log.error("[EMAIL] Failed to send verification email to {}", toEmail, ex);
         }
     }
@@ -68,7 +80,7 @@ public class EmailService {
      * @param rawToken the plain-text reset code to display in the email
      */
     public void sendPasswordResetEmail(String toEmail, String rawToken) {
-        if (mailSender == null) {
+        if (isDevMode()) {
             log.info("[EMAIL] Password reset → {} | from={} | code={}", toEmail, fromAddress, rawToken);
             return;
         }
@@ -81,7 +93,8 @@ public class EmailService {
             helper.setText(buildPasswordResetHtml(rawToken), true);
             mailSender.send(msg);
             log.debug("[EMAIL] Password reset sent → {}", toEmail);
-        } catch (MessagingException | UnsupportedEncodingException ex) {
+        } catch (Exception ex) {
+            meterRegistry.counter("email_send_failures_total", "type", "password_reset").increment();
             log.error("[EMAIL] Failed to send password reset email to {}", toEmail, ex);
         }
     }

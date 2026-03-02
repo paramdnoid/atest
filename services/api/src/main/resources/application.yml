@@ -19,15 +19,17 @@ spring:
       port: ${REDIS_PORT:6379}
   mail:
     host: ${SMTP_HOST:localhost}
-    port: ${SMTP_PORT:587}
+    port: ${SMTP_PORT:1025}
     username: ${SMTP_USER:}
     password: ${SMTP_PASS:}
     properties:
       mail:
         smtp:
-          auth: true
+          auth: ${SMTP_AUTH:false}
           starttls:
-            enable: true
+            enable: ${SMTP_STARTTLS:false}
+          ssl:
+            enable: ${SMTP_SSL:false}
 
 management:
   endpoints:

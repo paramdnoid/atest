@@ -2,6 +2,7 @@
 
 import { LogIn, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { fetchApi } from "@/lib/api-client";
@@ -11,8 +12,6 @@ import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3001";
-
 type Step = "credentials" | "mfa";
 
 type MfaContext = {
@@ -21,6 +20,7 @@ type MfaContext = {
 };
 
 export function LoginForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [step, setStep] = useState<Step>("credentials");
@@ -31,7 +31,8 @@ export function LoginForm() {
   const [pending, setPending] = useState(false);
 
   function redirectToDashboard() {
-    window.location.href = `${APP_URL}/dashboard`;
+    router.push("/dashboard");
+    router.refresh();
   }
 
   async function handleCredentials(e: React.FormEvent) {

@@ -1,5 +1,16 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "leaflet/dist/leaflet.css";
+
+.leaflet-control-zoom {
+  z-index: 30 !important;
+}
+.leaflet-control-zoom a {
+  width: 22px !important;
+  height: 22px !important;
+  line-height: 22px !important;
+  font-size: 14px !important;
+}
 
 @custom-variant dark (&:is(.dark *));
 

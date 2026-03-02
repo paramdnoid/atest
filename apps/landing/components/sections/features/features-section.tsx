@@ -52,7 +52,7 @@ export function FeaturesSection() {
             Von Disposition bis Dokumentation: Alle Kernprozesse greifen nahtlos ineinander
             und halten Ihr Team auch unterwegs produktiv.
           </p>
-          {prefersReduced !== false ? (
+          {prefersReduced === true ? (
             <div aria-hidden="true" className="premium-divider mx-auto mt-4 w-56" />
           ) : (
             <motion.div
@@ -66,7 +66,7 @@ export function FeaturesSection() {
           )}
         </FadeIn>
 
-        {prefersReduced !== false ? <StaticGrid /> : <Features3DCarousel />}
+        {prefersReduced === true ? <StaticGrid /> : <Features3DCarousel />}
       </SectionContainer>
     </section>
   );

@@ -188,7 +188,7 @@ export function useOnboardingFlow(
       setErrorMessage("Bitte alle Pflichtfelder ausfüllen.");
       return;
     }
-    if (!accountValues.addressLine1 || !accountValues.addressPostalCode || !accountValues.addressCity) {
+    if (!accountValues.address.line1 || !accountValues.address.postalCode || !accountValues.address.city) {
       setErrorMessage("Bitte eine vollständige Betriebsadresse angeben.");
       return;
     }
@@ -208,18 +208,7 @@ export function useOnboardingFlow(
           fullName: accountValues.fullName,
           workspaceName: accountValues.workspaceName,
           tradeSlug: accountValues.tradeSlug,
-          address: {
-            line1: accountValues.addressLine1,
-            line2: "",
-            postalCode: accountValues.addressPostalCode,
-            city: accountValues.addressCity,
-            countryCode: accountValues.addressCountryCode,
-            formatted: `${accountValues.addressLine1}, ${accountValues.addressPostalCode} ${accountValues.addressCity}`,
-            latitude: null,
-            longitude: null,
-            provider: "",
-            providerPlaceId: "",
-          },
+          address: accountValues.address,
           planCode: selectedPlanCode,
         }),
       });
