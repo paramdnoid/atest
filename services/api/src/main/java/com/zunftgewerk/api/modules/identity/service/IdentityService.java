@@ -16,6 +16,7 @@ import com.zunftgewerk.api.proto.v1.PasskeyMode;
 import com.zunftgewerk.api.shared.audit.AuditEventType;
 import com.zunftgewerk.api.shared.security.JwtPrincipal;
 import com.zunftgewerk.api.shared.security.JwtService;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +40,7 @@ public class IdentityService {
     private final MfaService mfaService;
     private final PasskeyService passkeyService;
     private final AuditService auditService;
+    private final MeterRegistry meterRegistry;
 
     public IdentityService(
         UserRepository userRepository,
@@ -49,7 +51,8 @@ public class IdentityService {
         RefreshTokenService refreshTokenService,
         MfaService mfaService,
         PasskeyService passkeyService,
-        AuditService auditService
+        AuditService auditService,
+        MeterRegistry meterRegistry
     ) {
         this.userRepository = userRepository;
         this.membershipRepository = membershipRepository;
@@ -60,6 +63,7 @@ public class IdentityService {
         this.mfaService = mfaService;
         this.passkeyService = passkeyService;
         this.auditService = auditService;
+        this.meterRegistry = meterRegistry;
     }
 
     @Transactional
@@ -209,8 +213,31 @@ public class IdentityService {
             refreshTokenService.revokeFamily(ex.getFamilyId());
             auditService.record(ex.getTenantId(), ex.getUserId(), AuditEventType.REFRESH_REUSE_DETECTED, "{}");
             auditService.record(ex.getTenantId(), ex.getUserId(), AuditEventType.SESSION_REVOKED, "{}");
+            meterRegistry.counter("auth_refresh_reuse_detected_total").increment();
             throw ex;
         }
+    }
+
+    @Transactional
+    public boolean logout(String rawRefreshToken) {
+        RefreshTokenService.FamilyRevocationResult revocation = refreshTokenService.revokeFamilyByRawToken(rawRefreshToken);
+        if (!revocation.found()) {
+            return false;
+        }
+
+        auditService.record(revocation.tenantId(), revocation.userId(), AuditEventType.SESSION_REVOKED, "{\"source\":\"logout\"}");
+        return true;
+    }
+
+    @Transactional
+    public boolean revokeTokenFamily(String rawRefreshToken) {
+        RefreshTokenService.FamilyRevocationResult revocation = refreshTokenService.revokeFamilyByRawToken(rawRefreshToken);
+        if (!revocation.found()) {
+            return false;
+        }
+
+        auditService.record(revocation.tenantId(), revocation.userId(), AuditEventType.SESSION_REVOKED, "{\"source\":\"revoke_family\"}");
+        return true;
     }
 
     private LoginResult issueAuthenticatedLogin(UserEntity user, SessionContext sessionContext, boolean mfa, List<String> amr) {

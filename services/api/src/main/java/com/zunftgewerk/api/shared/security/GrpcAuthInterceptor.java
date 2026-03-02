@@ -1,6 +1,7 @@
 package com.zunftgewerk.api.shared.security;
 
 import io.grpc.Metadata;
+import io.grpc.Grpc;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
@@ -8,6 +9,7 @@ import io.grpc.Status;
 import net.devh.boot.grpc.server.interceptor.GrpcGlobalServerInterceptor;
 import org.springframework.stereotype.Component;
 
+import java.net.SocketAddress;
 import java.util.Set;
 
 @Component
@@ -22,7 +24,9 @@ public class GrpcAuthInterceptor implements ServerInterceptor {
         "zunftgewerk.v1.AuthService/BeginPasskey",
         "zunftgewerk.v1.AuthService/VerifyPasskey",
         "zunftgewerk.v1.AuthService/VerifyMfa",
-        "zunftgewerk.v1.AuthService/RefreshToken"
+        "zunftgewerk.v1.AuthService/RefreshToken",
+        "zunftgewerk.v1.AuthService/Logout",
+        "zunftgewerk.v1.AuthService/RevokeTokenFamily"
     );
 
     private final JwtService jwtService;
@@ -37,14 +41,16 @@ public class GrpcAuthInterceptor implements ServerInterceptor {
         Metadata headers,
         ServerCallHandler<ReqT, RespT> next
     ) {
+        GrpcRequestContextHolder.setPeerAddress(resolvePeerAddress(call));
         String method = call.getMethodDescriptor().getFullMethodName();
         if (PUBLIC_METHODS.contains(method)) {
-            return next.startCall(call, headers);
+            return new ForwardingServerCallListener<>(next.startCall(call, headers));
         }
 
         String authorization = headers.get(AUTHORIZATION);
         if (authorization == null || !authorization.startsWith("Bearer ")) {
             call.close(Status.UNAUTHENTICATED.withDescription("Missing bearer token"), new Metadata());
+            GrpcRequestContextHolder.clear();
             return new ServerCall.Listener<>() {
             };
         }
@@ -55,6 +61,8 @@ public class GrpcAuthInterceptor implements ServerInterceptor {
             return new ForwardingServerCallListener<>(next.startCall(call, headers));
         } catch (Exception ex) {
             call.close(Status.UNAUTHENTICATED.withDescription("Invalid token"), new Metadata());
+            AuthPrincipalHolder.clear();
+            GrpcRequestContextHolder.clear();
             return new ServerCall.Listener<>() {
             };
         }
@@ -76,12 +84,14 @@ public class GrpcAuthInterceptor implements ServerInterceptor {
         @Override
         public void onCancel() {
             AuthPrincipalHolder.clear();
+            GrpcRequestContextHolder.clear();
             delegate.onCancel();
         }
 
         @Override
         public void onComplete() {
             AuthPrincipalHolder.clear();
+            GrpcRequestContextHolder.clear();
             delegate.onComplete();
         }
 
@@ -94,5 +104,10 @@ public class GrpcAuthInterceptor implements ServerInterceptor {
         public void onMessage(ReqT message) {
             delegate.onMessage(message);
         }
+    }
+
+    private <ReqT, RespT> String resolvePeerAddress(ServerCall<ReqT, RespT> call) {
+        SocketAddress address = call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR);
+        return address == null ? "grpc-unknown" : address.toString();
     }
 }

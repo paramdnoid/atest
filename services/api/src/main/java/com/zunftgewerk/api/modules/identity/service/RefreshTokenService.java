@@ -67,6 +67,22 @@ public class RefreshTokenService {
         }
     }
 
+    @Transactional
+    public FamilyRevocationResult revokeFamilyByRawToken(String rawRefreshToken) {
+        if (rawRefreshToken == null || rawRefreshToken.isBlank()) {
+            return FamilyRevocationResult.notFound();
+        }
+
+        String tokenHash = tokenHashService.hash(rawRefreshToken);
+        RefreshTokenEntity token = refreshTokenRepository.findByTokenHash(tokenHash).orElse(null);
+        if (token == null) {
+            return FamilyRevocationResult.notFound();
+        }
+
+        revokeFamily(token.getFamilyId());
+        return new FamilyRevocationResult(true, token.getFamilyId(), token.getUserId(), token.getTenantId());
+    }
+
     private IssuedRefreshToken issue(UUID userId, UUID tenantId, UUID familyId, UUID rotatedFrom) {
         byte[] random = new byte[48];
         secureRandom.nextBytes(random);
@@ -90,6 +106,12 @@ public class RefreshTokenService {
     }
 
     public record RotationResult(String rawToken, UUID userId, UUID tenantId, UUID familyId) {
+    }
+
+    public record FamilyRevocationResult(boolean found, UUID familyId, UUID userId, UUID tenantId) {
+        public static FamilyRevocationResult notFound() {
+            return new FamilyRevocationResult(false, null, null, null);
+        }
     }
 
     public static class RefreshTokenReuseDetectedException extends RuntimeException {

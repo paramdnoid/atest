@@ -13,6 +13,10 @@ spring:
         format_sql: true
   flyway:
     enabled: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
 management:
   endpoints:
@@ -25,6 +29,23 @@ grpc:
     port: ${GRPC_PORT:9090}
 
 zunftgewerk:
+  auth:
+    cookie:
+      same-site: ${AUTH_COOKIE_SAMESITE:Lax}
+      secure: ${AUTH_COOKIE_SECURE:}
+      domain: ${AUTH_COOKIE_DOMAIN:}
+      path: ${AUTH_COOKIE_PATH:/}
+      max-age-seconds: ${AUTH_COOKIE_MAX_AGE_SECONDS:${JWT_REFRESH_TTL_SECONDS:2592000}}
+    rate-limit:
+      enabled: ${AUTH_RATE_LIMIT_ENABLED:true}
+      login-limit: ${AUTH_RATE_LIMIT_LOGIN_LIMIT:5}
+      login-window-seconds: ${AUTH_RATE_LIMIT_LOGIN_WINDOW_SECONDS:60}
+      passkey-limit: ${AUTH_RATE_LIMIT_PASSKEY_LIMIT:10}
+      passkey-window-seconds: ${AUTH_RATE_LIMIT_PASSKEY_WINDOW_SECONDS:60}
+      mfa-limit: ${AUTH_RATE_LIMIT_MFA_LIMIT:10}
+      mfa-window-seconds: ${AUTH_RATE_LIMIT_MFA_WINDOW_SECONDS:300}
+      refresh-limit: ${AUTH_RATE_LIMIT_REFRESH_LIMIT:30}
+      refresh-window-seconds: ${AUTH_RATE_LIMIT_REFRESH_WINDOW_SECONDS:60}
   security:
     jwt-issuer: ${JWT_ISSUER:zunftgewerk-local}
     jwt-audience: ${JWT_AUDIENCE:zunftgewerk-clients}
@@ -48,6 +69,10 @@ zunftgewerk:
       max-attempts: ${STRIPE_RETRY_MAX_ATTEMPTS:5}
       base-delay-seconds: ${STRIPE_RETRY_BASE_DELAY_SECONDS:30}
       max-delay-seconds: ${STRIPE_RETRY_MAX_DELAY_SECONDS:3600}
+    ingest:
+      worker-enabled: ${STRIPE_INGEST_WORKER_ENABLED:true}
+      scan-interval-seconds: ${STRIPE_INGEST_SCAN_INTERVAL_SECONDS:5}
+      batch-size: ${STRIPE_INGEST_BATCH_SIZE:50}
     dead-letter:
       recovery-enabled: ${STRIPE_DEAD_LETTER_RECOVERY_ENABLED:true}
       recovery-interval-seconds: ${STRIPE_DEAD_LETTER_RECOVERY_INTERVAL_SECONDS:300}
