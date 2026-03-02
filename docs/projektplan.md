@@ -1,7 +1,7 @@
 # Vollständiger Projektplan — Zunftgewerk
 
 > Erstellt: 2026-03-02 | Basis: vollständiges Monorepo-Audit
-> Zuletzt aktualisiert: 2026-03-02 (Session 3 — alle P1–P4 Items abgeschlossen)
+> Zuletzt aktualisiert: 2026-03-02 (Session 5 — MFA Management implementiert ✅)
 
 ---
 
@@ -9,10 +9,10 @@
 
 | Bereich | Fertig | Kommentar |
 |---|---|---|
-| `apps/landing` | ~97% | Dynamische Preise ✅, Billing-Step ✅, Employees ✅ |
-| `apps/web` | ~90% | Dashboard ✅, alle Seiten ✅, Auth ✅, Cookie-Fix ✅ |
+| `apps/landing` | ~98% | Dynamische Preise ✅, Billing-Step ✅, Employees ✅, MFA Management ✅ |
+| `apps/web` | ~91% | Dashboard ✅, alle Seiten ✅, Auth ✅, Cookie-Fix ✅, MFA Management ✅ |
 | `services/api` | ~99% | Billing ✅, Team-API ✅, Feature-Flags ✅, DSGVO-Delete ✅, Audit-Export ✅ |
-| `apps/mobile` | ~15% | Nur Scaffold |
+| `apps/mobile` | ~65% | Auth + Navigation + Dashboard + Sync-Stub + Settings; formale iOS/Android-Abnahme noch offen |
 | CI/CD | 100% | Docker ✅, K8s ✅, E2E ✅, Jacoco ✅, Deploy ✅, Mobile TypeCheck ✅ |
 
 ---
@@ -149,18 +149,86 @@ Per CLAUDE.md existieren:
   - `AuditEventRepository` um `findByTenantIdOrderByOccurredAtDesc(UUID, Pageable)` erweitert
   - `/v1/admin/**` bereits in `SecurityConfig` als `permitAll` — kein Anpassungsbedarf
 
+### ✅ P3.5 — MFA Management System
+
+**Backend-Endpoints:**
+- ✅ `GET /v1/auth/mfa/status` — Cookie-basiert, zeigt aktuellen MFA-Status (enabled/disabled)
+- ✅ `POST /v1/auth/mfa/disable` — Bearer JWT, deaktiviert MFA nach Authentifizierung
+- ✅ `AuditEventType.MFA_DISABLED` Enum-Wert hinzugefügt
+- ✅ `MfaService.disable()` und `isMfaActive()` Methoden implementiert
+- ✅ `IdentityService.disableMfa()` mit Transaktion und Audit-Recording
+- ✅ `SecurityConfig` aktualisiert: `/v1/auth/mfa/**` als `permitAll` (Cookie/Bearer-Auth im Controller)
+
+**Frontend-Komponenten (Next.js `apps/web`):**
+- ✅ `lib/mfa-api.ts` — Token-Akquisition, JWT-Parsing, Enable/Disable/Status-Funktionen
+- ✅ `components/dashboard/mfa-section.tsx` — MFA-Status-Badge und Button-Controls
+- ✅ `components/dashboard/mfa-setup-dialog.tsx` — 4-stufiger Dialog (Loading → QR-Code → Backup-Codes → Bestätigung)
+- ✅ `components/dashboard/mfa-disable-dialog.tsx` — Code-Input mit TOTP/Backup-Code-Erkennung
+- ✅ Settings-Seite aktualisiert zur Anzeige des MFA-Status
+- ✅ `react-qr-code` Package integriert für QR-Code-Rendering
+- ✅ TypeScript-Typprüfung: Alle Komponenten bestehen `pnpm typecheck`
+- ✅ Backend-Compilation: `gradle testClasses` erfolgreich
+
 ---
 
 ## PRIORITÄT 4 — Niedrig (Zukunft)
 
-### P4.1 — Mobile App ausbauen
+### ⏳ P4.1 — Mobile App ausbauen (Close-out in Arbeit)
 
-Aktuell nur Scaffold (`HomeScreen` + Placeholder):
+Implementierter Baseline-Stand (`apps/mobile`):
 
-- Sync-Client (`syncClient.ts`) ist implementiert — UI fehlt
-- Encrypted Storage (`encryptedDb.ts`) — SQLCipher-Binding pending
-- Auth-Flow (Login + Token-Storage)
-- Offline-first Arbeitsjournal / Auftragsverwaltung
+- Expo Router Navigation mit `(auth)` und `(app)` Route-Gruppen
+- Login + MFA + Session-Refresh + Logout (SecureStore + Cookie-Refresh)
+- Dashboard mit API-Integration (`/v1/workspace/me`, Fallback `/v1/onboarding/status`, Plan-Code aus Billing-Summary)
+- Sync-Screen mit verdrahtetem `runSyncCycle()` über Stub-Transport
+- Settings-Screen mit E-Mail-Anzeige, App-Version und Abmeldung
+
+Close-out Preflight (2026-03-02, CET):
+
+- ✅ `pnpm --filter @zunftgewerk/mobile exec tsc --noEmit`
+- ✅ `CI=1 pnpm --filter @zunftgewerk/mobile exec expo start --clear --port 8091` (Metro bootet)
+- ✅ Seed-Workflow für MFA-Testuser erfolgreich:
+  - `make infra-up`
+  - `cd services/api && gradle testClasses`
+  - `./scripts/e2e-seed-web-user.sh`
+- ✅ API Healthcheck: `GET http://localhost:8080/actuator/health` → `{"status":"UP"}`
+
+**Acceptance Checklist (Core + Negative Cases)**
+
+- [ ] `AUTH-01` Unauthenticated cold start -> login visible
+- [ ] `AUTH-02` Valid credentials (MFA user) -> MFA route visible
+- [ ] `AUTH-03` Valid MFA code -> app tabs visible
+- [ ] `AUTH-04` Invalid password -> error message shown
+- [ ] `AUTH-05` Invalid MFA code -> error message shown
+- [ ] `DASH-01` Dashboard workspace details loaded
+- [ ] `DASH-02` Plan code displayed (billing summary or fallback)
+- [ ] `SYNC-01` Sync start -> loading -> success message -> timestamp persisted
+- [ ] `SET-01` Settings shows email and app version
+- [ ] `SET-02` Logout returns to login
+- [ ] `SESS-01` Relaunch restores session via refresh cookie
+- [ ] `GUARD-01` Unauthenticated guard redirects protected app routes
+
+**Acceptance Results (Required: iOS + Android)**
+
+| Date | Platform | Device/OS | API URL | Test User | Cases Passed / Total | Result | Notes |
+|---|---|---|---|---|---|---|---|
+| 2026-03-02 | iOS | Simulator verfügbar (`iOS 26.2`, z.B. `iPhone 17`) | `http://localhost:8080` | `andrzimmermann@gmx.de` | `0/12` | FAIL | Technische Preflights erfolgreich, aber keine vollständige manuelle End-to-End-Abnahme in dieser Terminal-Session ausgeführt |
+| 2026-03-02 | Android | `adb`/`emulator` CLI nicht verfügbar | `http://localhost:8080` | `andrzimmermann@gmx.de` | `0/12` | FAIL | Android-Abnahme blockiert, da lokale Android-Toolchain in dieser Umgebung fehlt |
+
+Blocking Issues (gemäß Exit-Gate):
+
+- `BLOCK-01` — Plattform: iOS — Betroffene Cases: `AUTH-01..GUARD-01`
+  - Observed: Keine dokumentierte manuelle End-to-End-Ausführung aller 12 Cases in dieser Session
+  - Expected: Vollständiger Durchlauf mit PASS pro Case
+  - Owner/Next Step: Mobile QA/Entwicklung führt vollständige iOS-Simulator- oder Device-Abnahme durch und trägt Resultate in Tabelle ein
+- `BLOCK-02` — Plattform: Android — Betroffene Cases: `AUTH-01..GUARD-01`
+  - Observed: `adb` und `emulator` nicht vorhanden (`command not found`)
+  - Expected: Laufende Android-Emulator- oder Device-Umgebung zur manuellen Abnahme
+  - Owner/Next Step: Android SDK/CLI installieren, Emulator/Device verbinden, vollständige Abnahme ausführen und Tabelle aktualisieren
+
+Residual Risk (bewusst deferred):
+
+- Non-MFA Login-Branch ist **nicht** Teil dieses Close-out-Gates und bleibt als Follow-up-Risiko offen.
 
 ### ✅ P4.2 — Observability
 
@@ -266,4 +334,5 @@ Dann:       P4.x (Mobile, Observability, gRPC)
 | Kein DSGVO-Lösch-Endpoint | ✅ `DELETE /v1/account` implementiert |
 | Kein E2E in CI | ✅ `e2e`-Job mit Playwright + Service-Containern |
 | Kein Deployment | ✅ Docker + K8s Manifeste + CI-Pipeline |
+| Kein MFA-Management UI | ✅ MFA Management vollständig mit Setup/Disable Dialogs |
 | Mobile nur Scaffold | ⏳ P4.1 — Sehr hoher Aufwand |

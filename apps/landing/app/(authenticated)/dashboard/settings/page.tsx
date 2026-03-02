@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { getSession } from "@/lib/session";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { WorkspaceSettingsForm } from "@/components/dashboard/workspace-settings-form";
+import { MfaSection } from "@/components/dashboard/mfa-section";
 
 export const metadata: Metadata = { title: "Einstellungen" };
 
@@ -19,6 +20,16 @@ async function fetchWorkspace(cookieHeader: string) {
   return res.json();
 }
 
+async function fetchMfaStatus(cookieHeader: string) {
+  const res = await fetch(`${API_URL}/v1/auth/mfa/status`, {
+    headers: { Cookie: cookieHeader },
+    cache: "no-store",
+  });
+  if (!res.ok) return false;
+  const data = await res.json();
+  return data.mfaEnabled === true;
+}
+
 export default async function SettingsPage() {
   const session = await getSession();
   if (!session) redirect("/login");
@@ -29,7 +40,11 @@ export default async function SettingsPage() {
     .map((c) => `${c.name}=${c.value}`)
     .join("; ");
 
-  const workspace = await fetchWorkspace(cookieHeader);
+  const [workspace, mfaEnabled] = await Promise.all([
+    fetchWorkspace(cookieHeader),
+    fetchMfaStatus(cookieHeader),
+  ]);
+
   if (!workspace) redirect("/login");
 
   return (
@@ -42,6 +57,7 @@ export default async function SettingsPage() {
         initialName={workspace.name}
         initialSlug={workspace.slug ?? ""}
       />
+      <MfaSection initialMfaEnabled={mfaEnabled} />
     </div>
   );
 }

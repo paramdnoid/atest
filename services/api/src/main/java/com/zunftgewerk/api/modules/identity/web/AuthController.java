@@ -7,6 +7,7 @@ import com.zunftgewerk.api.modules.identity.model.PasskeyBeginResult;
 import com.zunftgewerk.api.modules.identity.model.RefreshResult;
 import com.zunftgewerk.api.modules.identity.service.AuthRateLimitService;
 import com.zunftgewerk.api.modules.identity.service.IdentityService;
+import com.zunftgewerk.api.modules.identity.service.RefreshTokenService;
 import com.zunftgewerk.api.proto.v1.PasskeyMode;
 import com.zunftgewerk.api.shared.security.JwtPrincipal;
 import com.zunftgewerk.api.shared.security.JwtService;
@@ -39,6 +40,7 @@ public class AuthController {
     private final JwtService jwtService;
     private final AuthCookieService authCookieService;
     private final AuthRateLimitService authRateLimitService;
+    private final RefreshTokenService refreshTokenService;
     private final ObjectMapper objectMapper;
 
     @Value("${zunftgewerk.email.landing-base-url:http://localhost:3000}")
@@ -49,12 +51,14 @@ public class AuthController {
         JwtService jwtService,
         AuthCookieService authCookieService,
         AuthRateLimitService authRateLimitService,
+        RefreshTokenService refreshTokenService,
         ObjectMapper objectMapper
     ) {
         this.identityService = identityService;
         this.jwtService = jwtService;
         this.authCookieService = authCookieService;
         this.authRateLimitService = authRateLimitService;
+        this.refreshTokenService = refreshTokenService;
         this.objectMapper = objectMapper;
     }
 
@@ -271,6 +275,45 @@ public class AuthController {
         }
     }
 
+    @GetMapping("/mfa/status")
+    public ResponseEntity<?> getMfaStatus(
+        @RequestHeader(value = "Cookie", required = false) String cookieHeader
+    ) {
+        String rawToken = cookieHeader != null
+            ? extractCookie(cookieHeader, AuthCookieService.REFRESH_COOKIE)
+            : null;
+        java.util.Optional<RefreshTokenService.PeekedSession> session =
+            refreshTokenService.peekUser(rawToken);
+        if (session.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", "Nicht authentifiziert"));
+        }
+        boolean enabled = identityService.getMfaStatus(session.get().userId());
+        return ResponseEntity.ok(Map.of("mfaEnabled", enabled));
+    }
+
+    @PostMapping("/mfa/disable")
+    public ResponseEntity<?> disableMfa(
+        @RequestBody DisableMfaHttpRequest request,
+        @RequestHeader(value = "Authorization", required = false) String authorization
+    ) {
+        try {
+            if (authorization == null || !authorization.startsWith("Bearer ")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Bearer-Token fehlt"));
+            }
+            JwtPrincipal principal = jwtService.verifyAccessToken(
+                authorization.substring("Bearer ".length()));
+            identityService.disableMfa(principal.userId(), request.code(), request.backupCode());
+            return ResponseEntity.ok(Map.of("disabled", true));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "MFA-Deaktivierung fehlgeschlagen"));
+        }
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(
         @RequestBody(required = false) RefreshHttpRequest body,
@@ -443,6 +486,9 @@ public class AuthController {
     }
 
     public record EnableMfaHttpRequest(String userId) {
+    }
+
+    public record DisableMfaHttpRequest(String code, String backupCode) {
     }
 
     public record RefreshHttpRequest(String refreshToken) {

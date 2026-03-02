@@ -1,5 +1,6 @@
 package com.zunftgewerk.api.modules.identity.service;
 
+import com.zunftgewerk.api.config.FeatureFlagProperties;
 import com.zunftgewerk.api.modules.audit.service.AuditService;
 import com.zunftgewerk.api.modules.identity.entity.EmailVerificationTokenEntity;
 import com.zunftgewerk.api.modules.identity.entity.PasswordResetTokenEntity;
@@ -53,6 +54,7 @@ public class IdentityService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final TokenHashService tokenHashService;
     private final EmailService emailService;
+    private final FeatureFlagProperties featureFlagProperties;
 
     @Value("${zunftgewerk.email-verification.ttl-seconds:86400}")
     private long emailVerificationTtlSeconds;
@@ -74,7 +76,8 @@ public class IdentityService {
         EmailVerificationTokenRepository emailVerificationTokenRepository,
         PasswordResetTokenRepository passwordResetTokenRepository,
         TokenHashService tokenHashService,
-        EmailService emailService
+        EmailService emailService,
+        FeatureFlagProperties featureFlagProperties
     ) {
         this.userRepository = userRepository;
         this.membershipRepository = membershipRepository;
@@ -90,6 +93,7 @@ public class IdentityService {
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.tokenHashService = tokenHashService;
         this.emailService = emailService;
+        this.featureFlagProperties = featureFlagProperties;
     }
 
     @Transactional
@@ -195,6 +199,23 @@ public class IdentityService {
         auditService.record(sessionContext.tenantId(), userId, AuditEventType.MFA_ENABLED, "{}");
 
         return new MfaEnrollmentResult(enrollment.secret(), enrollment.provisioningUri(), enrollment.backupCodes());
+    }
+
+    public boolean getMfaStatus(UUID userId) {
+        return userRepository.findById(userId)
+            .map(UserEntity::isMfaEnabled)
+            .orElse(false);
+    }
+
+    @Transactional
+    public void disableMfa(UUID userId, String code, String backupCode) {
+        mfaService.disable(userId, code, backupCode);
+        UserEntity user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("Benutzer nicht gefunden"));
+        user.setMfaEnabled(false);
+        userRepository.save(user);
+        SessionContext sessionContext = loadSessionContext(userId);
+        auditService.record(sessionContext.tenantId(), userId, AuditEventType.MFA_DISABLED, "{}");
     }
 
     @Transactional
@@ -446,6 +467,9 @@ public class IdentityService {
     }
 
     private boolean requiresAdminMfa(List<String> roles) {
+        if (!featureFlagProperties.isMfaEnforcementAdmin()) {
+            return false;
+        }
         return roles.stream().anyMatch(ADMIN_ROLES::contains);
     }
 

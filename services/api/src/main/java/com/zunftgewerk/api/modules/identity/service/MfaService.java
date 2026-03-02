@@ -5,8 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.eatthepath.otp.TimeBasedOneTimePasswordGenerator;
 import com.zunftgewerk.api.modules.identity.entity.MfaSecretEntity;
 import com.zunftgewerk.api.modules.identity.repository.MfaSecretRepository;
+import com.zunftgewerk.api.shared.security.SecurityRuntimePolicy;
 import org.apache.commons.codec.binary.Base32;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.Cipher;
@@ -28,6 +30,8 @@ import java.util.UUID;
 @Service
 public class MfaService {
 
+    private static final String INSECURE_DEFAULT_ENCRYPTION_KEY = "dev-dev-dev-dev-dev-dev-dev-dev";
+
     private final MfaSecretRepository mfaSecretRepository;
     private final TokenHashService tokenHashService;
     private final ObjectMapper objectMapper;
@@ -38,12 +42,13 @@ public class MfaService {
         MfaSecretRepository mfaSecretRepository,
         TokenHashService tokenHashService,
         ObjectMapper objectMapper,
-        @Value("${zunftgewerk.security.mfa-encryption-key}") String encryptionKeySeed
+        @Value("${zunftgewerk.security.mfa-encryption-key}") String encryptionKeySeed,
+        Environment environment
     ) {
         this.mfaSecretRepository = mfaSecretRepository;
         this.tokenHashService = tokenHashService;
         this.objectMapper = objectMapper;
-        this.encryptionKey = deriveKey(encryptionKeySeed);
+        this.encryptionKey = deriveKey(validateEncryptionKey(encryptionKeySeed, environment));
     }
 
     public Enrollment enroll(UUID userId, String email) {
@@ -105,6 +110,24 @@ public class MfaService {
         }
     }
 
+    public boolean isMfaActive(UUID userId) {
+        return mfaSecretRepository.findById(userId)
+            .map(MfaSecretEntity::isEnabled)
+            .orElse(false);
+    }
+
+    public void disable(UUID userId, String code, String backupCode) {
+        boolean verified = verify(userId, code, backupCode);
+        if (!verified) {
+            throw new IllegalArgumentException("Ungültiger MFA-Code");
+        }
+        MfaSecretEntity entity = mfaSecretRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("MFA nicht konfiguriert"));
+        entity.setEnabled(false);
+        entity.setUpdatedAt(OffsetDateTime.now());
+        mfaSecretRepository.save(entity);
+    }
+
     private boolean consumeBackupCode(MfaSecretEntity entity, String backupCode) {
         List<String> hashes = readJson(entity.getBackupCodesHashes());
         String targetHash = tokenHashService.hash(backupCode.trim());
@@ -137,6 +160,17 @@ public class MfaService {
         } catch (Exception ex) {
             throw new IllegalStateException("Unable to derive MFA key", ex);
         }
+    }
+
+    private String validateEncryptionKey(String encryptionKeySeed, Environment environment) {
+        String key = encryptionKeySeed == null ? "" : encryptionKeySeed.trim();
+        if (SecurityRuntimePolicy.requiresStrictSecrets(environment)
+            && (key.isEmpty() || INSECURE_DEFAULT_ENCRYPTION_KEY.equals(key))) {
+            throw new IllegalStateException(
+                "MFA_ENCRYPTION_KEY must be configured with a non-default value outside local/test environments"
+            );
+        }
+        return key;
     }
 
     private String encrypt(String plaintext) {
