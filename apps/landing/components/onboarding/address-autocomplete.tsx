@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, MapPin } from "lucide-react";
+import { Loader2, LocateFixed, MapPin } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -27,6 +27,7 @@ export function AddressAutocomplete({
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,6 +81,30 @@ export function AddressAutocomplete({
     setSuggestions([]);
   }
 
+  async function handleGeolocate() {
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const res = await fetch(
+            `/api/address/reverse?lat=${coords.latitude}&lon=${coords.longitude}`,
+          );
+          if (res.ok) {
+            const data = (await res.json()) as { suggestion: AddressSuggestion };
+            handleSelect(data.suggestion);
+          }
+        } catch {
+          // silent fallback
+        } finally {
+          setLocating(false);
+        }
+      },
+      () => setLocating(false),
+      { timeout: 10000 },
+    );
+  }
+
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (!open) return;
     if (e.key === "ArrowDown") {
@@ -101,7 +126,7 @@ export function AddressAutocomplete({
       <Input
         id={id}
         name="street-address"
-        className="h-10 pr-8"
+        className="h-10 pr-16"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
@@ -112,9 +137,20 @@ export function AddressAutocomplete({
         aria-autocomplete="list"
         aria-haspopup="listbox"
       />
-      {loading && (
-        <Loader2 className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-      )}
+      <div className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1">
+        {(loading || locating) ? (
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        ) : (
+          <button
+            type="button"
+            onClick={handleGeolocate}
+            title="Aktuellen Standort verwenden"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <LocateFixed className="h-4 w-4" />
+          </button>
+        )}
+      </div>
       {open && suggestions.length > 0 && (
         <ul
           role="listbox"
