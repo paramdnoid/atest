@@ -1,5 +1,6 @@
 # node
 node_modules/
+.claude/tsc-cache/
 .pnpm-store/
 .next/
 out/
@@ -23,6 +24,7 @@ out/
 .env
 .env.*
 !.env.example
+!.env*.example
 
 # misc
 .DS_Store

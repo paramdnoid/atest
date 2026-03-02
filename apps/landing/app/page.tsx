@@ -1,69 +1,68 @@
-import Link from 'next/link';
-import { ShieldCheck, Smartphone, Workflow } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Header } from "@/components/header";
+import { CtaSection } from "@/components/sections/cta-section";
+import { FeaturesSection } from "@/components/sections/features";
+import { Footer } from "@/components/sections/footer";
+import { HeroSection } from "@/components/sections/hero-section";
+import { HowItWorksSection } from "@/components/sections/how-it-works-section";
+import { PricingSection } from "@/components/sections/pricing-section";
+import { TradesSection } from "@/components/sections/trades-section";
+import { faqs } from "@/content/faqs";
 
-const plans = [
-  { name: 'Starter', price: '49 EUR', seats: '5 Seats', sync: 'Basis Sync' },
-  { name: 'Business', price: '199 EUR', seats: '25 Seats', sync: 'Offline-First + Realtime' },
-  { name: 'Enterprise', price: 'Custom', seats: 'Unlimited', sync: 'Dedicated Support + SLA' }
-];
+const softwareJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "ZunftGewerk",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web, iOS, Android, Windows, macOS, Linux",
+  description:
+    "Die All-in-One Handwerkersoftware für Kaminfeger, Maler und SHK-Betriebe.",
+  url: "https://zunftgewerk.de",
+  offers: {
+    "@type": "AggregateOffer",
+    priceCurrency: "EUR",
+    lowPrice: "49",
+    highPrice: "99",
+    offerCount: 2,
+  },
+};
 
-export default function HomePage() {
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((faq) => ({
+    "@type": "Question",
+    name: faq.question,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: faq.answer,
+    },
+  })),
+};
+
+export default function LandingPage() {
   return (
-    <main className="mx-auto flex max-w-6xl flex-col gap-16 px-6 py-12">
-      <section className="rounded-2xl border border-border bg-card p-8 shadow-sm">
-        <p className="mb-3 inline-block rounded-full bg-muted px-3 py-1 text-xs uppercase tracking-wider text-muted-foreground">
-          Zunftgewerk
-        </p>
-        <h1 className="max-w-3xl text-4xl font-semibold leading-tight md:text-5xl">
-          Die Enterprise-Plattform fuer Handwerk, Teams und sichere Offline-Prozesse.
-        </h1>
-        <p className="mt-4 max-w-2xl text-muted-foreground">
-          Multi-Tenant SaaS mit verschluesselter lokaler Datenhaltung, gRPC Sync und auditierbarer Lizenzverwaltung.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/signup">
-            <Button size="lg">Pilot starten</Button>
-          </Link>
-          <Link href="/pricing">
-            <Button variant="outline" size="lg">
-              Plaene vergleichen
-            </Button>
-          </Link>
-        </div>
-      </section>
+    <div className="min-h-screen">
+      <Header revealDelayMs={1400} />
 
-      <section className="grid gap-4 md:grid-cols-3">
-        <article className="rounded-xl border border-border bg-card p-5">
-          <ShieldCheck className="h-5 w-5" />
-          <h2 className="mt-4 text-lg font-semibold">SOC2 / ISO-ready</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Audit-Events, Tenant-Isolation und Security Controls out of the box.</p>
-        </article>
-        <article className="rounded-xl border border-border bg-card p-5">
-          <Workflow className="h-5 w-5" />
-          <h2 className="mt-4 text-lg font-semibold">Deterministischer Sync</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Server-authoritative Konfliktauflösung mit idempotenten Client-Operationen.</p>
-        </article>
-        <article className="rounded-xl border border-border bg-card p-5">
-          <Smartphone className="h-5 w-5" />
-          <h2 className="mt-4 text-lg font-semibold">Mobile + Web</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Expo-Client und Next.js-Workspace auf gemeinsamen Contracts.</p>
-        </article>
-      </section>
+      <main id="main-content">
+        <HeroSection />
+        <TradesSection />
+        <FeaturesSection />
+        <HowItWorksSection />
+        <PricingSection />
+        <CtaSection />
+      </main>
 
-      <section className="rounded-2xl border border-border bg-card p-8">
-        <h2 className="text-2xl font-semibold">Plaene</h2>
-        <div className="mt-5 grid gap-4 md:grid-cols-3">
-          {plans.map((plan) => (
-            <article key={plan.name} className="rounded-xl border border-border p-4">
-              <h3 className="text-xl font-semibold">{plan.name}</h3>
-              <p className="mt-2 text-2xl">{plan.price}</p>
-              <p className="mt-2 text-sm text-muted-foreground">{plan.seats}</p>
-              <p className="text-sm text-muted-foreground">{plan.sync}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-    </main>
+      <Footer />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareJsonLd).replace(/</g, "\\u003c") }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, "\\u003c") }}
+      />
+    </div>
   );
 }
