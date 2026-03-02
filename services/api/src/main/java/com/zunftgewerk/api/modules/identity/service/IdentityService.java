@@ -131,7 +131,7 @@ public class IdentityService {
         }
 
         SessionContext sessionContext = loadSessionContext(user.getId());
-        if (requiresAdminMfa(sessionContext.roles())) {
+        if (user.isMfaEnabled() && requiresAdminMfa(sessionContext.roles())) {
             String mfaToken = jwtService.issueMfaToken(user.getId(), sessionContext.tenantId(), sessionContext.roles());
             return new LoginResult(
                 true,
@@ -164,7 +164,7 @@ public class IdentityService {
             auditService.record(sessionContext.tenantId(), user.getId(), AuditEventType.PASSKEY_REGISTERED, "{}");
         }
 
-        if (requiresAdminMfa(sessionContext.roles())) {
+        if (user.isMfaEnabled() && requiresAdminMfa(sessionContext.roles())) {
             String mfaToken = jwtService.issueMfaToken(user.getId(), sessionContext.tenantId(), sessionContext.roles());
             return new LoginResult(
                 true,
