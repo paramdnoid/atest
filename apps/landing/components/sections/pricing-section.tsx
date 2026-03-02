@@ -1,9 +1,6 @@
-import { Tag } from "lucide-react";
-
 import { FadeIn } from "@/components/fade-in";
 import { GlowBackground } from "@/components/glow-background";
 import { GradientText } from "@/components/gradient-text";
-import { SectionBadge } from "@/components/section-badge";
 import { SectionContainer } from "@/components/section-container";
 
 import { PricingCards, type PublicPlan } from "./pricing-cards";
@@ -110,7 +107,6 @@ export function PricingSection() {
 
       <SectionContainer className="relative z-20">
         <FadeIn className="mx-auto mb-8 max-w-2xl text-center md:mb-9">
-          <SectionBadge icon={Tag}>Preise</SectionBadge>
           <h2
             id="pricing-heading"
             className="hero-text-gloss font-display mb-3 text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl lg:text-5xl"

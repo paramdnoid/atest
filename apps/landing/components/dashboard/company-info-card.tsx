@@ -6,6 +6,7 @@ import type { Map as LeafletMapInstance } from "leaflet";
 
 import { Building2, MapPin, Minus, Pencil, Plus } from "lucide-react";
 
+import { DashboardCardHeader } from "@/components/dashboard/dashboard-card";
 import { EditAddressDialog } from "@/components/dashboard/edit-address-dialog";
 
 const LeafletMap = dynamic(
@@ -83,27 +84,21 @@ export function CompanyInfoCard({ workspace }: { workspace: CompanyInfoWorkspace
       {/* content */}
       <div className="relative z-20 flex flex-col">
         {/* header */}
-        <div className="flex items-center justify-between gap-3 px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-[0_2px_8px_color-mix(in_oklch,var(--color-primary)_40%,transparent)]">
-              <Building2 className="h-3.5 w-3.5" />
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Unternehmen
-              </p>
-              <p className="text-sm font-semibold leading-tight">Firmeninformationen</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setEditOpen(true)}
-            className="flex items-center gap-1 text-xs text-primary hover:text-primary/80"
-          >
-            <Pencil className="h-3 w-3" />
-            Bearbeiten
-          </button>
-        </div>
+        <DashboardCardHeader
+          icon={Building2}
+          label="Unternehmen"
+          title="Firmeninformationen"
+          action={
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className="flex items-center gap-1 text-xs text-primary hover:text-primary/80"
+            >
+              <Pencil className="h-3 w-3" />
+              Bearbeiten
+            </button>
+          }
+        />
 
         {/* body */}
         <div className="flex flex-col gap-3 p-4 pt-1">

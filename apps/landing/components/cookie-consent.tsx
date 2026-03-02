@@ -46,6 +46,10 @@ export function CookieConsent() {
     firstFocusable?.focus();
 
     function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        accept("necessary");
+        return;
+      }
       if (e.key === "Tab") {
         if (e.shiftKey) {
           if (document.activeElement === firstFocusable) {
@@ -79,6 +83,7 @@ export function CookieConsent() {
       role="dialog"
       aria-modal="true"
       aria-label="Cookie-Einstellungen"
+      aria-describedby="cookie-consent-desc"
       className="fixed inset-x-0 bottom-0 z-50 p-4 sm:p-6"
     >
       <div className="premium-panel shadow-elevated animate-panel-enter mx-auto flex max-w-2xl flex-col gap-4 rounded-xl border-l-2 border-l-primary p-5 sm:flex-row sm:items-center sm:gap-5">
@@ -86,7 +91,7 @@ export function CookieConsent() {
           <ShieldCheck className="text-primary mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
           <div>
             <p className="text-sm font-semibold">Cookie-Einstellungen</p>
-            <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+            <p id="cookie-consent-desc" className="text-muted-foreground mt-1 text-xs leading-relaxed">
               Wir verwenden Cookies, um Ihnen die bestmögliche Erfahrung zu bieten.
               Weitere Informationen finden Sie in unserer{" "}
               <Link

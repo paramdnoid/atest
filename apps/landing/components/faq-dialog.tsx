@@ -18,11 +18,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { faqs } from "@/content/faqs";
+import { useRecentSearches } from "@/hooks/use-recent-searches";
+import { highlightText } from "@/lib/highlight-text";
 import { HelpCircle, Search } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { faqs } from "@/content/faqs";
+/* ── Types ──────────────────────────────────────────────────────── */
 
 type FaqDialogProps = {
   children: ReactNode;
@@ -48,30 +51,7 @@ type DialogFaqItem = {
   category: FaqCategory;
 };
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function highlightText(text: string, query: string): ReactNode {
-  const normalized = query.trim();
-  if (normalized.length === 0) return text;
-
-  const regex = new RegExp(`(${escapeRegExp(normalized)})`, "gi");
-  const parts = text.split(regex);
-  const lower = normalized.toLowerCase();
-  return parts.map((part, index) =>
-    part.toLowerCase() === lower ? (
-      <mark
-        key={`${part}-${index}`}
-        className="bg-primary/15 text-foreground rounded-sm px-0.5 py-0"
-      >
-        {part}
-      </mark>
-    ) : (
-      <span key={`${part}-${index}`}>{part}</span>
-    )
-  );
-}
+/* ── Data ───────────────────────────────────────────────────────── */
 
 function inferCategory(question: string): FaqCategory {
   const q = question.toLowerCase();
@@ -89,23 +69,7 @@ const ENTERPRISE_FAQS: DialogFaqItem[] = faqs.map((faq, index) => ({
   category: inferCategory(faq.question),
 }));
 
-const RECENT_SEARCHES_KEY = "faq-recent-searches";
-const MAX_RECENT_SEARCHES = 5;
-
-function loadRecentSearches(): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(RECENT_SEARCHES_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((entry): entry is string => typeof entry === "string")
-      .slice(0, MAX_RECENT_SEARCHES);
-  } catch {
-    return [];
-  }
-}
+/* ── Component ──────────────────────────────────────────────────── */
 
 export function FaqDialog({
   children,
@@ -120,9 +84,10 @@ export function FaqDialog({
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<FaqCategory | "Alle">("Alle");
   const [openItem, setOpenItem] = useState<string | undefined>(undefined);
-  const [recentSearches, setRecentSearches] = useState<string[]>(() => loadRecentSearches());
   const searchInputRef = useRef<HTMLInputElement>(null);
   const resultsContainerRef = useRef<HTMLDivElement>(null);
+
+  const { recentSearches, rememberSearch, clearSearches } = useRecentSearches(open);
 
   function handleOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);
@@ -131,12 +96,12 @@ export function FaqDialog({
   }
 
   const categories = useMemo(
-    () =>
-      Array.from(new Set(ENTERPRISE_FAQS.map((faq) => faq.category))) as FaqCategory[],
-    []
+    () => Array.from(new Set(ENTERPRISE_FAQS.map((faq) => faq.category))) as FaqCategory[],
+    [],
   );
 
   const normalizedQuery = query.trim().toLowerCase();
+
   const categoryCounts = useMemo(() => {
     const counts = new Map<FaqCategory, number>();
     for (const category of categories) counts.set(category, 0);
@@ -161,18 +126,9 @@ export function FaqDialog({
     openItem && filteredFaqs.some((faq) => faq.id === openItem) ? openItem : undefined;
   const resultSummary = `${filteredFaqs.length} von ${ENTERPRISE_FAQS.length} Fragen`;
 
-  function rememberSearch(rawTerm: string) {
-    const term = rawTerm.trim();
-    if (term.length < 2) return;
-    setRecentSearches((current) => {
-      const next = [term, ...current.filter((entry) => entry.toLowerCase() !== term.toLowerCase())];
-      return next.slice(0, MAX_RECENT_SEARCHES);
-    });
-  }
-
+  // Cmd/Ctrl+K to focus search
   useEffect(() => {
     if (!open || !showSearch) return;
-
     function handleShortcut(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
@@ -180,16 +136,11 @@ export function FaqDialog({
         searchInputRef.current?.select();
       }
     }
-
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
   }, [open, showSearch]);
 
-  useEffect(() => {
-    if (!open) return;
-    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recentSearches));
-  }, [open, recentSearches]);
-
+  // Scroll open item into view
   useEffect(() => {
     if (!open || filteredFaqs.length === 0 || !resolvedOpenItem) return;
     const target = document.getElementById(`faq-item-${resolvedOpenItem}`);
@@ -204,6 +155,7 @@ export function FaqDialog({
         data-faq-dialog
         className="flex max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-[calc(100%-1rem)] flex-col gap-0 overflow-hidden border-border/70 p-0 shadow-elevated sm:max-h-[calc(100dvh-2rem)] sm:w-full sm:max-w-3xl lg:max-w-4xl"
       >
+        {/* Header */}
         <div className="bg-background/95 supports-backdrop-filter:bg-background/80 z-10 shrink-0 backdrop-blur-sm">
           <DialogHeader className="px-4 pt-3 pb-2.5 sm:px-5 sm:pt-4 sm:pb-3">
             <div className="flex items-start gap-2.5">
@@ -226,6 +178,7 @@ export function FaqDialog({
             </div>
           </DialogHeader>
 
+          {/* Search & filters */}
           {(showSearch || showCategories) && (
             <div className="px-4 pb-2.5 sm:px-5">
               {showSearch && (
@@ -272,7 +225,7 @@ export function FaqDialog({
                     size="xs"
                     variant="ghost"
                     className="shrink-0"
-                    onClick={() => setRecentSearches([])}
+                    onClick={clearSearches}
                   >
                     Verlauf löschen
                   </Button>
@@ -312,6 +265,7 @@ export function FaqDialog({
           <Separator />
         </div>
 
+        {/* FAQ list */}
         <div
           ref={resultsContainerRef}
           className="min-h-0 flex-1 overflow-y-auto px-4 sm:px-5"
@@ -360,8 +314,8 @@ export function FaqDialog({
           )}
         </div>
 
+        {/* Footer */}
         <Separator />
-
         <DialogFooter className="bg-background/95 supports-backdrop-filter:bg-background/80 shrink-0 flex-row items-center justify-between px-4 py-2.5 backdrop-blur-sm sm:px-5 sm:py-3">
           <p className="text-muted-foreground pr-2 text-[11px] sm:text-xs">
             Weitere Fragen? Kontaktieren Sie unser{" "}

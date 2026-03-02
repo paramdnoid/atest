@@ -41,7 +41,7 @@ export function HeroSection() {
             <FadeIn delay={0.1} duration={0.5}>
               <Badge
                 variant="secondary"
-                className="enterprise-kicker text-foreground mb-6 inline-flex max-w-full gap-2 border px-3 py-1.5 text-[10px] font-semibold tracking-[0.08em] uppercase backdrop-blur-sm sm:mb-8 sm:px-5 sm:py-2 sm:text-[11px] sm:tracking-[0.12em]"
+                className="enterprise-kicker text-foreground mb-6 inline-flex max-w-full gap-2 border px-3 py-1.5 text-xs font-semibold tracking-[0.08em] uppercase backdrop-blur-sm sm:mb-8 sm:px-5 sm:py-2 sm:tracking-[0.12em]"
               >
                 <Sparkles className="text-primary h-3.5 w-3.5" />
                 Für Kaminfeger, Maler & SHK-Betriebe
@@ -87,30 +87,30 @@ export function HeroSection() {
             </FadeIn>
 
             <FadeIn delay={0.65} duration={0.5}>
-              <div className="text-muted-foreground mt-8 flex flex-wrap items-center justify-center gap-x-2 gap-y-3 text-[10px] font-medium tracking-[0.04em] uppercase sm:mt-10 sm:gap-x-3 sm:gap-y-4 sm:text-[11px] sm:tracking-[0.06em] lg:justify-start">
+              <div className="text-muted-foreground mt-8 flex flex-wrap items-center justify-center gap-x-2 gap-y-3 text-xs font-medium tracking-[0.04em] uppercase sm:mt-10 sm:gap-x-3 sm:gap-y-4 sm:tracking-[0.06em] lg:justify-start">
                 <span className="flex items-center gap-2">
-                  <ShieldCheck className="text-primary h-4 w-4" />
+                  <ShieldCheck className="text-primary h-4 w-4" aria-hidden="true" />
                   DSGVO-konform
                 </span>
                 <span className="text-border" aria-hidden="true">
                   |
                 </span>
                 <span className="flex items-center gap-2">
-                  <LockKeyhole className="text-primary h-4 w-4" />
+                  <LockKeyhole className="text-primary h-4 w-4" aria-hidden="true" />
                   Starke Datenverschlüsselung
                 </span>
                 <span className="text-border" aria-hidden="true">
                   |
                 </span>
                 <span className="flex items-center gap-2">
-                  <Zap className="text-primary h-4 w-4" />
+                  <Zap className="text-primary h-4 w-4" aria-hidden="true" />
                   Keine Kreditkarte nötig
                 </span>
                 <span className="text-border" aria-hidden="true">
                   |
                 </span>
                 <span className="flex items-center gap-2">
-                  <HeartHandshake className="text-primary h-4 w-4" />
+                  <HeartHandshake className="text-primary h-4 w-4" aria-hidden="true" />
                   Persönlicher Support
                 </span>
               </div>
@@ -119,18 +119,18 @@ export function HeroSection() {
             <FadeIn delay={0.78} duration={0.55}>
               <div className="mt-6 grid max-w-xl gap-3 sm:mt-7 sm:grid-cols-2">
                 <div className="premium-panel animate-panel-enter rounded-xl px-4 py-3 text-left">
-                  <p className="text-muted-foreground text-[10px] font-semibold tracking-[0.12em] uppercase">
+                  <p className="text-muted-foreground text-xs font-semibold tracking-[0.12em] uppercase">
                     Plattform-Tempo
                   </p>
                   <p className="font-display mt-1 text-[1.35rem] font-bold tracking-tight">60%</p>
-                  <p className="text-muted-foreground text-[11px]">weniger Admin-Aufwand im Büroalltag</p>
+                  <p className="text-muted-foreground text-xs">weniger Admin-Aufwand im Büroalltag</p>
                 </div>
                 <div className="premium-panel animate-panel-enter rounded-xl px-4 py-3 text-left [animation-delay:120ms]">
-                  <p className="text-muted-foreground text-[10px] font-semibold tracking-[0.12em] uppercase">
+                  <p className="text-muted-foreground text-xs font-semibold tracking-[0.12em] uppercase">
                     Datenkontrolle
                   </p>
                   <p className="font-display mt-1 text-[1.35rem] font-bold tracking-tight">100%</p>
-                  <p className="text-muted-foreground text-[11px]">verschlüsselte Speicherung sensibler Daten</p>
+                  <p className="text-muted-foreground text-xs">verschlüsselte Speicherung sensibler Daten</p>
                 </div>
               </div>
             </FadeIn>
@@ -171,11 +171,11 @@ export function HeroSection() {
                 className="bg-primary/5 absolute inset-x-8 -bottom-8 -z-10 h-16 rounded-full blur-2xl"
               />
               <div className="premium-panel absolute right-0 -bottom-3 z-30 hidden rounded-lg px-3 py-2 text-left shadow-xl transform-3d transform-[rotateY(-14deg)_rotateX(5deg)_translateZ(30px)] md:block md:right-2 md:-bottom-6 md:px-4 md:py-3 lg:right-4 xl:right-0">
-                <p className="text-muted-foreground text-[10px] font-semibold tracking-[0.12em] uppercase">
+                <p className="text-muted-foreground text-xs font-semibold tracking-[0.12em] uppercase">
                   Live-Status
                 </p>
                 <p className="font-display text-foreground mt-1 text-[1.1rem] font-bold">Multi-Geräte-Sync</p>
-                <p className="text-muted-foreground text-[11px]">Desktop, Tablet & Smartphone in Echtzeit</p>
+                <p className="text-muted-foreground text-xs">Desktop, Tablet & Smartphone in Echtzeit</p>
               </div>
             </motion.div>
           </FadeIn>

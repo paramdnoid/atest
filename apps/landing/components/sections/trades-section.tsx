@@ -1,7 +1,9 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
+  ArrowRight,
   BarChart3,
   BrainCircuit,
   Building2,
@@ -87,7 +89,7 @@ const iconMap: Record<string, LucideIcon> = {
 function FeatureIcon({ name }: { name: string }) {
   const Icon = iconMap[name];
   if (!Icon) return null;
-  return <Icon className="h-4 w-4 text-primary" strokeWidth={1.8} />;
+  return <Icon className="h-4 w-4 text-primary" strokeWidth={1.8} aria-hidden="true" />;
 }
 
 /* ── Tab selector ────────────────────────────────────────────────── */
@@ -141,7 +143,7 @@ function TradeTabSelector({
             aria-controls={`trades-panel-${trade.slug}`}
             aria-label={`${trade.name} (${i + 1} / ${trades.length})`}
             className={`relative flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-300 ${
-              isActive ? "text-white" : "text-muted-foreground hover:text-foreground"
+              isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
             onClick={() => onSelect(i)}
           >
@@ -195,6 +197,8 @@ function TradeContent({
   activeIndex: number;
   onSelect: (i: number) => void;
 }) {
+  const prefersReduced = useReducedMotion();
+
   return (
     <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[340px_1fr] lg:gap-0">
       {/* Left column: Trade info */}
@@ -209,15 +213,15 @@ function TradeContent({
           <AnimatePresence mode="wait">
             <motion.div
               key={trade.slug}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
+              initial={prefersReduced ? false : { opacity: 0, x: -10 }}
+              animate={prefersReduced ? {} : { opacity: 1, x: 0 }}
+              exit={prefersReduced ? {} : { opacity: 0, x: 10 }}
               transition={{ duration: 0.25, ease: EASE_SMOOTH }}
               className="flex flex-col gap-5"
             >
               <div>
                 {trade.highlight && (
-                  <span className="mb-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary ring-1 ring-primary/20 ring-inset">
+                  <span className="mb-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary ring-1 ring-primary/20 ring-inset">
                     {trade.highlight}
                   </span>
                 )}
@@ -233,7 +237,7 @@ function TradeContent({
                     <p className="font-display text-lg font-bold text-primary">
                       {stat.value}
                     </p>
-                    <p className="text-[10px] leading-tight text-muted-foreground">
+                    <p className="text-xs leading-tight text-muted-foreground">
                       {stat.label}
                     </p>
                   </div>
@@ -242,17 +246,17 @@ function TradeContent({
 
               {/* Core features */}
               <div>
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50">
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
                   Immer inklusive
                 </p>
                 <ul className="space-y-1.5">
                   {trade.coreFeatures.map((f) => (
                     <li
                       key={f.label}
-                      className="flex items-center gap-2 text-[12px] text-muted-foreground"
+                      className="flex items-center gap-2 text-xs text-muted-foreground"
                     >
                       <Check
-                        className="h-3 w-3 shrink-0 text-primary/60"
+                        className="h-3 w-3 shrink-0 text-primary"
                         strokeWidth={2.5}
                       />
                       {f.label}
@@ -262,13 +266,17 @@ function TradeContent({
               </div>
 
               {/* CTA */}
-              <a
-                href="#pricing"
-                className="inline-flex items-center justify-center gap-2 rounded-lg from-primary to-amber-600 bg-linear-to-br px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/25 transition-all duration-200 hover:shadow-lg hover:shadow-primary/30 hover:brightness-110"
+              <Button
+                variant="gradient"
+                size="sm"
+                className="gap-2 shadow-md shadow-primary/25"
+                asChild
               >
-                Jetzt kostenlos testen
-                <span aria-hidden="true">&rarr;</span>
-              </a>
+                <a href="#pricing">
+                  Jetzt kostenlos testen
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </a>
+              </Button>
             </motion.div>
           </AnimatePresence>
         </div>
@@ -279,23 +287,23 @@ function TradeContent({
         <AnimatePresence mode="wait">
           <motion.div
             key={trade.slug}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
+            initial={prefersReduced ? false : { opacity: 0, y: 12 }}
+            animate={prefersReduced ? {} : { opacity: 1, y: 0 }}
+            exit={prefersReduced ? {} : { opacity: 0, y: -8 }}
             transition={{ duration: 0.3, ease: EASE_SMOOTH }}
           >
-            <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.15em] text-primary/50">
+            <p className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
               Branchenspezifisch
             </p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {trade.tradeFeatures.map((f, i) => (
                 <motion.div
                   key={f.label}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  initial={prefersReduced ? false : { opacity: 0, y: 8 }}
+                  animate={prefersReduced ? {} : { opacity: 1, y: 0 }}
                   transition={{
                     duration: 0.25,
-                    delay: i * 0.05,
+                    delay: prefersReduced ? 0 : i * 0.05,
                     ease: EASE_SMOOTH,
                   }}
                 >
@@ -355,7 +363,7 @@ export function TradesSection() {
         {/* Secondary trades */}
         <FadeIn delay={0.2}>
           <div className="mt-20 border-t border-border/30 pt-10">
-            <p className="mb-5 text-center text-[11px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50">
+            <p className="mb-5 text-center text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
               Weitere Gewerke
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
@@ -364,10 +372,10 @@ export function TradesSection() {
                   key={t.name}
                   className="flex items-center gap-2 rounded-full border border-border/40 bg-muted/20 px-4 py-2 text-sm text-muted-foreground"
                 >
-                  <t.icon className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  <t.icon className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
                   {t.name}
                   {t.comingSoon && (
-                    <span className="rounded bg-muted/60 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider">
+                    <span className="rounded bg-muted/60 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider">
                       Bald
                     </span>
                   )}

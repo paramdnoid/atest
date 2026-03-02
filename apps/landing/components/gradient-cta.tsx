@@ -20,7 +20,7 @@ export function GradientCta({
         size="lg"
         disabled
         className={cn(
-          "from-primary group h-13 w-full cursor-not-allowed gap-2 bg-linear-to-r to-amber-500 px-8 text-base font-semibold text-white opacity-70 shadow-lg shadow-primary/20 sm:w-auto",
+          "group h-13 w-full cursor-not-allowed gap-2 bg-linear-to-r from-[oklch(0.58_0.19_47)] to-[oklch(0.55_0.19_55)] px-8 text-base font-semibold text-white opacity-70 shadow-lg shadow-primary/20 sm:w-auto",
           className,
         )}
       >
@@ -34,7 +34,7 @@ export function GradientCta({
     <Button
       size="lg"
       className={cn(
-        "from-primary group h-13 w-full gap-2 bg-linear-to-r to-amber-500 px-8 text-base font-semibold text-white shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30 hover:brightness-110 sm:w-auto",
+        "group h-13 w-full gap-2 bg-linear-to-r from-[oklch(0.58_0.19_47)] to-[oklch(0.55_0.19_55)] px-8 text-base font-semibold text-white shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30 hover:brightness-110 sm:w-auto",
         className,
       )}
       asChild

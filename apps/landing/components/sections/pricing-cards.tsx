@@ -54,10 +54,15 @@ function BillingToggle({
 }) {
   return (
     <div className="mx-auto mb-6 flex items-center justify-center px-2 sm:mb-8">
-      <div className="premium-panel inline-flex max-w-full flex-wrap items-center justify-center gap-1 rounded-lg p-1 backdrop-blur-sm">
+      <div
+        role="radiogroup"
+        aria-label="Abrechnungszeitraum"
+        className="premium-panel inline-flex max-w-full flex-wrap items-center justify-center gap-1 rounded-lg p-1 backdrop-blur-sm"
+      >
         <button
           type="button"
-          aria-pressed={!yearly}
+          role="radio"
+          aria-checked={!yearly}
           onClick={() => yearly && onToggle()}
           className={`relative rounded-md px-3 py-2 text-sm font-medium transition-all duration-200 sm:px-5 ${
             !yearly
@@ -69,8 +74,8 @@ function BillingToggle({
         </button>
         <button
           type="button"
-          aria-pressed={yearly}
-          aria-label="Jährliche Abrechnung"
+          role="radio"
+          aria-checked={yearly}
           onClick={() => !yearly && onToggle()}
           className={`relative flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200 sm:px-5 ${
             yearly
@@ -112,7 +117,7 @@ function AnimatedPrice({
   return (
     <div className="flex items-baseline gap-2">
       {showStrikethrough && (
-        <span className="text-base font-medium text-muted-foreground/40 line-through decoration-muted-foreground/30">
+        <span className="text-base font-medium text-muted-foreground line-through decoration-muted-foreground/50">
           €{monthlyAmount}
         </span>
       )}
@@ -143,7 +148,7 @@ function FeatureList({
   return (
     <ul ref={ref} className="space-y-2.5">
       {previousTierName && (
-        <li className="flex items-center gap-2.5 pb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
+        <li className="flex items-center gap-2.5 pb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
           <Minus className="h-3 w-3 shrink-0" strokeWidth={2} />
           Alles aus {previousTierName}
         </li>

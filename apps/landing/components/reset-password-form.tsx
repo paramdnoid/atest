@@ -1,12 +1,13 @@
 "use client";
 
-import { CheckCircle2, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
 import { fetchApi } from "@/lib/api-client";
 import { AuthFormCard } from "@/components/auth/auth-form-card";
 import { GENERIC_ERROR_MESSAGE } from "@/components/auth/form-error";
+import { SuccessAlert } from "@/components/auth/success-alert";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
@@ -72,15 +73,9 @@ export function ResetPasswordForm() {
     >
       {success ? (
         <div className="space-y-4">
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm">
-            <p className="inline-flex items-center gap-2 font-semibold">
-              <CheckCircle2 className="h-4 w-4 text-primary" />
-              Passwort geändert
-            </p>
-            <p className="text-muted-foreground mt-2">
-              Dein Passwort wurde erfolgreich zurückgesetzt. Du kannst dich jetzt anmelden.
-            </p>
-          </div>
+          <SuccessAlert title="Passwort geändert">
+            Dein Passwort wurde erfolgreich zurückgesetzt. Du kannst dich jetzt anmelden.
+          </SuccessAlert>
 
           <Button asChild variant="gradient" className="h-10 w-full">
             <Link href="/login">

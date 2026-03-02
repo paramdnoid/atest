@@ -69,17 +69,17 @@ export function Footer() {
                     href={social.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="bg-muted/60 text-muted-foreground hover:bg-primary/10 hover:text-primary flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-200"
+                    className="bg-muted/60 text-muted-foreground hover:bg-primary/10 hover:text-primary flex h-11 w-11 items-center justify-center rounded-lg transition-all duration-200"
                     aria-label={`${social.label} (öffnet in neuem Tab)`}
                   >
-                    <social.icon className="h-4 w-4" />
+                    <social.icon className="h-4 w-4" aria-hidden="true" />
                   </a>
                 ))}
               </div>
             </div>
 
             <nav aria-label="Produkt-Links" className="lg:text-right">
-              <h4 className="mb-4 text-sm font-semibold">Produkt</h4>
+              <h3 className="mb-4 text-sm font-semibold">Produkt</h3>
               <ul className="text-muted-foreground space-y-3 text-sm">
                 {productLinks.map((link) => (
                   <li key={link.label}>
@@ -105,7 +105,7 @@ export function Footer() {
             </nav>
 
             <nav aria-label="Support-Links" className="lg:text-right">
-              <h4 className="mb-4 text-sm font-semibold">Support</h4>
+              <h3 className="mb-4 text-sm font-semibold">Support</h3>
               <ul className="text-muted-foreground space-y-3 text-sm">
                 {supportLinks.map((link) => (
                   <li key={link.label}>
@@ -121,7 +121,7 @@ export function Footer() {
             </nav>
 
             <nav aria-label="Rechtliches" className="lg:text-right">
-              <h4 className="mb-4 text-sm font-semibold">Rechtliches</h4>
+              <h3 className="mb-4 text-sm font-semibold">Rechtliches</h3>
               <ul className="text-muted-foreground space-y-3 text-sm">
                 {legalLinks.map((link) => (
                   <li key={link.label}>

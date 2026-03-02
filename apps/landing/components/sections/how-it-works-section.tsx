@@ -1,8 +1,5 @@
-import { Lightbulb } from "lucide-react";
-
 import { FadeIn, StaggerChildren, StaggerItem } from "@/components/fade-in";
 import { GradientText } from "@/components/gradient-text";
-import { SectionBadge } from "@/components/section-badge";
 import { SectionContainer } from "@/components/section-container";
 import { steps } from "@/content/steps";
 
@@ -11,7 +8,7 @@ export function HowItWorksSection() {
     <section id="how-it-works" className="py-24 md:py-32" aria-labelledby="how-it-works-heading">
       <SectionContainer>
         <FadeIn className="mx-auto mb-16 max-w-2xl text-center md:mb-20">
-          <SectionBadge icon={Lightbulb}>So funktioniert&apos;s</SectionBadge>
+          <p className="text-primary mb-4 text-xs font-bold tracking-[0.15em] uppercase">So funktioniert&apos;s</p>
           <h2
             id="how-it-works-heading"
             className="hero-text-gloss font-display mb-4 text-3xl font-extrabold tracking-tight md:text-4xl lg:text-5xl"
@@ -40,7 +37,10 @@ export function HowItWorksSection() {
                   </div>
                 )}
                 <div className="from-primary/10 shadow-card ring-primary/10 group-hover:shadow-card-hover group-hover:ring-primary/20 mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-linear-to-br to-primary/5 ring-1 ring-inset transition-all duration-500">
-                  <span className="animate-gradient-x from-primary bg-linear-to-r to-amber-500 bg-clip-text text-3xl font-extrabold text-transparent">
+                  <span
+                    className="animate-gradient-x from-primary bg-linear-to-r to-amber-500 bg-clip-text text-3xl font-extrabold text-transparent"
+                    aria-label={`Schritt ${item.step}`}
+                  >
                     {item.step}
                   </span>
                 </div>

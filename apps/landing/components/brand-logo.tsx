@@ -27,7 +27,8 @@ export function BrandLogo({
     >
       <Image
         src="/logo.png"
-        alt="ZunftGewerk"
+        alt=""
+        role="presentation"
         width={imgSize}
         height={imgSize}
         priority={priority}
@@ -44,7 +45,7 @@ export function BrandLogo({
           Zunft
           <span
             className={[
-              "text-foreground/45",
+              "text-foreground/70",
               isExtrabold ? "font-extrabold" : "font-bold",
             ].join(" ")}
           >
@@ -54,7 +55,7 @@ export function BrandLogo({
         {showTagline && (
           <span
             className={[
-              "text-foreground/40 font-medium uppercase",
+              "text-muted-foreground font-medium uppercase",
               isExtrabold
                 ? "text-[11px] tracking-[0.15em]"
                 : "hidden text-[10px] tracking-[0.22em] sm:block",

@@ -2,7 +2,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   CreditCard,
-  Rocket,
   Server,
   ShieldCheck,
   Timer,
@@ -13,7 +12,6 @@ import { FadeIn, StaggerChildren, StaggerItem } from "@/components/fade-in";
 import { GlowBackground } from "@/components/glow-background";
 import { GradientCta } from "@/components/gradient-cta";
 import { GradientText } from "@/components/gradient-text";
-import { SectionBadge } from "@/components/section-badge";
 import { SectionContainer } from "@/components/section-container";
 
 const trustItems = [
@@ -40,11 +38,8 @@ export function CtaSection() {
       <GlowBackground variant="centered" />
 
       <SectionContainer width="narrow" className="text-center">
-        <FadeIn>
-          <SectionBadge icon={Rocket}>Jetzt durchstarten</SectionBadge>
-        </FadeIn>
-
         <FadeIn delay={0.1}>
+          <p className="text-primary mb-4 text-xs font-bold tracking-[0.15em] uppercase">Jetzt durchstarten</p>
           <h2
             id="cta-heading"
             className="hero-text-gloss font-display mb-6 text-3xl font-extrabold tracking-tight md:text-4xl lg:text-5xl"
@@ -92,7 +87,7 @@ export function CtaSection() {
                 variant="secondary"
                 className="border-border/60 bg-background/60 text-muted-foreground gap-2 border px-4 py-2 text-[13px] font-medium backdrop-blur-sm"
               >
-                <item.icon className="text-primary size-3.5" />
+                <item.icon className="text-primary size-3.5" aria-hidden="true" />
                 {item.text}
               </Badge>
             </StaggerItem>

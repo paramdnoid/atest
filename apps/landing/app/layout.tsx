@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Chakra_Petch, IBM_Plex_Sans } from 'next/font/google';
 import { CookieConsent } from '@/components/cookie-consent';
 import './globals.css';
@@ -15,6 +15,12 @@ const chakra = Chakra_Petch({
   weight: ['500', '600', '700'],
   display: 'swap',
 });
+
+export const viewport: Viewport = {
+  themeColor: '#ffffff',
+  width: 'device-width',
+  initialScale: 1,
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://zunftgewerk.de'),
@@ -34,6 +40,23 @@ export const metadata: Metadata = {
     'Handwerk Software Cloud',
     'Rechnungssoftware Handwerk',
   ],
+  openGraph: {
+    type: 'website',
+    locale: 'de_DE',
+    url: 'https://zunftgewerk.de',
+    siteName: 'ZunftGewerk',
+    title: 'ZunftGewerk — Software für Kaminfeger, Maler & SHK-Betriebe',
+    description:
+      'Die All-in-One Handwerkersoftware. Digitalisieren Sie Ihren Betrieb von der Auftragsannahme bis zur Rechnung.',
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'ZunftGewerk — Handwerk. Digital.' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ZunftGewerk — Software für Kaminfeger, Maler & SHK-Betriebe',
+    description:
+      'Die All-in-One Handwerkersoftware. Digitalisieren Sie Ihren Betrieb von der Auftragsannahme bis zur Rechnung.',
+    images: ['/og-image.png'],
+  },
 };
 
 const organizationJsonLd = {

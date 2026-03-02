@@ -1,6 +1,10 @@
 import { ArrowRight, CreditCard, Settings, Users, Zap } from "lucide-react";
 import Link from "next/link";
 
+import {
+  DashboardCard,
+  DashboardCardHeader,
+} from "@/components/dashboard/dashboard-card";
 import { cn } from "@/lib/utils";
 
 type QuickAction = {
@@ -35,18 +39,8 @@ const actions: QuickAction[] = [
 
 export function QuickActions() {
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-sidebar/40">
-      <div className="flex items-center gap-3 px-4 py-3">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-[0_2px_8px_color-mix(in_oklch,var(--color-primary)_40%,transparent)]">
-          <Zap className="h-3.5 w-3.5" />
-        </div>
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Navigation
-          </p>
-          <p className="text-sm font-semibold leading-tight">Schnellzugriff</p>
-        </div>
-      </div>
+    <DashboardCard>
+      <DashboardCardHeader icon={Zap} label="Navigation" title="Schnellzugriff" />
 
       <div className="grid grid-cols-2 gap-1.5 p-2">
         {actions.map((action) => {
@@ -91,6 +85,6 @@ export function QuickActions() {
           );
         })}
       </div>
-    </div>
+    </DashboardCard>
   );
 }

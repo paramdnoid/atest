@@ -44,7 +44,7 @@ export default function LandingPage() {
     <div className="min-h-screen">
       <Header revealDelayMs={1400} />
 
-      <main id="main-content">
+      <main id="main-content" tabIndex={-1} className="outline-none">
         <HeroSection />
         <TradesSection />
         <FeaturesSection />

@@ -1,12 +1,13 @@
 "use client";
 
-import { CheckCircle2, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
 import { fetchApi } from "@/lib/api-client";
 import { AuthFormCard } from "@/components/auth/auth-form-card";
 import { GENERIC_ERROR_MESSAGE } from "@/components/auth/form-error";
+import { SuccessAlert } from "@/components/auth/success-alert";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
@@ -56,16 +57,10 @@ export function ForgotPasswordForm() {
     >
       {success ? (
         <div className="space-y-4">
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm">
-            <p className="inline-flex items-center gap-2 font-semibold">
-              <CheckCircle2 className="h-4 w-4 text-primary" />
-              E-Mail gesendet
-            </p>
-            <p className="text-muted-foreground mt-2">
-              Falls ein Konto mit dieser Adresse existiert, haben wir dir einen Code zum
-              Zurücksetzen gesendet. Prüfe auch deinen Spam-Ordner.
-            </p>
-          </div>
+          <SuccessAlert title="E-Mail gesendet">
+            Falls ein Konto mit dieser Adresse existiert, haben wir dir einen Code zum
+            Zurücksetzen gesendet. Prüfe auch deinen Spam-Ordner.
+          </SuccessAlert>
 
           <Button asChild variant="gradient" className="h-10 w-full">
             <Link href="/reset-password">

@@ -3,12 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
-import { type MouseEvent, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { FaqDialog } from "@/components/faq-dialog";
 import { SectionContainer } from "@/components/section-container";
-import { HEADER_SCROLL_THRESHOLD, SCROLL_THROTTLE_MS } from "@/lib/constants";
+import { useAnchorScroll } from "@/hooks/use-anchor-scroll";
+import { useHeaderScroll } from "@/hooks/use-header-scroll";
 
 const navLinks = [
   { href: "#trades", label: "Gewerke" },
@@ -17,151 +18,53 @@ const navLinks = [
   { href: "#pricing", label: "Preise" },
 ] as const;
 
+function getAnchorOffset(href: string, isDesktop: boolean) {
+  return href === "#pricing" ? (isDesktop ? 64 : 60) : (isDesktop ? 92 : 80);
+}
+
 type HeaderProps = {
   revealDelayMs?: number;
 };
 
 export function Header({ revealDelayMs = 0 }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [isVisible, setIsVisible] = useState(revealDelayMs <= 0);
-  const rafId = useRef<number>(0);
-  const lastScrollTime = useRef(0);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
-  const handleScroll = useCallback(() => {
-    const now = performance.now();
-    if (now - lastScrollTime.current < SCROLL_THROTTLE_MS) {
-      cancelAnimationFrame(rafId.current);
-      rafId.current = requestAnimationFrame(() => {
-        setScrolled(window.scrollY > HEADER_SCROLL_THRESHOLD);
-        lastScrollTime.current = performance.now();
-      });
-      return;
-    }
-    lastScrollTime.current = now;
-    setScrolled(window.scrollY > HEADER_SCROLL_THRESHOLD);
-  }, []);
+  const scrolled = useHeaderScroll();
+  const { handleNavLinkClick } = useAnchorScroll(getAnchorOffset);
 
-  useEffect(() => {
-    const initId = requestAnimationFrame(() => {
-      handleScroll();
-    });
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      cancelAnimationFrame(initId);
-      window.removeEventListener("scroll", handleScroll);
-      cancelAnimationFrame(rafId.current);
-    };
-  }, [handleScroll]);
-
+  // Reveal animation delay
   useEffect(() => {
     if (revealDelayMs <= 0) {
-      const id = window.setTimeout(() => {
-        setIsVisible(true);
-      }, 0);
+      const id = window.setTimeout(() => setIsVisible(true), 0);
       return () => window.clearTimeout(id);
     }
 
-    const timeoutId = window.setTimeout(() => {
-      setIsVisible(true);
-    }, revealDelayMs);
-
+    const timeoutId = window.setTimeout(() => setIsVisible(true), revealDelayMs);
     return () => window.clearTimeout(timeoutId);
   }, [revealDelayMs]);
 
+  // Lock body scroll when mobile menu is open
   useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
 
+  // Close mobile menu on Escape and return focus
   useEffect(() => {
     if (!mobileOpen) return;
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setMobileOpen(false);
+      if (e.key === "Escape") {
+        setMobileOpen(false);
+        menuButtonRef.current?.focus();
+      }
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [mobileOpen]);
 
   const closeMobile = useCallback(() => setMobileOpen(false), []);
-
-  const getAnchorOffset = useCallback((href: string, isDesktop: boolean) => {
-    return href === "#pricing" ? (isDesktop ? 64 : 60) : (isDesktop ? 92 : 80);
-  }, []);
-
-  const scrollToAnchor = useCallback(
-    (
-      href: string,
-      options?: {
-        behavior?: ScrollBehavior;
-        updateHash?: boolean;
-      }
-    ) => {
-      if (!href.startsWith("#")) return;
-      const target = document.querySelector<HTMLElement>(href);
-      if (!target) return;
-
-      const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
-      const headerOffset = getAnchorOffset(href, isDesktop);
-      const top = target.getBoundingClientRect().top + window.scrollY - headerOffset;
-      window.scrollTo({ top, behavior: options?.behavior ?? "smooth" });
-      if ((options?.updateHash ?? true) && window.location.hash !== href) {
-        window.history.replaceState(null, "", href);
-      }
-    },
-    [getAnchorOffset]
-  );
-
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (!hash.startsWith("#")) return;
-
-    let timeoutId = 0;
-    let attempts = 0;
-    const maxAttempts = 60;
-
-    const tryScroll = () => {
-      const target = document.querySelector<HTMLElement>(hash);
-      if (target) {
-        scrollToAnchor(hash, { behavior: "auto", updateHash: false });
-        return;
-      }
-
-      attempts += 1;
-      if (attempts < maxAttempts) {
-        timeoutId = window.setTimeout(tryScroll, 50);
-      }
-    };
-
-    tryScroll();
-    return () => window.clearTimeout(timeoutId);
-  }, [scrollToAnchor]);
-
-  const handleNavLinkClick = useCallback(
-    (event: MouseEvent<HTMLAnchorElement>, href: string) => {
-      if (!href.startsWith("#")) return;
-      event.preventDefault();
-
-      if (mobileOpen) {
-        setMobileOpen(false);
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            scrollToAnchor(href);
-          });
-        });
-        return;
-      }
-
-      scrollToAnchor(href);
-    },
-    [mobileOpen, scrollToAnchor]
-  );
 
   return (
     <header
@@ -172,7 +75,7 @@ export function Header({ revealDelayMs = 0 }: HeaderProps) {
           : "border-b border-transparent bg-transparent",
         isVisible ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0 pointer-events-none",
       ].join(" ")}
-      role="banner"
+      {...(!isVisible ? { "aria-hidden": true, inert: true } : {})}
     >
       <SectionContainer className="py-3">
         <div className="flex items-center justify-between lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-center">
@@ -180,6 +83,7 @@ export function Header({ revealDelayMs = 0 }: HeaderProps) {
             <BrandLogo priority />
           </div>
 
+          {/* Desktop nav */}
           <nav
             className="hidden items-center gap-8 lg:flex lg:justify-self-center"
             aria-label="Hauptnavigation"
@@ -204,6 +108,7 @@ export function Header({ revealDelayMs = 0 }: HeaderProps) {
             </FaqDialog>
           </nav>
 
+          {/* Desktop CTA */}
           <div className="hidden items-center gap-3 lg:flex lg:justify-self-end">
             <Button
               asChild
@@ -222,7 +127,9 @@ export function Header({ revealDelayMs = 0 }: HeaderProps) {
             </Button>
           </div>
 
+          {/* Mobile menu toggle */}
           <button
+            ref={menuButtonRef}
             type="button"
             className="text-muted-foreground hover:bg-accent hover:text-foreground inline-flex h-11 w-11 items-center justify-center rounded-md transition-colors lg:hidden"
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -242,6 +149,7 @@ export function Header({ revealDelayMs = 0 }: HeaderProps) {
         </div>
       </SectionContainer>
 
+      {/* Mobile nav */}
       <nav
         id="mobile-navigation"
         className={[
@@ -259,7 +167,11 @@ export function Header({ revealDelayMs = 0 }: HeaderProps) {
             <a
               key={link.href}
               href={link.href}
-              onClick={(event) => handleNavLinkClick(event, link.href)}
+              onClick={(event) =>
+                handleNavLinkClick(event, link.href, {
+                  onBeforeScroll: mobileOpen ? closeMobile : undefined,
+                })
+              }
               tabIndex={mobileOpen ? 0 : -1}
               className="hover:bg-accent/60 active:bg-accent/80 rounded-md px-3 py-3 text-sm font-semibold tracking-[0.08em] uppercase transition-colors"
             >
