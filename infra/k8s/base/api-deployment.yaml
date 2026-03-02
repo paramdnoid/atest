@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zunftgewerk-api
+  namespace: zunftgewerk
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: zunftgewerk-api
+  template:
+    metadata:
+      labels:
+        app: zunftgewerk-api
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/example/zunftgewerk-api:latest
+          ports:
+            - containerPort: 9090
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: zunftgewerk-secrets
+                  key: database-url
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: zunftgewerk-secrets
+                  key: database-username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zunftgewerk-secrets
+                  key: database-password
+            - name: JWT_ISSUER
+              value: zunftgewerk-prod
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"

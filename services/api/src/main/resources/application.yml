@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: zunftgewerk-api
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/zunftgewerk}
+    username: ${DATABASE_USERNAME:zunftgewerk}
+    password: ${DATABASE_PASSWORD:zunftgewerk}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+grpc:
+  server:
+    port: ${GRPC_PORT:9090}
+
+zunftgewerk:
+  security:
+    jwt-issuer: ${JWT_ISSUER:zunftgewerk-local}
+    jwt-audience: ${JWT_AUDIENCE:zunftgewerk-clients}
+    jwt-kid: ${JWT_KID:dev-key-1}
+    jwt-access-ttl-seconds: ${JWT_ACCESS_TTL_SECONDS:900}
+    jwt-refresh-ttl-seconds: ${JWT_REFRESH_TTL_SECONDS:2592000}
+    jwt-private-key-pem: ${JWT_PRIVATE_KEY_PEM:}
+    jwt-public-key-pem: ${JWT_PUBLIC_KEY_PEM:}
+    mfa-encryption-key: ${MFA_ENCRYPTION_KEY:dev-dev-dev-dev-dev-dev-dev-dev}
+  passkey:
+    rp-id: ${PASSKEY_RP_ID:localhost}
+    rp-name: ${PASSKEY_RP_NAME:Zunftgewerk}
+    origin: ${PASSKEY_ORIGIN:http://localhost:3001}
+  stripe:
+    secret-key: ${STRIPE_SECRET_KEY:}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+    retries:
+      worker-enabled: ${STRIPE_RETRY_WORKER_ENABLED:true}
+      scan-interval-seconds: ${STRIPE_RETRY_SCAN_INTERVAL_SECONDS:30}
+      batch-size: ${STRIPE_RETRY_BATCH_SIZE:50}
+      max-attempts: ${STRIPE_RETRY_MAX_ATTEMPTS:5}
+      base-delay-seconds: ${STRIPE_RETRY_BASE_DELAY_SECONDS:30}
+      max-delay-seconds: ${STRIPE_RETRY_MAX_DELAY_SECONDS:3600}
+    dead-letter:
+      recovery-enabled: ${STRIPE_DEAD_LETTER_RECOVERY_ENABLED:true}
+      recovery-interval-seconds: ${STRIPE_DEAD_LETTER_RECOVERY_INTERVAL_SECONDS:300}
+      cooldown-seconds: ${STRIPE_DEAD_LETTER_COOLDOWN_SECONDS:3600}
+      max-recovery-attempts: ${STRIPE_DEAD_LETTER_MAX_RECOVERY_ATTEMPTS:3}

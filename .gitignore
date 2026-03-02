@@ -1,0 +1,30 @@
+# node
+node_modules/
+.pnpm-store/
+.next/
+out/
+dist/
+coverage/
+*.log
+
+# expo / react-native
+.expo/
+.expo-shared/
+ios/
+android/
+
+# java / gradle
+.gradle/
+build/
+out/
+*.class
+
+# environment
+.env
+.env.*
+!.env.example
+
+# misc
+.DS_Store
+.vscode/
+.idea/

@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package zunftgewerk.v1;
+
+option java_package = "com.zunftgewerk.api.proto.v1";
+option java_multiple_files = true;
+
+import "zunftgewerk/v1/common.proto";
+
+service TenantService {
+  rpc CreateTenant(CreateTenantRequest) returns (CreateTenantResponse);
+  rpc InviteMember(InviteMemberRequest) returns (InviteMemberResponse);
+  rpc AssignRole(AssignRoleRequest) returns (AssignRoleResponse);
+  rpc ListMembers(ListMembersRequest) returns (ListMembersResponse);
+}
+
+message CreateTenantRequest {
+  string name = 1;
+  string owner_user_id = 2;
+}
+
+message CreateTenantResponse {
+  string tenant_id = 1;
+}
+
+message InviteMemberRequest {
+  TenantContext context = 1;
+  string email = 2;
+}
+
+message InviteMemberResponse {
+  string invitation_id = 1;
+}
+
+message AssignRoleRequest {
+  TenantContext context = 1;
+  string user_id = 2;
+  string role_key = 3;
+}
+
+message AssignRoleResponse {
+  bool assigned = 1;
+}
+
+message ListMembersRequest {
+  TenantContext context = 1;
+  PaginationRequest pagination = 2;
+}
+
+message Member {
+  string user_id = 1;
+  string email = 2;
+  repeated string roles = 3;
+}
+
+message ListMembersResponse {
+  repeated Member members = 1;
+  PaginationResponse pagination = 2;
+}

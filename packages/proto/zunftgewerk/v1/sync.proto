@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package zunftgewerk.v1;
+
+option java_package = "com.zunftgewerk.api.proto.v1";
+option java_multiple_files = true;
+
+import "zunftgewerk/v1/common.proto";
+
+service SyncService {
+  rpc PullChanges(PullChangesRequest) returns (PullChangesResponse);
+  rpc PushChanges(PushChangesRequest) returns (PushChangesResponse);
+  rpc StreamChanges(StreamChangesRequest) returns (stream ChangeEvent);
+}
+
+message VectorClockEntry {
+  string node = 1;
+  int64 counter = 2;
+}
+
+message ClientOperation {
+  string client_op_id = 1;
+  string entity_type = 2;
+  string entity_id = 3;
+  string operation = 4;
+  string payload_delta_json = 5;
+  int64 base_version = 6;
+  string occurred_at = 7;
+  repeated VectorClockEntry vector_clock = 8;
+}
+
+message PullChangesRequest {
+  TenantContext context = 1;
+  string since_cursor = 2;
+  string device_id = 3;
+}
+
+message ChangeEvent {
+  int64 id = 1;
+  string entity_type = 2;
+  string entity_id = 3;
+  string operation = 4;
+  string payload_delta_json = 5;
+  int64 server_version = 6;
+  string occurred_at = 7;
+  repeated VectorClockEntry result_vector_clock = 8;
+  bool conflict = 9;
+}
+
+message PullChangesResponse {
+  repeated ChangeEvent changes = 1;
+  string next_cursor = 2;
+}
+
+message PushChangesRequest {
+  TenantContext context = 1;
+  repeated ClientOperation operations = 2;
+  repeated VectorClockEntry vector_clock = 3;
+  string device_id = 4;
+}
+
+message ConflictResolution {
+  string client_op_id = 1;
+  string resolution_type = 2;
+  string resolved_payload_json = 3;
+  repeated VectorClockEntry server_vector_clock = 4;
+  int64 server_version = 5;
+  string reason = 6;
+}
+
+message PushChangesResponse {
+  repeated string accepted_operation_ids = 1;
+  repeated ConflictResolution conflicts = 2;
+}
+
+message StreamChangesRequest {
+  TenantContext context = 1;
+  string cursor = 2;
+}

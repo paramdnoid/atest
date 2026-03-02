@@ -1,0 +1,10 @@
+{
+  "syncEngineV1": true,
+  "stripeBilling": false,
+  "customRoles": true,
+  "passkeyAuth": false,
+  "mfaEnforcementAdmin": false,
+  "authV2Enabled": true,
+  "stripeWebhookEnabled": true,
+  "syncVectorResolverEnabled": true
+}

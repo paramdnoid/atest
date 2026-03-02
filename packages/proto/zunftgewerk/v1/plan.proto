@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package zunftgewerk.v1;
+
+option java_package = "com.zunftgewerk.api.proto.v1";
+option java_multiple_files = true;
+
+import "zunftgewerk/v1/common.proto";
+
+service PlanService {
+  rpc ListPlans(ListPlansRequest) returns (ListPlansResponse);
+  rpc ChangePlan(ChangePlanRequest) returns (ChangePlanResponse);
+  rpc PreviewInvoice(PreviewInvoiceRequest) returns (PreviewInvoiceResponse);
+}
+
+message ListPlansRequest {}
+
+message Plan {
+  string plan_id = 1;
+  string display_name = 2;
+  int32 included_seats = 3;
+  string billing_cycle = 4;
+}
+
+message ListPlansResponse {
+  repeated Plan plans = 1;
+}
+
+message ChangePlanRequest {
+  TenantContext context = 1;
+  string plan_id = 2;
+  string billing_cycle = 3;
+}
+
+message ChangePlanResponse {
+  bool changed = 1;
+}
+
+message PreviewInvoiceRequest {
+  TenantContext context = 1;
+  string plan_id = 2;
+}
+
+message PreviewInvoiceResponse {
+  int64 amount_cents = 1;
+  string currency = 2;
+}

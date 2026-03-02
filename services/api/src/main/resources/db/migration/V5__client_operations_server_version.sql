@@ -1,0 +1,2 @@
+ALTER TABLE client_operations
+  ADD COLUMN IF NOT EXISTS server_version BIGINT NOT NULL DEFAULT 0;

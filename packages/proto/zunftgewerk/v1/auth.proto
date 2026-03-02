@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+package zunftgewerk.v1;
+
+option java_package = "com.zunftgewerk.api.proto.v1";
+option java_multiple_files = true;
+
+service AuthService {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc BeginPasskey(BeginPasskeyRequest) returns (BeginPasskeyResponse);
+  rpc VerifyPasskey(VerifyPasskeyRequest) returns (VerifyPasskeyResponse);
+  rpc EnableMfa(EnableMfaRequest) returns (EnableMfaResponse);
+  rpc VerifyMfa(VerifyMfaRequest) returns (VerifyMfaResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+}
+
+enum AuthState {
+  AUTH_STATE_UNSPECIFIED = 0;
+  AUTHENTICATED = 1;
+  MFA_REQUIRED = 2;
+  CHALLENGE_REQUIRED = 3;
+}
+
+enum PasskeyMode {
+  PASSKEY_MODE_UNSPECIFIED = 0;
+  REGISTER = 1;
+  AUTHENTICATE = 2;
+}
+
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+  string tenant_name = 3;
+}
+
+message RegisterResponse {
+  string user_id = 1;
+  string tenant_id = 2;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  bool mfa_required = 3;
+  AuthState auth_state = 4;
+  string mfa_token = 5;
+  string user_id = 6;
+  string tenant_id = 7;
+  string expires_at = 8;
+  repeated string roles = 9;
+}
+
+message BeginPasskeyRequest {
+  string user_id = 1;
+  string email = 2;
+  PasskeyMode mode = 3;
+}
+
+message BeginPasskeyResponse {
+  string challenge = 1;
+  string challenge_id = 2;
+  string public_key_options_json = 3;
+  PasskeyMode mode = 4;
+}
+
+message VerifyPasskeyRequest {
+  string user_id = 1;
+  string credential = 2;
+  string challenge_id = 3;
+  string email = 4;
+  PasskeyMode mode = 5;
+}
+
+message VerifyPasskeyResponse {
+  bool verified = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+  bool mfa_required = 4;
+  string mfa_token = 5;
+  AuthState auth_state = 6;
+  string user_id = 7;
+  string tenant_id = 8;
+  repeated string roles = 9;
+}
+
+message EnableMfaRequest {
+  string user_id = 1;
+}
+
+message EnableMfaResponse {
+  string secret = 1;
+  string provisioning_uri = 2;
+  repeated string backup_codes = 3;
+}
+
+message VerifyMfaRequest {
+  string user_id = 1;
+  string mfa_token = 2;
+  string code = 3;
+  string backup_code = 4;
+}
+
+message VerifyMfaResponse {
+  bool verified = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+  string expires_at = 4;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  string expires_at = 3;
+}

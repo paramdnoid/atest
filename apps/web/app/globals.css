@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 210 33% 98%;
+  --foreground: 222 16% 13%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 16% 13%;
+  --primary: 205 85% 36%;
+  --primary-foreground: 0 0% 98%;
+  --muted: 210 24% 92%;
+  --muted-foreground: 220 10% 40%;
+  --border: 215 20% 84%;
+}
+
+body {
+  background: linear-gradient(120deg, rgba(2, 132, 199, 0.05), rgba(148, 163, 184, 0.06));
+  color: hsl(var(--foreground));
+}

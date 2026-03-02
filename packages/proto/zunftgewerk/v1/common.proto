@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package zunftgewerk.v1;
+
+option java_package = "com.zunftgewerk.api.proto.v1";
+option java_multiple_files = true;
+
+message TenantContext {
+  string tenant_id = 1;
+  string actor_user_id = 2;
+}
+
+message PaginationRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+message PaginationResponse {
+  string next_page_token = 1;
+}

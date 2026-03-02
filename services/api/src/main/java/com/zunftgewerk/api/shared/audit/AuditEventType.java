@@ -1,0 +1,19 @@
+package com.zunftgewerk.api.shared.audit;
+
+public enum AuditEventType {
+    USER_REGISTERED,
+    AUTH_LOGIN_SUCCESS,
+    AUTH_LOGIN_FAILED,
+    PASSKEY_REGISTERED,
+    MFA_ENABLED,
+    MFA_VERIFIED,
+    REFRESH_REUSE_DETECTED,
+    SESSION_REVOKED,
+    MEMBER_INVITED,
+    ROLE_ASSIGNED,
+    PLAN_CHANGED,
+    SEAT_ASSIGNED,
+    SEAT_REVOKED,
+    SYNC_PUSH,
+    SYNC_CONFLICT
+}

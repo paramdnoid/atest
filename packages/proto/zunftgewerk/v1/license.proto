@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package zunftgewerk.v1;
+
+option java_package = "com.zunftgewerk.api.proto.v1";
+option java_multiple_files = true;
+
+import "zunftgewerk/v1/common.proto";
+
+service LicenseService {
+  rpc ListSeats(ListSeatsRequest) returns (ListSeatsResponse);
+  rpc AssignSeat(AssignSeatRequest) returns (AssignSeatResponse);
+  rpc RevokeSeat(RevokeSeatRequest) returns (RevokeSeatResponse);
+  rpc ListEntitlements(ListEntitlementsRequest) returns (ListEntitlementsResponse);
+}
+
+message SeatLicense {
+  string seat_id = 1;
+  string user_id = 2;
+  string status = 3;
+  string updated_at = 4;
+}
+
+message ListSeatsRequest {
+  TenantContext context = 1;
+}
+
+message ListSeatsResponse {
+  repeated SeatLicense seats = 1;
+}
+
+message AssignSeatRequest {
+  TenantContext context = 1;
+  string user_id = 2;
+}
+
+message AssignSeatResponse {
+  string seat_id = 1;
+}
+
+message RevokeSeatRequest {
+  TenantContext context = 1;
+  string seat_id = 2;
+}
+
+message RevokeSeatResponse {
+  bool revoked = 1;
+}
+
+message Entitlement {
+  string key = 1;
+  bool enabled = 2;
+}
+
+message ListEntitlementsRequest {
+  TenantContext context = 1;
+}
+
+message ListEntitlementsResponse {
+  repeated Entitlement entitlements = 1;
+}
