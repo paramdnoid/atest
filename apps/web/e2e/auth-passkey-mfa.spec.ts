@@ -11,25 +11,44 @@ async function openSignIn(page: Page): Promise<void> {
 }
 
 async function fillEmail(page: Page, email: string): Promise<void> {
-  await page.getByLabel('E-Mail').fill(email);
+  const emailInput = page.locator('input[type="email"]');
+  await emailInput.fill('');
+  await emailInput.type(email, { delay: 20 });
+  await expect(page.getByRole('button', { name: 'Mit Passkey anmelden' })).toBeEnabled({ timeout: 10_000 });
 }
 
 async function loginWithPasswordToMfaStage(page: Page): Promise<void> {
   await fillEmail(page, cfg.adminEmail);
-  await page.getByLabel('Passwort').fill(cfg.adminPassword);
+  await page.locator('input[type="password"]').fill(cfg.adminPassword);
   await page.getByRole('button', { name: 'Mit Passwort anmelden' }).click();
-  await expect(page.getByText('MFA erforderlich. Bitte Code eingeben.')).toBeVisible();
+
+  const mfaStatus = page.getByText('MFA erforderlich. Bitte Code eingeben.');
+  const errorText = page.locator('p.text-red-600');
+
+  await Promise.race([
+    mfaStatus.waitFor({ state: 'visible', timeout: 15_000 }),
+    errorText.waitFor({ state: 'visible', timeout: 15_000 })
+  ]);
+
+  if (await errorText.isVisible()) {
+    const message = (await errorText.textContent())?.trim() ?? 'unknown login error';
+    throw new Error(`Credential login did not reach MFA stage: ${message}`);
+  }
+
+  await expect(mfaStatus).toBeVisible();
 }
 
 async function submitMfa(page: Page, code: string): Promise<void> {
-  await page.getByLabel('TOTP Code').fill(code);
+  await page.locator('input[placeholder="123456"]').fill(code);
   await page.getByRole('button', { name: 'MFA bestaetigen' }).click();
   await expect(page.getByText('MFA bestaetigt.')).toBeVisible();
 }
 
 async function registerPasskeyAndCompleteMfa(page: Page): Promise<void> {
   await fillEmail(page, cfg.adminEmail);
-  await page.getByRole('button', { name: 'Passkey registrieren' }).click();
+  const registerButton = page.getByRole('button', { name: 'Passkey registrieren' });
+  await expect(registerButton).toBeEnabled({ timeout: 10_000 });
+  await registerButton.click();
   await expect(page.getByText('MFA erforderlich. Bitte Code eingeben.')).toBeVisible();
 
   const code = await generateStableTotpCode(cfg.adminTotpSecret);
@@ -88,7 +107,7 @@ test.describe('auth webauthn + mfa step-up', () => {
     await openSignIn(page);
     await authenticateWithPasskeyToMfaStage(page);
 
-    await page.getByLabel('TOTP Code').fill('000000');
+    await page.locator('input[placeholder="123456"]').fill('000000');
     await page.getByRole('button', { name: 'MFA bestaetigen' }).click();
 
     await expect(page.getByText(/MFA-Verifikation fehlgeschlagen|Invalid MFA code/i)).toBeVisible();

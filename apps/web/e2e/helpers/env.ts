@@ -1,3 +1,5 @@
+import { loadE2EEnvFiles } from './load-env';
+
 const REQUIRED_VARS = ['E2E_ADMIN_EMAIL', 'E2E_ADMIN_PASSWORD', 'E2E_ADMIN_TOTP_SECRET'] as const;
 
 export type E2EConfig = {
@@ -9,6 +11,8 @@ export type E2EConfig = {
 };
 
 export function getE2EConfig(): E2EConfig {
+  loadE2EEnvFiles();
+
   const missing = REQUIRED_VARS.filter((name) => !process.env[name]?.trim());
   if (missing.length > 0) {
     throw new Error(

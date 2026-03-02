@@ -9,6 +9,7 @@ plugins {
 
 group = "com.zunftgewerk"
 version = "0.1.0"
+val grpcVersion = "1.63.0"
 
 java {
     toolchain {
@@ -31,8 +32,8 @@ dependencies {
     implementation("net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE")
 
     implementation("com.google.protobuf:protobuf-java:3.25.5")
-    implementation("io.grpc:grpc-protobuf:1.68.1")
-    implementation("io.grpc:grpc-stub:1.68.1")
+    implementation("io.grpc:grpc-protobuf:$grpcVersion")
+    implementation("io.grpc:grpc-stub:$grpcVersion")
     implementation("javax.annotation:javax.annotation-api:1.3.2")
     implementation("com.nimbusds:nimbus-jose-jwt:10.4")
     implementation("de.mkammerer:argon2-jvm:2.12")
@@ -47,7 +48,7 @@ dependencies {
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
-    testImplementation("io.grpc:grpc-testing:1.68.1")
+    testImplementation("io.grpc:grpc-testing:$grpcVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -57,7 +58,7 @@ protobuf {
     }
     plugins {
         id("grpc") {
-            artifact = "io.grpc:protoc-gen-grpc-java:1.68.1"
+            artifact = "io.grpc:protoc-gen-grpc-java:$grpcVersion"
         }
     }
     generateProtoTasks {

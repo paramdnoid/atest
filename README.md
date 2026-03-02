@@ -66,20 +66,22 @@ docker compose -f infra/docker-compose.yml up -d
 
 These tests run against a running API and start the web app automatically via Playwright `webServer`.
 
-Required environment variables:
+Create `apps/web/.env.e2e` (you can copy from `apps/web/.env.e2e.example`):
 
 ```bash
-export E2E_ADMIN_EMAIL="admin@example.com"
-export E2E_ADMIN_PASSWORD="your-password"
-export E2E_ADMIN_TOTP_SECRET="BASE32SECRET"
+cp apps/web/.env.e2e.example apps/web/.env.e2e
 ```
+
+Required variables in that file:
+- `E2E_ADMIN_EMAIL`
+- `E2E_ADMIN_PASSWORD`
+- `E2E_ADMIN_TOTP_SECRET`
 
 Optional overrides:
+- `E2E_BASE_URL` (default `http://127.0.0.1:3001`)
+- `E2E_API_BASE_URL` (default `http://localhost:8080`)
 
-```bash
-export E2E_BASE_URL="http://127.0.0.1:3001"
-export E2E_API_BASE_URL="http://localhost:8080"
-```
+`apps/web/.env.e2e.local` is also supported and overrides values from `.env.e2e`.
 
 Run:
 

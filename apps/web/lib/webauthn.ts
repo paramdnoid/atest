@@ -18,7 +18,16 @@ function toBase64Url(buffer: ArrayBuffer): string {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function transformPublicKeyOptions(options: any): PublicKeyCredentialRequestOptions {
+function unwrapPublicKey(options: any): any {
+  if (options && typeof options === 'object' && options.publicKey) {
+    return options.publicKey;
+  }
+  return options;
+}
+
+function transformPublicKeyOptions(rawOptions: any): PublicKeyCredentialRequestOptions {
+  const options = unwrapPublicKey(rawOptions);
+
   const transformed: PublicKeyCredentialRequestOptions = {
     ...options,
     challenge: fromBase64Url(options.challenge),
@@ -31,7 +40,9 @@ function transformPublicKeyOptions(options: any): PublicKeyCredentialRequestOpti
   return transformed;
 }
 
-function transformCreationOptions(options: any): PublicKeyCredentialCreationOptions {
+function transformCreationOptions(rawOptions: any): PublicKeyCredentialCreationOptions {
+  const options = unwrapPublicKey(rawOptions);
+
   return {
     ...options,
     challenge: fromBase64Url(options.challenge),
@@ -55,17 +66,23 @@ export async function createAssertion(plainOptions: string): Promise<string> {
   })) as PublicKeyCredential;
 
   const response = credential.response as AuthenticatorAssertionResponse;
+  const responseJson: Record<string, string | null> = {
+    clientDataJSON: toBase64Url(response.clientDataJSON),
+    authenticatorData: toBase64Url(response.authenticatorData),
+    signature: toBase64Url(response.signature)
+  };
+
+  if (response.userHandle) {
+    responseJson.userHandle = toBase64Url(response.userHandle);
+  }
 
   return JSON.stringify({
     id: credential.id,
     rawId: toBase64Url(credential.rawId),
     type: credential.type,
-    response: {
-      clientDataJSON: toBase64Url(response.clientDataJSON),
-      authenticatorData: toBase64Url(response.authenticatorData),
-      signature: toBase64Url(response.signature),
-      userHandle: response.userHandle ? toBase64Url(response.userHandle) : ''
-    }
+    authenticatorAttachment: credential.authenticatorAttachment ?? null,
+    clientExtensionResults: credential.getClientExtensionResults?.() ?? {},
+    response: responseJson
   });
 }
 
@@ -78,14 +95,18 @@ export async function createRegistration(plainOptions: string): Promise<string> 
   })) as PublicKeyCredential;
 
   const response = credential.response as AuthenticatorAttestationResponse;
+  const transports = typeof response.getTransports === 'function' ? response.getTransports() : [];
 
   return JSON.stringify({
     id: credential.id,
     rawId: toBase64Url(credential.rawId),
     type: credential.type,
+    authenticatorAttachment: credential.authenticatorAttachment ?? null,
+    clientExtensionResults: credential.getClientExtensionResults?.() ?? {},
     response: {
       clientDataJSON: toBase64Url(response.clientDataJSON),
-      attestationObject: toBase64Url(response.attestationObject)
+      attestationObject: toBase64Url(response.attestationObject),
+      transports
     }
   });
 }
