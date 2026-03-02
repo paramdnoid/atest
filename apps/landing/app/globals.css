@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "leaflet/dist/leaflet.css";
+@plugin "@tailwindcss/typography";
+@plugin "@tailwindcss/forms" {
+  strategy: class;
+}
 
 .leaflet-control-zoom {
   z-index: 30 !important;
@@ -67,6 +71,9 @@
       0 0 0 2px var(--color-background),
       0 0 0 4px color-mix(in oklch, var(--color-ring) 50%, transparent),
       0 0 12px color-mix(in oklch, var(--color-ring) 20%, transparent);
+    /* Typography plugin brand alignment */
+    --tw-prose-links: var(--color-primary);
+    --tw-prose-link-underline: color-mix(in oklch, var(--color-primary) 30%, transparent);
   }
 
   .dark {
@@ -81,6 +88,23 @@
     --enterprise-accent: #ff922b;
     --enterprise-accent-soft: rgba(255, 146, 43, 0.24);
     --enterprise-glow: 0 0 0 1px rgba(255, 146, 43, 0.24), 0 0 40px -8px rgba(255, 146, 43, 0.45);
+    /* Typography plugin — dark mode overrides */
+    --tw-prose-body: oklch(0.80 0.01 258);
+    --tw-prose-headings: oklch(0.93 0.012 258);
+    --tw-prose-lead: oklch(0.70 0.012 258);
+    --tw-prose-links: var(--color-primary);
+    --tw-prose-bold: oklch(0.93 0.012 258);
+    --tw-prose-counters: oklch(0.60 0.012 258);
+    --tw-prose-bullets: oklch(0.45 0.016 263);
+    --tw-prose-hr: oklch(0.265 0.018 263);
+    --tw-prose-quotes: oklch(0.80 0.01 258);
+    --tw-prose-quote-borders: var(--color-primary);
+    --tw-prose-captions: oklch(0.575 0.014 258);
+    --tw-prose-code: oklch(0.88 0.012 258);
+    --tw-prose-pre-code: oklch(0.88 0.012 258);
+    --tw-prose-pre-bg: oklch(0.13 0.018 263);
+    --tw-prose-th-borders: oklch(0.265 0.018 263);
+    --tw-prose-td-borders: oklch(0.20 0.016 263);
   }
 
   * {
