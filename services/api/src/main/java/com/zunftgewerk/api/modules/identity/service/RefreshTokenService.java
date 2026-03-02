@@ -30,6 +30,24 @@ public class RefreshTokenService {
         this.refreshTtlSeconds = refreshTtlSeconds;
     }
 
+    /**
+     * Reads user/tenant from a refresh token without rotating it. Used for
+     * unauthenticated status endpoints that want to identify the caller from
+     * their cookie without consuming the token.
+     */
+    public java.util.Optional<PeekedSession> peekUser(String rawRefreshToken) {
+        if (rawRefreshToken == null || rawRefreshToken.isBlank()) {
+            return java.util.Optional.empty();
+        }
+        String tokenHash = tokenHashService.hash(rawRefreshToken);
+        return refreshTokenRepository.findByTokenHash(tokenHash)
+            .filter(t -> t.getRevokedAt() == null && t.getExpiresAt().isAfter(OffsetDateTime.now()))
+            .map(t -> new PeekedSession(t.getUserId(), t.getTenantId()));
+    }
+
+    public record PeekedSession(UUID userId, UUID tenantId) {
+    }
+
     @Transactional
     public IssuedRefreshToken issue(UUID userId, UUID tenantId) {
         UUID familyId = UUID.randomUUID();

@@ -22,9 +22,15 @@ public class TenantService {
     }
 
     public UUID createTenant(String name, UUID ownerUserId) {
+        return createTenant(name, ownerUserId, null, null);
+    }
+
+    public UUID createTenant(String name, UUID ownerUserId, String tradeSlug, String addressJson) {
         TenantEntity tenant = new TenantEntity();
         tenant.setId(UUID.randomUUID());
         tenant.setName(name);
+        tenant.setTradeSlug(tradeSlug);
+        tenant.setAddressJson(addressJson);
         tenant.setCreatedAt(OffsetDateTime.now());
         tenantRepository.save(tenant);
 

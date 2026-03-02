@@ -5,14 +5,15 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, CorsConfigurationSource corsConfigurationSource) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> {})
+            .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(
                     "/actuator/health",
@@ -20,7 +21,8 @@ public class SecurityConfig {
                     "/.well-known/jwks.json",
                     "/webhooks/stripe",
                     "/internal/billing/stripe-webhooks/dead-letter/recover",
-                    "/auth/**"
+                    "/v1/auth/**",
+                    "/v1/onboarding/status"
                 ).permitAll()
                 .anyRequest().authenticated())
             .httpBasic(AbstractHttpConfigurer::disable)

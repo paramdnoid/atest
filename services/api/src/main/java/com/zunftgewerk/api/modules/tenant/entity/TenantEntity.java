@@ -18,6 +18,12 @@ public class TenantEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @Column(name = "trade_slug")
+    private String tradeSlug;
+
+    @Column(name = "address_json")
+    private String addressJson;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
@@ -43,5 +49,21 @@ public class TenantEntity {
 
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getTradeSlug() {
+        return tradeSlug;
+    }
+
+    public void setTradeSlug(String tradeSlug) {
+        this.tradeSlug = tradeSlug;
+    }
+
+    public String getAddressJson() {
+        return addressJson;
+    }
+
+    public void setAddressJson(String addressJson) {
+        this.addressJson = addressJson;
     }
 }

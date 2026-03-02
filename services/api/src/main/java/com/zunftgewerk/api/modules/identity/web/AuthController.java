@@ -11,38 +11,124 @@ import com.zunftgewerk.api.proto.v1.PasskeyMode;
 import com.zunftgewerk.api.shared.security.JwtPrincipal;
 import com.zunftgewerk.api.shared.security.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.net.URI;
 
 import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/v1/auth")
 public class AuthController {
 
     private final IdentityService identityService;
     private final JwtService jwtService;
     private final AuthCookieService authCookieService;
     private final AuthRateLimitService authRateLimitService;
+    private final ObjectMapper objectMapper;
+
+    @Value("${zunftgewerk.email.landing-base-url:http://localhost:3000}")
+    private String landingBaseUrl;
 
     public AuthController(
         IdentityService identityService,
         JwtService jwtService,
         AuthCookieService authCookieService,
-        AuthRateLimitService authRateLimitService
+        AuthRateLimitService authRateLimitService,
+        ObjectMapper objectMapper
     ) {
         this.identityService = identityService;
         this.jwtService = jwtService;
         this.authCookieService = authCookieService;
         this.authRateLimitService = authRateLimitService;
+        this.objectMapper = objectMapper;
+    }
+
+    @PostMapping("/signup")
+    public ResponseEntity<?> signup(@RequestBody SignupHttpRequest request) {
+        if (request.email() == null || request.email().isBlank()
+            || request.password() == null || request.password().length() < 12
+            || request.workspaceName() == null || request.workspaceName().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Missing required fields"));
+        }
+
+        String addressJson = null;
+        if (request.address() != null) {
+            try {
+                addressJson = objectMapper.writeValueAsString(request.address());
+            } catch (JsonProcessingException ignored) {
+                // address is optional; proceed without it
+            }
+        }
+
+        try {
+            identityService.signUp(
+                request.email(),
+                request.password(),
+                request.fullName(),
+                request.workspaceName(),
+                request.tradeSlug(),
+                addressJson,
+                request.planCode()
+            );
+            return ResponseEntity.ok(Map.of("message", "Verification email sent"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Registration failed"));
+        }
+    }
+
+    @GetMapping("/verify-email")
+    public ResponseEntity<?> verifyEmail(@RequestParam("token") String token) {
+        try {
+            identityService.verifyEmail(token);
+            return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create(landingBaseUrl + "/onboarding/verified"))
+                .build();
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create(landingBaseUrl + "/onboarding/verified?error=invalid_token"))
+                .build();
+        }
+    }
+
+    @PostMapping("/request-password-reset")
+    public ResponseEntity<?> requestPasswordReset(@RequestBody PasswordResetRequestHttpRequest request) {
+        if (request.email() == null || request.email().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email required"));
+        }
+        // Always returns success to prevent user enumeration.
+        identityService.requestPasswordReset(request.email());
+        return ResponseEntity.ok(Map.of("message", "If this email exists, a reset code was sent"));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordHttpRequest request) {
+        if (request.token() == null || request.token().isBlank()
+            || request.password() == null || request.password().length() < 12) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Token and password (min 12 chars) required"));
+        }
+        try {
+            identityService.resetPassword(request.token(), request.password());
+            return ResponseEntity.ok(Map.of("message", "Password updated"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
     }
 
     @PostMapping("/login")
@@ -360,5 +446,22 @@ public class AuthController {
     }
 
     public record RefreshHttpRequest(String refreshToken) {
+    }
+
+    public record SignupHttpRequest(
+        String email,
+        String password,
+        String fullName,
+        String workspaceName,
+        String tradeSlug,
+        Map<String, Object> address,
+        String planCode
+    ) {
+    }
+
+    public record PasswordResetRequestHttpRequest(String email) {
+    }
+
+    public record ResetPasswordHttpRequest(String token, String password) {
     }
 }

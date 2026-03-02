@@ -1,6 +1,8 @@
 package com.zunftgewerk.api.modules.identity.service;
 
 import com.zunftgewerk.api.modules.audit.service.AuditService;
+import com.zunftgewerk.api.modules.identity.entity.EmailVerificationTokenEntity;
+import com.zunftgewerk.api.modules.identity.entity.PasswordResetTokenEntity;
 import com.zunftgewerk.api.modules.identity.entity.UserEntity;
 import com.zunftgewerk.api.modules.identity.model.LoginResult;
 import com.zunftgewerk.api.modules.identity.model.MfaEnrollmentResult;
@@ -8,6 +10,8 @@ import com.zunftgewerk.api.modules.identity.model.MfaVerifyResult;
 import com.zunftgewerk.api.modules.identity.model.PasskeyBeginResult;
 import com.zunftgewerk.api.modules.identity.model.RefreshResult;
 import com.zunftgewerk.api.modules.identity.model.RegisterResult;
+import com.zunftgewerk.api.modules.identity.repository.EmailVerificationTokenRepository;
+import com.zunftgewerk.api.modules.identity.repository.PasswordResetTokenRepository;
 import com.zunftgewerk.api.modules.identity.repository.UserRepository;
 import com.zunftgewerk.api.modules.tenant.entity.MembershipEntity;
 import com.zunftgewerk.api.modules.tenant.repository.MembershipRepository;
@@ -17,10 +21,13 @@ import com.zunftgewerk.api.shared.audit.AuditEventType;
 import com.zunftgewerk.api.shared.security.JwtPrincipal;
 import com.zunftgewerk.api.shared.security.JwtService;
 import io.micrometer.core.instrument.MeterRegistry;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.OffsetDateTime;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +37,7 @@ import java.util.UUID;
 public class IdentityService {
 
     private static final List<String> ADMIN_ROLES = List.of("owner", "admin");
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UserRepository userRepository;
     private final MembershipRepository membershipRepository;
@@ -41,6 +49,16 @@ public class IdentityService {
     private final PasskeyService passkeyService;
     private final AuditService auditService;
     private final MeterRegistry meterRegistry;
+    private final EmailVerificationTokenRepository emailVerificationTokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final TokenHashService tokenHashService;
+    private final EmailService emailService;
+
+    @Value("${zunftgewerk.email-verification.ttl-seconds:86400}")
+    private long emailVerificationTtlSeconds;
+
+    @Value("${zunftgewerk.password-reset.ttl-seconds:3600}")
+    private long passwordResetTtlSeconds;
 
     public IdentityService(
         UserRepository userRepository,
@@ -52,7 +70,11 @@ public class IdentityService {
         MfaService mfaService,
         PasskeyService passkeyService,
         AuditService auditService,
-        MeterRegistry meterRegistry
+        MeterRegistry meterRegistry,
+        EmailVerificationTokenRepository emailVerificationTokenRepository,
+        PasswordResetTokenRepository passwordResetTokenRepository,
+        TokenHashService tokenHashService,
+        EmailService emailService
     ) {
         this.userRepository = userRepository;
         this.membershipRepository = membershipRepository;
@@ -64,6 +86,10 @@ public class IdentityService {
         this.passkeyService = passkeyService;
         this.auditService = auditService;
         this.meterRegistry = meterRegistry;
+        this.emailVerificationTokenRepository = emailVerificationTokenRepository;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.tokenHashService = tokenHashService;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -238,6 +264,137 @@ public class IdentityService {
 
         auditService.record(revocation.tenantId(), revocation.userId(), AuditEventType.SESSION_REVOKED, "{\"source\":\"revoke_family\"}");
         return true;
+    }
+
+    @Transactional
+    public RegisterResult signUp(
+        String email,
+        String password,
+        String fullName,
+        String workspaceName,
+        String tradeSlug,
+        String addressJson,
+        String planCode
+    ) {
+        String normalizedEmail = email.toLowerCase();
+        userRepository.findByEmail(normalizedEmail).ifPresent(existing -> {
+            throw new IllegalArgumentException("User already exists");
+        });
+
+        UserEntity user = new UserEntity();
+        user.setId(UUID.randomUUID());
+        user.setEmail(normalizedEmail);
+        user.setFullName(fullName);
+        user.setPasswordHash(passwordHasher.hash(password));
+        user.setPasswordAlgo("argon2id");
+        user.setMfaEnabled(false);
+        user.setCreatedAt(OffsetDateTime.now());
+        userRepository.save(user);
+
+        UUID tenantId = tenantService.createTenant(workspaceName, user.getId(), tradeSlug, addressJson);
+        auditService.record(tenantId, user.getId(), AuditEventType.USER_REGISTERED, "{\"email\":\"" + normalizedEmail + "\"}");
+
+        String rawToken = generateSecureToken(32);
+        EmailVerificationTokenEntity verificationToken = new EmailVerificationTokenEntity();
+        verificationToken.setId(UUID.randomUUID());
+        verificationToken.setUserId(user.getId());
+        verificationToken.setTokenHash(tokenHashService.hash(rawToken));
+        verificationToken.setExpiresAt(OffsetDateTime.now().plusSeconds(emailVerificationTtlSeconds));
+        verificationToken.setCreatedAt(OffsetDateTime.now());
+        emailVerificationTokenRepository.save(verificationToken);
+
+        emailService.sendVerificationEmail(normalizedEmail, rawToken);
+
+        return new RegisterResult(user.getId(), tenantId);
+    }
+
+    @Transactional
+    public void verifyEmail(String rawToken) {
+        String tokenHash = tokenHashService.hash(rawToken);
+        EmailVerificationTokenEntity token = emailVerificationTokenRepository.findByTokenHash(tokenHash)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid or expired verification token"));
+
+        if (token.getUsedAt() != null) {
+            throw new IllegalArgumentException("Verification token already used");
+        }
+        if (token.getExpiresAt().isBefore(OffsetDateTime.now())) {
+            throw new IllegalArgumentException("Verification token expired");
+        }
+
+        token.setUsedAt(OffsetDateTime.now());
+        emailVerificationTokenRepository.save(token);
+
+        UserEntity user = userRepository.findById(token.getUserId())
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        user.setEmailVerifiedAt(OffsetDateTime.now());
+        userRepository.save(user);
+
+        membershipRepository.findByUserId(user.getId()).stream().findFirst().ifPresent(membership ->
+            auditService.record(membership.getTenantId(), user.getId(), AuditEventType.EMAIL_VERIFIED, "{}")
+        );
+    }
+
+    @Transactional
+    public void requestPasswordReset(String email) {
+        // Always respond successfully to avoid user enumeration.
+        userRepository.findByEmail(email.toLowerCase()).ifPresent(user -> {
+            String rawToken = generateShortCode();
+            PasswordResetTokenEntity token = new PasswordResetTokenEntity();
+            token.setId(UUID.randomUUID());
+            token.setUserId(user.getId());
+            token.setTokenHash(tokenHashService.hash(rawToken));
+            token.setExpiresAt(OffsetDateTime.now().plusSeconds(passwordResetTtlSeconds));
+            token.setCreatedAt(OffsetDateTime.now());
+            passwordResetTokenRepository.save(token);
+
+            emailService.sendPasswordResetEmail(user.getEmail(), rawToken);
+
+            membershipRepository.findByUserId(user.getId()).stream().findFirst().ifPresent(membership ->
+                auditService.record(membership.getTenantId(), user.getId(), AuditEventType.PASSWORD_RESET_REQUESTED, "{}")
+            );
+        });
+    }
+
+    @Transactional
+    public void resetPassword(String rawToken, String newPassword) {
+        String tokenHash = tokenHashService.hash(rawToken);
+        PasswordResetTokenEntity token = passwordResetTokenRepository.findByTokenHash(tokenHash)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid or expired reset code"));
+
+        if (token.getUsedAt() != null) {
+            throw new IllegalArgumentException("Reset code already used");
+        }
+        if (token.getExpiresAt().isBefore(OffsetDateTime.now())) {
+            throw new IllegalArgumentException("Reset code expired");
+        }
+
+        token.setUsedAt(OffsetDateTime.now());
+        passwordResetTokenRepository.save(token);
+
+        UserEntity user = userRepository.findById(token.getUserId())
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        user.setPasswordHash(passwordHasher.hash(newPassword));
+        userRepository.save(user);
+
+        membershipRepository.findByUserId(user.getId()).stream().findFirst().ifPresent(membership ->
+            auditService.record(membership.getTenantId(), user.getId(), AuditEventType.PASSWORD_RESET_COMPLETED, "{}")
+        );
+    }
+
+    private String generateSecureToken(int bytes) {
+        byte[] random = new byte[bytes];
+        SECURE_RANDOM.nextBytes(random);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(random);
+    }
+
+    /** Generates an 8-character alphanumeric code suitable for manual entry. */
+    private String generateShortCode() {
+        String alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        StringBuilder sb = new StringBuilder(8);
+        for (int i = 0; i < 8; i++) {
+            sb.append(alphabet.charAt(SECURE_RANDOM.nextInt(alphabet.length())));
+        }
+        return sb.toString();
     }
 
     private LoginResult issueAuthenticatedLogin(UserEntity user, SessionContext sessionContext, boolean mfa, List<String> amr) {
