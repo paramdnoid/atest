@@ -12,4 +12,8 @@ resources:
   - landing-service.yaml
   - web-deployment.yaml
   - web-service.yaml
+  - postgres-deployment.yaml
+  - postgres-service.yaml
+  - redis-deployment.yaml
+  - redis-service.yaml
   - ingress.yaml
