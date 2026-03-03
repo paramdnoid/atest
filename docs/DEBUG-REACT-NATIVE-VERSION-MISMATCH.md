@@ -18,19 +18,34 @@ Make sure that you have rebuilt the native code.
 ## Root Cause Analysis
 
 ### What Happened
-The iOS simulator was running with a **version mismatch** between:
+The iOS simulator failed with a **version incompatibility** error:
 - **JavaScript bundle**: React Native 0.84.1 (from `package.json`)
-- **Native iOS code**: React Native 0.83.1 (from old build artifacts)
+- **Native iOS code**: React Native 0.83.1-0.83.2 (from Expo 55.0.4 compatibility)
+- **Expo expectation**: React Native **0.83.2** (declared in Expo metadata)
 
-This occurs because React Native's native layer must match the JS bundle version exactly. When you upgrade in `package.json`, the old iOS build artifacts remain cached and cause initialization to fail when the bridge tries to connect.
+### Root Cause: Incompatible Dependency Versions
+The **real issue** was not just caches — it was **version incompatibility**:
+
+```
+Expo 55.0.4 expects:
+  ✅ react-native: 0.83.2
+  ✅ react: 19.2.0
+  ✅ react-dom: 19.2.0
+
+But package.json had:
+  ❌ react-native: 0.84.1 (incompatible!)
+  ❌ react: 19.2.4 (wrong patch)
+  ❌ react-dom: 19.2.4 (wrong patch)
+```
+
+Expo and React Native have strict peer dependency requirements. When you install incompatible versions, the native code compiled for 0.83.2 cannot initialize with the 0.84.1 JS bundle.
 
 ### Why It Happened
-During dependency management:
-1. `package.json` was updated to `react-native: 0.84.1`
-2. iOS build artifacts and caches still contained the old 0.83.1 native code
-3. Expo started the app with the new JS bundle (0.84.1)
-4. Native code (0.83.1) couldn't initialize with the mismatched JS version
-5. React Native's version check in `checkVersions()` threw the error
+1. `package.json` was edited to use `react-native: 0.84.1` (newer version)
+2. **Cache clearing alone cannot fix version incompatibility** — old native code is correct, but doesn't match new JS
+3. Expo 55.0.4 is locked to React Native 0.83.2 (Expo's release compatibility matrix)
+4. When the JS bundle loaded, React Native's `checkVersions()` detected the mismatch and crashed
+5. Clearing caches didn't help because the problem was **incompatible installed versions**, not stale caches
 
 ### Call Stack Analysis
 The error originates in React Native's initialization sequence:
@@ -44,15 +59,38 @@ global init                             ← App startup
 
 ## Fix Applied
 
-### Step 1: Identify Outdated Caches
-- **Expo cache**: `node_modules/.expo/` — Stores development state
-- **iOS build artifacts**: `ios/Pods/`, `ios/Podfile.lock` — Old native code
-- **Watchman cache**: File system watcher state — Can reference deleted files
-- **Metro cache**: `$TMPDIR/metro-cache*` — Bundler cache with old bundle
-- **Node cache**: `node_modules/.cache/` — Build system cache
+### The Real Solution: Fix Version Incompatibility
+The key insight: **Cache clearing alone cannot fix version incompatibility**. The versions in `package.json` must match Expo's requirements.
 
-### Step 2: Clear All Caches
+### Step 1: Identify Correct Versions
+Check Expo's compatibility matrix:
 ```bash
+cd apps/mobile
+npx expo doctor
+```
+
+Output shows requirements:
+```
+react@19.2.4 - expected version: 19.2.0 ❌
+react-dom@19.2.4 - expected version: 19.2.0 ❌
+react-native@0.84.1 - expected version: 0.83.2 ❌
+```
+
+### Step 2: Update package.json to Compatible Versions
+```json
+{
+  "dependencies": {
+    "react": "19.2.0",        // was 19.2.4
+    "react-dom": "19.2.0",    // was 19.2.4
+    "react-native": "0.83.2"  // was 0.84.1 ← KEY FIX
+  }
+}
+```
+
+### Step 3: Clear All Caches (Now that versions are correct)
+```bash
+cd apps/mobile
+
 # Remove Expo and iOS build cache
 rm -rf node_modules/.expo
 rm -rf ios/Pods ios/Podfile.lock
@@ -63,66 +101,76 @@ watchman watch-del-all
 # Clear bundler caches
 rm -rf $TMPDIR/metro-cache*
 rm -rf node_modules/.cache
-
-# Clear Expo state
 rm -rf .expo
 ```
 
-### Step 3: Reinstall Dependencies
+### Step 4: Reinstall Dependencies
 ```bash
 pnpm install
 ```
 
-This forces CocoaPods to rebuild iOS dependencies with the correct React Native version.
+This pulls the CORRECT React Native 0.83.2 version that matches Expo 55.0.4.
 
-### Step 4: Restart Dev Server
+### Step 5: Restart Dev Server
 ```bash
-pnpm --filter @zunftgewerk/mobile start --reset-cache
+pnpm --filter @zunftgewerk/mobile start
 ```
 
-The `--reset-cache` flag ensures Metro rebuilds the JS bundle from scratch.
+No `--reset-cache` needed — the versions are now correct.
 
 ## Prevention Strategy
+
+### Critical Lesson: Check Version Compatibility FIRST
+**Never manually upgrade React Native version without checking Expo compatibility.**
 
 ### For Future Dependency Updates
 When upgrading React Native, Expo, or major dependencies:
 
 ```bash
-# 1. Update package.json
-# (edit React Native version)
-
-# 2. Clean all caches BEFORE pnpm install
+# 1. CHECK version compatibility (most important!)
 cd apps/mobile
+npx expo doctor
+
+# This tells you the EXACT versions Expo requires:
+# ✅ Use these versions in package.json
+# ❌ Do NOT upgrade beyond what Expo supports
+
+# 2. Update package.json ONLY with compatible versions
+# (match Expo's exact requirements from expo doctor)
+
+# 3. Clean caches BEFORE pnpm install
 rm -rf node_modules/.expo ios/Pods ios/Podfile.lock .expo
 watchman watch-del-all || true
 rm -rf $TMPDIR/metro-cache* 2>/dev/null || true
 
-# 3. Reinstall and restart
+# 4. Reinstall with correct versions
 pnpm install
-pnpm start --reset-cache
+pnpm start
 ```
 
-### Automated Cleanup Script
-Create `apps/mobile/cleanup-caches.sh`:
+### Expo Compatibility Matrix Reference
+```
+Expo 55.0.4 requires:
+  - React Native: 0.83.2 (EXACT)
+  - React: 19.2.0
+  - React DOM: 19.2.0
+```
+
+Do NOT use newer versions of React Native with Expo 55 — they are incompatible.
+
+### Automated Version Check Script
+Create `apps/mobile/verify-versions.sh`:
 ```bash
 #!/bin/bash
-echo "🧹 Clearing all React Native build caches..."
+echo "🔍 Verifying Expo version compatibility..."
 
-rm -rf node_modules/.expo
-rm -rf ios/Pods ios/Podfile.lock
-rm -rf .expo
-watchman watch-del-all || echo "⚠️  Watchman not available"
-rm -rf $TMPDIR/metro-cache* 2>/dev/null || true
-rm -rf node_modules/.cache
+cd apps/mobile
+npx expo doctor
 
-echo "✅ All caches cleared. Ready to reinstall and start."
-```
-
-Usage:
-```bash
-bash apps/mobile/cleanup-caches.sh
-pnpm install
-pnpm start --reset-cache
+echo ""
+echo "✅ Review the output above:"
+echo "  - Green checkmarks = compatible"
+echo "  - Warnings = incompatible versions (update package.json)"
 ```
 
 ## Testing the Fix
