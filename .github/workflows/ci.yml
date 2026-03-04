@@ -101,6 +101,9 @@ jobs:
           REDIS_HOST=localhost \
           REDIS_PORT=6379 \
           MFA_ENCRYPTION_KEY="${MFA_ENCRYPTION_KEY}" \
+          CORS_ALLOWED_ORIGINS="http://localhost:3000,http://localhost:3001,http://127.0.0.1:3001" \
+          AUTH_RATE_LIMIT_LOGIN_LIMIT=50 \
+          AUTH_RATE_LIMIT_MFA_LIMIT=50 \
           nohup gradle bootRun --no-daemon > /tmp/api.log 2>&1 &
           echo "API PID: $!"
 
