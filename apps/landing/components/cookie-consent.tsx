@@ -11,6 +11,16 @@ type ConsentValue = "all" | "necessary" | null;
 
 const VALID_CONSENT_VALUES = new Set<string>(["all", "necessary"]);
 
+function getVisitorId(): string {
+  const key = "zg_visitor_id";
+  let id = localStorage.getItem(key);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(key, id);
+  }
+  return id;
+}
+
 function getStoredConsent(): ConsentValue {
   if (typeof window === "undefined") return null;
   const stored = localStorage.getItem(COOKIE_CONSENT_KEY);
@@ -71,6 +81,15 @@ export function CookieConsent() {
 
   const accept = useCallback((value: "all" | "necessary") => {
     localStorage.setItem(COOKIE_CONSENT_KEY, value);
+    // Fire and forget — don't block UI
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080"}/v1/consent`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ consent: value, visitorId: getVisitorId() }),
+      }
+    ).catch(() => {}); // Silent fail — localStorage is the source of truth
     setVisible(false);
     previousFocusRef.current?.focus();
   }, []);
