@@ -101,7 +101,7 @@ jobs:
           REDIS_HOST=localhost \
           REDIS_PORT=6379 \
           MFA_ENCRYPTION_KEY="${MFA_ENCRYPTION_KEY}" \
-          CORS_ALLOWED_ORIGINS="http://localhost:3000,http://localhost:3001,http://127.0.0.1:3001" \
+          CORS_ALLOWED_ORIGINS="http://localhost:3000,http://localhost:3001" \
           AUTH_RATE_LIMIT_LOGIN_LIMIT=50 \
           AUTH_RATE_LIMIT_MFA_LIMIT=50 \
           nohup gradle bootRun --no-daemon > /tmp/api.log 2>&1 &
@@ -125,9 +125,9 @@ jobs:
       - name: Run E2E tests
         run: pnpm --filter @zunftgewerk/web test:e2e
         env:
-          E2E_BASE_URL: http://127.0.0.1:3001
+          E2E_BASE_URL: http://localhost:3001
           E2E_API_BASE_URL: http://localhost:8080
-          PASSKEY_ORIGIN: http://127.0.0.1:3001
+          PASSKEY_ORIGIN: http://localhost:3001
           CI: true
 
       - name: Upload Playwright report

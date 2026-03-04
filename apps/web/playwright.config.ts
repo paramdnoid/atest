@@ -3,7 +3,7 @@ import { loadE2EEnvFiles } from './e2e/helpers/load-env';
 
 loadE2EEnvFiles();
 
-const baseURL = process.env.E2E_BASE_URL ?? 'http://127.0.0.1:3001';
+const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:3001';
 const apiBaseURL = process.env.E2E_API_BASE_URL ?? 'http://localhost:8080';
 
 export default defineConfig({
