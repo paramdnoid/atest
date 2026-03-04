@@ -13,9 +13,11 @@ spec:
       labels:
         app: zunftgewerk-landing
     spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
       containers:
         - name: landing
-          image: ghcr.io/zunftgewerk/zunftgewerk-landing:latest
+          image: ghcr.io/paramdnoid/zunftgewerk-landing:latest
           ports:
             - name: http
               containerPort: 3000

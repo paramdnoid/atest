@@ -13,9 +13,11 @@ spec:
       labels:
         app: zunftgewerk-web
     spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
       containers:
         - name: web
-          image: ghcr.io/zunftgewerk/zunftgewerk-web:latest
+          image: ghcr.io/paramdnoid/zunftgewerk-web:latest
           ports:
             - name: http
               containerPort: 3001
