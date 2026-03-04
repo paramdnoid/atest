@@ -4,7 +4,8 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { useAuth } from '../../src/context/AuthContext';
 import { apiGet } from '../../src/lib/api';
 import { getLastSyncTimestamp, setLastSyncTimestamp } from '../../src/lib/storage';
-import { runSyncCycle, type SyncTransport } from '../../src/sync/syncClient';
+import { runSyncCycle } from '../../src/sync/syncClient';
+import { createRestTransport } from '../../src/sync/restTransport';
 import { ensureDeviceKeyReference } from '../../src/storage/encryptedDb';
 
 type OnboardingStatusResponse = {
@@ -24,29 +25,9 @@ export default function SyncScreen() {
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const stubTransport = useMemo<SyncTransport>(
-    () => ({
-      pushChanges: async (request) => {
-        console.log('[sync-stub] pushChanges', {
-          tenantId: request.tenantId,
-          deviceId: request.deviceId,
-          operationCount: request.operations.length
-        });
-        return { acceptedOperationIds: request.operations.map((operation) => operation.clientOpId) };
-      },
-      pullChanges: async (request) => {
-        console.log('[sync-stub] pullChanges', {
-          tenantId: request.tenantId,
-          deviceId: request.deviceId,
-          sinceCursor: request.sinceCursor
-        });
-        return {
-          nextCursor: new Date().toISOString(),
-          changes: []
-        };
-      }
-    }),
-    []
+  const transport = useMemo(
+    () => (accessToken ? createRestTransport(accessToken) : null),
+    [accessToken]
   );
 
   useEffect(() => {
@@ -63,7 +44,7 @@ export default function SyncScreen() {
   }, []);
 
   const startSync = async () => {
-    if (!accessToken) {
+    if (!accessToken || !transport) {
       setError('Kein Zugriffstoken verfügbar.');
       return;
     }
@@ -79,7 +60,7 @@ export default function SyncScreen() {
       ]);
 
       const tenantId = onboarding.workspaceId ?? 'tenant-local';
-      const result = await runSyncCycle(stubTransport, {
+      const result = await runSyncCycle(transport, {
         tenantId,
         deviceId,
         sinceCursor: lastSyncAt ?? '0',
@@ -100,7 +81,7 @@ export default function SyncScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.heading}>Sync</Text>
-      <Text style={styles.subtitle}>Stub-Transport aktiv. gRPC folgt in P4.4.</Text>
+      <Text style={styles.subtitle}>REST-Transport aktiv. Verbunden mit /v1/sync.</Text>
 
       <View style={styles.card}>
         <Text style={styles.label}>Letzter Sync</Text>

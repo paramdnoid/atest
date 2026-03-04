@@ -34,6 +34,7 @@ public class SecurityConfig {
                 .requestMatchers("/v1/admin/audit-export", "/v1/admin/flags").permitAll()
                 .requestMatchers("/v1/account").permitAll()
                 .requestMatchers("/v1/consent").permitAll()
+                .requestMatchers("/v1/sync/push", "/v1/sync/pull").permitAll()
                 .anyRequest().authenticated())
             .httpBasic(AbstractHttpConfigurer::disable)
             .formLogin(AbstractHttpConfigurer::disable);
