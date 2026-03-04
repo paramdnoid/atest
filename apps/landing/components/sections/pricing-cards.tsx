@@ -366,7 +366,7 @@ export function PricingCards({
       )}
 
       <StaggerChildren
-        className="mx-auto grid max-w-5xl items-stretch gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3"
+        className="mx-auto grid max-w-7xl items-stretch gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3"
         staggerDelay={0.1}
       >
         {regularPlans.map((plan, i) => (

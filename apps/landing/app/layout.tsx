@@ -71,7 +71,7 @@ const organizationJsonLd = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="de" className={`scroll-smooth ${plex.variable} ${chakra.variable}`}>
+    <html lang="de" data-scroll-behavior="smooth" className={`${plex.variable} ${chakra.variable}`}>
       <body className={plex.className} suppressHydrationWarning>
         <a
           href="#main-content"

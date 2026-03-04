@@ -21,7 +21,7 @@ export function HowItWorksSection() {
         </FadeIn>
 
         <StaggerChildren
-          className="mx-auto grid max-w-5xl gap-8 md:grid-cols-3 md:gap-6 lg:gap-12"
+          className="mx-auto grid max-w-7xl gap-8 md:grid-cols-3 md:gap-6 lg:gap-12"
           staggerDelay={0.15}
         >
           {steps.map((item, index) => (

@@ -1,29 +1,11 @@
 import { Separator } from "@/components/ui/separator";
-import { Github, Linkedin, Twitter } from "lucide-react";
+
 import Link from "next/link";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { FadeIn } from "@/components/fade-in";
 import { FaqDialog } from "@/components/faq-dialog";
 import { SectionContainer } from "@/components/section-container";
-
-const socialLinks = [
-  {
-    href: "https://github.com/zunftgewerk",
-    label: "GitHub",
-    icon: Github,
-  },
-  {
-    href: "https://linkedin.com/company/zunftgewerk",
-    label: "LinkedIn",
-    icon: Linkedin,
-  },
-  {
-    href: "https://twitter.com/zunftgewerk",
-    label: "Twitter",
-    icon: Twitter,
-  },
-] as const;
 
 const productLinks = [
   { href: "#features", label: "Features" },
@@ -49,7 +31,7 @@ export function Footer() {
   return (
     <footer className="relative bg-muted/30" aria-label="Fußbereich">
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-border/40 to-transparent" />
-      <SectionContainer className="py-12 md:py-16">
+      <SectionContainer className="pb-8 pt-12 md:pt-16">
         <FadeIn>
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
             <div className="sm:col-span-2 lg:col-span-1">
@@ -62,20 +44,6 @@ export function Footer() {
                 Die All-in-One Software für Kaminfeger, Maler und SHK-Betriebe.
                 DSGVO-konform und made in Germany.
               </p>
-              <div className="mt-5 flex gap-3">
-                {socialLinks.map((social) => (
-                  <a
-                    key={social.label}
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-muted/60 text-muted-foreground hover:bg-primary/10 hover:text-primary flex h-11 w-11 items-center justify-center rounded-lg transition-all duration-200"
-                    aria-label={`${social.label} (öffnet in neuem Tab)`}
-                  >
-                    <social.icon className="h-4 w-4" aria-hidden="true" />
-                  </a>
-                ))}
-              </div>
             </div>
 
             <nav aria-label="Produkt-Links" className="lg:text-right">
@@ -139,14 +107,23 @@ export function Footer() {
 
           <Separator className="my-8 opacity-50" />
 
-          <div className="text-muted-foreground flex flex-col items-center justify-between gap-4 text-center text-sm sm:flex-row sm:text-left">
-            <p>&copy; {currentYear} ZunftGewerk GmbH. Alle Rechte vorbehalten.</p>
-            <p className="flex items-center gap-1.5">
-              Made with Sorgfalt in Deutschland
-              <span aria-label="Deutsche Flagge" role="img" className="text-xs">
-                &#x1F1E9;&#x1F1EA;
+          <div className="text-muted-foreground flex flex-col items-center justify-between gap-6 text-center text-xs sm:flex-row sm:text-left">
+            <p>&copy; {currentYear} ZunftGewerk KG. Alle Rechte vorbehalten.</p>
+
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-muted-foreground/70">
+              <span className="flex items-center gap-1.5">
+                Entwickelt mit
               </span>
-            </p>
+              <span className="flex items-center gap-1">
+                <span aria-label="Schweizer Flagge" role="img">&#x1F1E8;&#x1F1ED;</span>
+                Bündner Kaminfeger GmbH
+              </span>
+              <span aria-hidden="true" className="text-border">|</span>
+              <span className="flex items-center gap-1">
+                <span aria-label="Deutsche Flagge" role="img">&#x1F1E9;&#x1F1EA;</span>
+                Tivialis Personalvermittlung KG
+              </span>
+            </div>
           </div>
         </FadeIn>
       </SectionContainer>
