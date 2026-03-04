@@ -7,6 +7,7 @@ const baseURL = process.env.E2E_BASE_URL ?? 'http://127.0.0.1:3001';
 const apiBaseURL = process.env.E2E_API_BASE_URL ?? 'http://localhost:8080';
 
 export default defineConfig({
+  globalSetup: './e2e/global-setup.ts',
   testDir: './e2e',
   fullyParallel: false,
   workers: 1,

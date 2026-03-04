@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { getE2EConfig, type E2EConfig } from './helpers/env';
+import { flushRateLimits } from './helpers/flush-rate-limits';
 import { generateStableTotpCode } from './helpers/totp';
 import { attachVirtualAuthenticator, detachVirtualAuthenticator, type VirtualAuthenticator } from './helpers/webauthn';
 
@@ -30,6 +31,7 @@ test.describe('dashboard navigation', () => {
   });
 
   test.beforeEach(async ({ page }) => {
+    flushRateLimits();
     authenticator = await attachVirtualAuthenticator(page);
     await loginWithPasswordAndMfa(page);
   });
