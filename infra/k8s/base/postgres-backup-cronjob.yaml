@@ -1,0 +1,76 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: zunftgewerk-postgres-backup
+  namespace: zunftgewerk
+spec:
+  schedule: "0 3 * * *"  # Daily at 03:00 UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: pg-backup
+              image: postgres:16-alpine
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+                  BACKUP_FILE="/backups/zunftgewerk-${TIMESTAMP}.sql.gz"
+                  echo "Starting backup: ${BACKUP_FILE}"
+                  PGPASSWORD="${POSTGRES_PASSWORD}" pg_dump \
+                    -h zunftgewerk-postgres \
+                    -U "${POSTGRES_USER}" \
+                    -d zunftgewerk \
+                    --no-owner \
+                    --no-acl \
+                    | gzip > "${BACKUP_FILE}"
+                  echo "Backup complete: $(du -h ${BACKUP_FILE} | cut -f1)"
+                  # Prune backups older than 14 days
+                  find /backups -name "zunftgewerk-*.sql.gz" -mtime +14 -delete
+                  echo "Pruned old backups. Remaining:"
+                  ls -lh /backups/
+              env:
+                - name: POSTGRES_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: zunftgewerk-secrets
+                      key: DATABASE_USERNAME
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: zunftgewerk-secrets
+                      key: DATABASE_PASSWORD
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+              resources:
+                requests:
+                  cpu: "50m"
+                  memory: "64Mi"
+                limits:
+                  cpu: "250m"
+                  memory: "256Mi"
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: zunftgewerk-postgres-backup-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zunftgewerk-postgres-backup-pvc
+  namespace: zunftgewerk
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi

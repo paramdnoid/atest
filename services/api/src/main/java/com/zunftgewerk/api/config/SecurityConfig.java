@@ -15,21 +15,24 @@ public class SecurityConfig {
         http.csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers(
-                    "/actuator/health",
-                    "/actuator/info",
-                    "/.well-known/jwks.json",
-                    "/webhooks/stripe",
-                    "/internal/billing/stripe-webhooks/dead-letter/recover",
-                    "/v1/auth/**",
-                    "/v1/onboarding/status",
-                    "/v1/workspace/**",
-                    "/v1/billing/**",
-                    "/v1/devices/**",
-                    "/v1/team/**",
-                    "/v1/admin/**",
-                    "/v1/account/**"
-                ).permitAll()
+                // Infrastructure
+                .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                .requestMatchers("/.well-known/jwks.json").permitAll()
+                // Stripe webhooks (signature-verified internally)
+                .requestMatchers("/webhooks/stripe").permitAll()
+                .requestMatchers("/internal/billing/stripe-webhooks/dead-letter/recover").permitAll()
+                // Auth endpoints (public by design)
+                .requestMatchers("/v1/auth/**").permitAll()
+                .requestMatchers("/v1/onboarding/status").permitAll()
+                // Cookie-authenticated endpoints — each controller validates the session
+                // via RefreshTokenService.peekUser() and returns 401/403 on its own.
+                // Listed explicitly to prevent accidental exposure of new endpoints.
+                .requestMatchers("/v1/workspace/me", "/v1/workspace/me/address").permitAll()
+                .requestMatchers("/v1/billing/summary", "/v1/billing/events", "/v1/billing/checkout", "/v1/billing/portal").permitAll()
+                .requestMatchers("/v1/devices", "/v1/devices/registration-token", "/v1/devices/registration-token/renew", "/v1/devices/{id}", "/v1/devices/{id}/license").permitAll()
+                .requestMatchers("/v1/team/members", "/v1/team/invite").permitAll()
+                .requestMatchers("/v1/admin/audit-export", "/v1/admin/flags").permitAll()
+                .requestMatchers("/v1/account").permitAll()
                 .anyRequest().authenticated())
             .httpBasic(AbstractHttpConfigurer::disable)
             .formLogin(AbstractHttpConfigurer::disable);

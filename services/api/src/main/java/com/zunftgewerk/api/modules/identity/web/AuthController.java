@@ -465,9 +465,14 @@ public class AuthController {
 
     private String clientFingerprint(String forwardedFor, HttpServletRequest request) {
         if (forwardedFor != null && !forwardedFor.isBlank()) {
+            // Use the rightmost IP — it's set by the trusted reverse proxy and cannot
+            // be spoofed by the client (unlike the leftmost entry).
             String[] values = forwardedFor.split(",");
-            if (values.length > 0 && !values[0].trim().isBlank()) {
-                return values[0].trim();
+            for (int i = values.length - 1; i >= 0; i--) {
+                String ip = values[i].trim();
+                if (!ip.isBlank()) {
+                    return ip;
+                }
             }
         }
         return request.getRemoteAddr() == null ? "unknown" : request.getRemoteAddr();

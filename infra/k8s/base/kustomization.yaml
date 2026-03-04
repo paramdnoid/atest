@@ -16,5 +16,6 @@ resources:
   - postgres-service.yaml
   - redis-deployment.yaml
   - redis-service.yaml
+  - postgres-backup-cronjob.yaml
   - cluster-issuer.yaml
   - ingress.yaml
