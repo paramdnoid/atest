@@ -8,10 +8,10 @@
 
 | Bereich | Fertig | Kommentar |
 |---|---|---|
-| `apps/landing` | **100%** | Alle Features, Middleware, MFA, Billing, Onboarding |
+| `apps/landing` | **100%** | Alle Features, Middleware, MFA, Billing, Onboarding, 69 Unit-Tests |
 | `apps/web` | **92%** | Dashboard, Auth, Passkeys, MFA, E2E Tests |
-| `services/api` | **100%** | 8 Module, 35 Tests, GlobalExceptionHandler, gehärtete SecurityConfig |
-| `apps/mobile` | **65%** | Auth + Dashboard + Sync-Stub + Settings; iOS ✅ 12/12, Android offen |
+| `services/api` | **100%** | 8 Module, 35 Backend-Tests, Team-Invite, Cookie-Consent, V10 Migrations |
+| `apps/mobile` | **65%** | Auth + Dashboard + Sync-Stub + Settings; iOS 12/12, Android offen |
 | CI/CD | **100%** | Docker, K8s Deploy, E2E, Jacoco, Mobile TypeCheck |
 | Infra/K8s | **100%** | Secrets, TLS/cert-manager, Traefik, PG-Backup CronJob, .de Domains |
 
@@ -34,11 +34,9 @@
 |---|---|---|---|
 | 5 | Mobile Android Acceptance Testing (12 Cases) | ~2h | Android SDK/Emulator |
 | 6 | gRPC Sync: Proto Code-Gen für Mobile + Client | ~1 Woche | — |
-| 7 | Frontend Unit-Tests für Hooks/Components | ~2-3 Tage | — |
-| 8 | Legal-Seiten Inhalte finalisieren | ~1h | Juristisch |
-| 9 | Log-Aggregation (Loki/CloudWatch) + Alerting | ~1 Tag | — |
-| 10 | Team-Invite E-Mail (`POST /v1/team/invite` → 501 Stub) | ~0.5 Tag | — |
-| 11 | Cookie Consent Tracking-Backend | ~0.5 Tag | — |
+| 7 | Legal-Seiten Inhalte finalisieren | ~1h | Juristisch |
+| 8 | Log-Aggregation (Loki/CloudWatch) + Alerting | ~1 Tag | — |
+| 9 | Landing-App Invite Accept Page (`/invite/accept?token=...`) | ~2h | — |
 
 ---
 
@@ -54,9 +52,10 @@
 - **P3.1** Landing — Billing-Step, Employees, Billing-Dashboard, Address Autocomplete
 - **P3.2** Web Auth — Middleware, Passkey-Registration, Refresh-Token-Reuse-Tests (12 Unit-Tests)
 - **P3.3** Workspace & Team API — CRUD, Admin-Checks, SecurityConfig
-- **P3.4** Datenschutz — DSGVO-Delete, Audit-Export (JSON/CSV), Cookie Consent UI
+- **P3.4** Datenschutz — DSGVO-Delete, Audit-Export (JSON/CSV), Cookie Consent UI + Backend-Tracking
 - **P3.5** MFA Management — Setup/Disable Dialogs, Backend-Endpoints, QR-Code
 - **P4.1** Mobile iOS — 12/12 Acceptance Tests bestanden
 - **P4.2** Observability — Prometheus Metrics, OTLP Tracing, Trace-ID Logging
-- **P4.3** Test-Abdeckung — 35 Tests, Jacoco 50% Gate, E2E Playwright
+- **P4.3** Test-Abdeckung — 35 Backend-Tests + 69 Frontend-Tests, Jacoco 50% Gate, E2E Playwright
 - **Session 9** Architektur-Review — X-Forwarded-For Fix, GlobalExceptionHandler, SecurityConfig gehärtet, PG-Backup CronJob
+- **Session 10** Team-Invite (V9 Migration, Email, Accept-Endpoint), Cookie-Consent Backend (V10), Vitest Setup + 69 Tests
