@@ -17,5 +17,9 @@ resources:
   - redis-deployment.yaml
   - redis-service.yaml
   - postgres-backup-cronjob.yaml
+  - loki-config.yaml
+  - loki-deployment.yaml
+  - loki-service.yaml
+  - promtail-daemonset.yaml
   - cluster-issuer.yaml
   - ingress.yaml

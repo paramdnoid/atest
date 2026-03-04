@@ -1,0 +1,178 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zunftgewerk-promtail-config
+  namespace: zunftgewerk
+data:
+  promtail.yaml: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+      log_level: warn
+
+    positions:
+      filename: /run/promtail/positions.yaml
+
+    clients:
+      - url: http://zunftgewerk-loki:3100/loki/api/v1/push
+        batchwait: 1s
+        batchsize: 1048576
+        timeout: 10s
+
+    scrape_configs:
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - zunftgewerk
+
+        relabel_configs:
+          # Only scrape pods in the zunftgewerk namespace
+          - source_labels: [__meta_kubernetes_namespace]
+            regex: zunftgewerk
+            action: keep
+
+          # Drop promtail's own logs to avoid feedback loops
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            regex: zunftgewerk-promtail
+            action: drop
+
+          # Set namespace label
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+
+          # Set pod label
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+
+          # Set container label
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            target_label: container
+
+          # Set app label from pod label
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: app
+
+          # Build the log file path
+          - source_labels:
+              - __meta_kubernetes_pod_uid
+              - __meta_kubernetes_pod_container_name
+            separator: /
+            target_label: __path__
+            replacement: /var/log/pods/*$1/*.log
+
+        pipeline_stages:
+          # Parse CRI log format (containerd)
+          - cri: {}
+
+          # For the API container, attempt to parse structured JSON logs
+          - match:
+              selector: '{app="zunftgewerk-api"}'
+              stages:
+                - json:
+                    expressions:
+                      level: level
+                      logger: logger_name
+                      message: message
+                      trace_id: traceId
+                      span_id: spanId
+                      thread: thread_name
+                - labels:
+                    level:
+                    trace_id:
+
+          # Drop debug and trace level logs to save storage
+          - match:
+              selector: '{level=~"DEBUG|TRACE"}'
+              action: drop
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: zunftgewerk-promtail
+  namespace: zunftgewerk
+spec:
+  selector:
+    matchLabels:
+      app: zunftgewerk-promtail
+  template:
+    metadata:
+      labels:
+        app: zunftgewerk-promtail
+    spec:
+      serviceAccountName: zunftgewerk-promtail
+      containers:
+        - name: promtail
+          image: grafana/promtail:3.4.2
+          args:
+            - -config.file=/etc/promtail/promtail.yaml
+          ports:
+            - name: http
+              containerPort: 9080
+          volumeMounts:
+            - name: promtail-config
+              mountPath: /etc/promtail
+            - name: pods-logs
+              mountPath: /var/log/pods
+              readOnly: true
+            - name: run
+              mountPath: /run/promtail
+          resources:
+            requests:
+              cpu: "25m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      tolerations:
+        - effect: NoSchedule
+          operator: Exists
+      volumes:
+        - name: promtail-config
+          configMap:
+            name: zunftgewerk-promtail-config
+        - name: pods-logs
+          hostPath:
+            path: /var/log/pods
+        - name: run
+          emptyDir: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: zunftgewerk-promtail
+  namespace: zunftgewerk
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: zunftgewerk-promtail
+rules:
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - nodes/proxy
+      - services
+      - endpoints
+      - pods
+    verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: zunftgewerk-promtail
+subjects:
+  - kind: ServiceAccount
+    name: zunftgewerk-promtail
+    namespace: zunftgewerk
+roleRef:
+  kind: ClusterRole
+  name: zunftgewerk-promtail
+  apiGroup: rbac.authorization.k8s.io
