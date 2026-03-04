@@ -42,6 +42,9 @@ public class EmailService {
     @Value("${zunftgewerk.email.api-base-url:http://localhost:8080}")
     private String apiBaseUrl;
 
+    @Value("${zunftgewerk.email.landing-base-url:http://localhost:3000}")
+    private String landingBaseUrl;
+
     private boolean isDevMode() {
         return mailSender == null || "localhost".equals(smtpHost) || smtpHost.isBlank();
     }
@@ -125,6 +128,51 @@ public class EmailService {
             "Gib ihn auf der Passwort-zurücksetzen-Seite ein.</p>" +
             "<p style=\"color:#666;font-size:14px;\">Falls du kein Passwort-Reset angefordert hast, " +
             "kannst du diese E-Mail ignorieren.</p>" +
+            "</body></html>";
+    }
+
+    /**
+     * Sends a team-invite email to a prospective member.
+     *
+     * @param toEmail     recipient address
+     * @param rawToken    the plain-text invite token to embed in the URL
+     * @param inviterName display name of the person who sent the invite
+     * @param tenantName  name of the tenant / organisation
+     */
+    public void sendInviteEmail(String toEmail, String rawToken, String inviterName, String tenantName) {
+        String link = landingBaseUrl + "/invite/accept?token=" + rawToken;
+        if (isDevMode()) {
+            log.info("[EMAIL] Invite → {} | from={} | inviter={} | tenant={} | link={}",
+                toEmail, fromAddress, inviterName, tenantName, link);
+            return;
+        }
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(msg, false, "UTF-8");
+            helper.setFrom(fromAddress, fromName);
+            helper.setTo(toEmail);
+            helper.setSubject("Einladung zu " + tenantName);
+            helper.setText(buildInviteHtml(link, inviterName, tenantName), true);
+            mailSender.send(msg);
+            log.debug("[EMAIL] Invite sent → {}", toEmail);
+        } catch (Exception ex) {
+            meterRegistry.counter("email_send_failures_total", "type", "invite").increment();
+            log.error("[EMAIL] Failed to send invite email to {}", toEmail, ex);
+        }
+    }
+
+    private String buildInviteHtml(String link, String inviterName, String tenantName) {
+        return "<!DOCTYPE html>" +
+            "<html lang=\"de\"><head><meta charset=\"UTF-8\"></head>" +
+            "<body style=\"font-family:sans-serif;color:#1a1a1a;max-width:560px;margin:0 auto;padding:32px 16px;\">" +
+            "<h2 style=\"margin-top:0;\">Einladung zu " + tenantName + "</h2>" +
+            "<p>" + inviterName + " hat dich eingeladen, dem Team <strong>" + tenantName + "</strong> " +
+            "auf ZunftGewerk beizutreten.</p>" +
+            "<p><a href=\"" + link + "\" style=\"display:inline-block;background:#1a1a1a;color:#ffffff;padding:12px 24px;" +
+            "text-decoration:none;border-radius:6px;font-weight:600;\">Einladung annehmen</a></p>" +
+            "<p style=\"color:#666;font-size:14px;\">Die Einladung ist 7&nbsp;Tage g\u00FCltig. " +
+            "Falls du nicht erwartet hast, diese Einladung zu erhalten, kannst du diese E-Mail ignorieren.</p>" +
+            "<p style=\"color:#999;font-size:12px;word-break:break-all;\">Oder kopiere diesen Link: " + link + "</p>" +
             "</body></html>";
     }
 }

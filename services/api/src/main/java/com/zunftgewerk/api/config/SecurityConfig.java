@@ -30,9 +30,10 @@ public class SecurityConfig {
                 .requestMatchers("/v1/workspace/me", "/v1/workspace/me/address").permitAll()
                 .requestMatchers("/v1/billing/summary", "/v1/billing/events", "/v1/billing/checkout", "/v1/billing/portal").permitAll()
                 .requestMatchers("/v1/devices", "/v1/devices/registration-token", "/v1/devices/registration-token/renew", "/v1/devices/{id}", "/v1/devices/{id}/license").permitAll()
-                .requestMatchers("/v1/team/members", "/v1/team/invite").permitAll()
+                .requestMatchers("/v1/team/members", "/v1/team/invite", "/v1/team/invites/accept").permitAll()
                 .requestMatchers("/v1/admin/audit-export", "/v1/admin/flags").permitAll()
                 .requestMatchers("/v1/account").permitAll()
+                .requestMatchers("/v1/consent").permitAll()
                 .anyRequest().authenticated())
             .httpBasic(AbstractHttpConfigurer::disable)
             .formLogin(AbstractHttpConfigurer::disable);

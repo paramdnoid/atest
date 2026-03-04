@@ -5,7 +5,9 @@ import com.zunftgewerk.api.modules.identity.repository.UserRepository;
 import com.zunftgewerk.api.modules.identity.service.RefreshTokenService;
 import com.zunftgewerk.api.modules.identity.web.AuthCookieService;
 import com.zunftgewerk.api.modules.tenant.entity.MembershipEntity;
+import com.zunftgewerk.api.modules.tenant.entity.TeamInviteTokenEntity;
 import com.zunftgewerk.api.modules.tenant.repository.MembershipRepository;
+import com.zunftgewerk.api.modules.tenant.service.TeamInviteService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,7 +32,8 @@ import java.util.UUID;
  * <p>Endpoints:
  * <ul>
  *   <li>{@code GET /v1/team/members} — returns all members of the caller's tenant</li>
- *   <li>{@code POST /v1/team/invite} — stub returning 501 Not Implemented</li>
+ *   <li>{@code POST /v1/team/invite} — sends an invite email to a prospective member</li>
+ *   <li>{@code POST /v1/team/invites/accept} — accepts an invite (no auth required, token IS the auth)</li>
  * </ul>
  *
  * @since Java 21 / Spring Boot 3.3.6
@@ -42,15 +45,18 @@ public class TeamRestController {
     private final RefreshTokenService refreshTokenService;
     private final MembershipRepository membershipRepository;
     private final UserRepository userRepository;
+    private final TeamInviteService teamInviteService;
 
     public TeamRestController(
         RefreshTokenService refreshTokenService,
         MembershipRepository membershipRepository,
-        UserRepository userRepository
+        UserRepository userRepository,
+        TeamInviteService teamInviteService
     ) {
         this.refreshTokenService = refreshTokenService;
         this.membershipRepository = membershipRepository;
         this.userRepository = userRepository;
+        this.teamInviteService = teamInviteService;
     }
 
     /**
@@ -93,16 +99,15 @@ public class TeamRestController {
     }
 
     /**
-     * Invite endpoint stub.
+     * Sends an invite email to a prospective team member.
      *
      * <p>Requires the caller to be authenticated and to hold the {@code owner} or
-     * {@code admin} role within their tenant. Returns 403 for insufficient
-     * privileges and 501 for all authorised requests, as the invite feature has
-     * not yet been implemented.
+     * {@code admin} role within their tenant. Delegates to {@link TeamInviteService}
+     * for token generation, persistence, email delivery, and audit recording.
      *
      * @param cookieHeader the raw {@code Cookie} request header, may be {@code null}
      * @param body         request body expecting {@code { "email": "...", "role": "member" }}
-     * @return 401 if unauthenticated, 403 if not admin/owner, 501 with a structured message
+     * @return 200 with invite details, 401 if unauthenticated, 403 if not admin/owner
      */
     @PostMapping("/invite")
     public ResponseEntity<?> inviteMember(
@@ -123,10 +128,48 @@ public class TeamRestController {
             return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
         }
 
-        return ResponseEntity.status(501).body(Map.of(
-            "message", "Invite-Feature kommt in Kürze",
-            "email", body.email() != null ? body.email() : "",
-            "role", body.role() != null ? body.role() : "member"
+        String email = body.email();
+        String roleKey = body.role() != null ? body.role() : "member";
+
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "E-Mail-Adresse ist erforderlich."));
+        }
+
+        TeamInviteTokenEntity invite = teamInviteService.invite(
+            session.tenantId(), session.userId(), email.trim().toLowerCase(), roleKey);
+
+        return ResponseEntity.ok(Map.of(
+            "inviteId", invite.getId().toString(),
+            "email", invite.getInvitedEmail(),
+            "role", invite.getRoleKey(),
+            "expiresAt", invite.getExpiresAt().toString()
+        ));
+    }
+
+    /**
+     * Accepts an invite using the raw token from the invite email.
+     *
+     * <p>No authentication is required — the token itself serves as proof of
+     * access to the invited email address.
+     *
+     * @param body request body expecting {@code { "token": "..." }}
+     * @return 200 on success, 400 with error details on failure
+     */
+    @PostMapping("/invites/accept")
+    public ResponseEntity<?> acceptInvite(@RequestBody AcceptInviteRequest body) {
+        if (body.token() == null || body.token().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Token ist erforderlich."));
+        }
+
+        TeamInviteService.AcceptInviteResult result = teamInviteService.acceptInvite(body.token());
+
+        if (!result.success()) {
+            return ResponseEntity.badRequest().body(Map.of("error", result.error()));
+        }
+
+        return ResponseEntity.ok(Map.of(
+            "message", "Einladung erfolgreich angenommen.",
+            "membershipId", result.membershipId().toString()
         ));
     }
 
@@ -162,4 +205,11 @@ public class TeamRestController {
      * @param role  the role to assign; defaults to {@code "member"} if omitted
      */
     record InviteRequest(String email, String role) {}
+
+    /**
+     * Request body for {@code POST /v1/team/invites/accept}.
+     *
+     * @param token the raw invite token from the email link
+     */
+    record AcceptInviteRequest(String token) {}
 }
