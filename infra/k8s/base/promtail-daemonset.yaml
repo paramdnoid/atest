@@ -20,51 +20,38 @@ data:
         timeout: 10s
 
     scrape_configs:
-      - job_name: kubernetes-pods
-        kubernetes_sd_configs:
-          - role: pod
-            namespaces:
-              names:
-                - zunftgewerk
-
-        relabel_configs:
-          # Only scrape pods in the zunftgewerk namespace
-          - source_labels: [__meta_kubernetes_namespace]
-            regex: zunftgewerk
-            action: keep
-
-          # Drop promtail's own logs to avoid feedback loops
-          - source_labels: [__meta_kubernetes_pod_label_app]
-            regex: zunftgewerk-promtail
-            action: drop
-
-          # Set namespace label
-          - source_labels: [__meta_kubernetes_namespace]
-            target_label: namespace
-
-          # Set pod label
-          - source_labels: [__meta_kubernetes_pod_name]
-            target_label: pod
-
-          # Set container label
-          - source_labels: [__meta_kubernetes_pod_container_name]
-            target_label: container
-
-          # Set app label from pod label
-          - source_labels: [__meta_kubernetes_pod_label_app]
-            target_label: app
-
-          # Build the log file path
-          - source_labels:
-              - __meta_kubernetes_pod_uid
-              - __meta_kubernetes_pod_container_name
-            separator: /
-            target_label: __path__
-            replacement: /var/log/pods/*$1/*.log
+      # Static file discovery — watches all zunftgewerk pod logs
+      - job_name: zunftgewerk-pods
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              namespace: zunftgewerk
+              __path__: /var/log/pods/zunftgewerk_*/*/*.log
 
         pipeline_stages:
           # Parse CRI log format (containerd)
           - cri: {}
+
+          # Extract pod name and container from filename
+          - regex:
+              source: filename
+              expression: '/var/log/pods/zunftgewerk_(?P<pod>[^/]+)/(?P<container>[^/]+)/.*\.log'
+          - labels:
+              pod:
+              container:
+
+          # Derive app label from pod name (e.g. zunftgewerk-api-xxx -> zunftgewerk-api)
+          - regex:
+              source: pod
+              expression: '(?P<app>zunftgewerk-(?:api|landing|web|loki|redis|postgres|promtail)|grafana|prometheus|alertmanager)[^/]*'
+          - labels:
+              app:
+
+          # Drop promtail's own logs to avoid feedback loops
+          - match:
+              selector: '{app="zunftgewerk-promtail"}'
+              action: drop
 
           # For the API container, attempt to parse structured JSON logs
           - match:
