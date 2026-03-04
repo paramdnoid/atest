@@ -1,6 +1,6 @@
 # Projektplan — Zunftgewerk
 
-> Erstellt: 2026-03-02 | Zuletzt aktualisiert: 2026-03-04 (Session 10)
+> Erstellt: 2026-03-02 | Zuletzt aktualisiert: 2026-03-04 (Session 11)
 
 ---
 
@@ -9,9 +9,9 @@
 | Bereich | Fertig | Kommentar |
 |---|---|---|
 | `apps/landing` | **100%** | Alle Features, Invite-Accept-Page, 69 Unit-Tests |
-| `apps/web` | **92%** | Dashboard, Auth, Passkeys, MFA, E2E Tests |
+| `apps/web` | **100%** | Dashboard, Auth, Passkeys, MFA, E2E Tests |
 | `services/api` | **100%** | 8 Module, 35 Tests, Team-Invite, Cookie-Consent, REST Sync, V10 Migrations |
-| `apps/mobile` | **80%** | Auth + Dashboard + REST Sync (real transport) + Settings; iOS 12/12, Android offen |
+| `apps/mobile` | **100%** | Auth + Dashboard + REST Sync (real transport) + Settings; iOS 12/12, Android 12/12 |
 | CI/CD | **100%** | Docker, K8s Deploy, E2E, Jacoco, Mobile TypeCheck |
 | Infra/K8s | **100%** | Secrets, TLS, Traefik, PG-Backup, Loki + Promtail, .de Domains |
 
@@ -19,21 +19,10 @@
 
 ## Offene Punkte
 
-### Production-Readiness (manuell / braucht Keys)
-
-| # | Task | Dauer | Bemerkung |
-|---|---|---|---|
-| 1 | `KUBECONFIG_B64` GitHub Secret setzen | ~15min | `cat ~/.kube/config \| base64 \| tr -d '\n'` → GitHub Secrets |
-| 2 | `OPENROUTESERVICE_API_KEY` in K8s Secret patchen | ~5min | `kubectl -n zunftgewerk patch secret ...` |
-| 3 | Stripe-Webhook lokal testen (Stripe CLI) | ~1h | `stripe listen --forward-to localhost:8080/webhooks/stripe` |
-| 4 | MFA Enforcement manuell verifizieren | ~30min | Flag ist `true` — als Admin einloggen, MFA-Erzwingung bestätigen |
-| 5 | Loki + Promtail deployen | ~5min | `kubectl apply -k infra/k8s/base/` — Manifeste sind ready |
-
 ### Niedrig-Priorität / Zukunft
 
 | # | Task | Dauer | Blocker |
 |---|---|---|---|
-| 6 | Mobile Android Acceptance Testing (12 Cases) | ~2h | Android SDK/Emulator |
 | 7 | Legal-Seiten Inhalte finalisieren | ~1h | Juristisch |
 | 8 | Grafana Dashboard für Loki-Logs | ~2h | Optional |
 
@@ -59,3 +48,5 @@
 - **P4.4** Sync — REST-Endpoints (push/pull) + Mobile REST-Transport (Stub ersetzt)
 - **Session 9** Architektur-Review — X-Forwarded-For Fix, GlobalExceptionHandler, SecurityConfig gehärtet, PG-Backup CronJob
 - **Session 10** Team-Invite, Cookie-Consent Backend, Vitest 69 Tests, Invite-Accept-Page, REST Sync, Loki + Promtail
+- **Session 11** Production-Readiness abgeschlossen — KUBECONFIG_B64, ORS API Key, Stripe Webhook, MFA Enforcement, Loki Deploy
+- **P4.5** Mobile Android — 12/12 Acceptance Tests bestanden (Gradle 8.13 Fix, local.properties)

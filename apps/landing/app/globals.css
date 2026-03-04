@@ -598,3 +598,86 @@
 .onboarding-step-connector:last-child::after {
   display: none;
 }
+
+/* ─── Legal pages ────────────────────────────────────────────────────── */
+
+.legal-article-wrapper .prose {
+  --tw-prose-headings: var(--color-foreground);
+  max-width: none;
+  font-size: 0.9375rem;
+  line-height: 1.75;
+}
+
+.legal-article-wrapper .prose > h1 {
+  font-family: var(--font-display), var(--font-body), system-ui, sans-serif;
+  font-size: clamp(1.5rem, 1.25rem + 0.8vw, 1.875rem);
+  letter-spacing: -0.015em;
+  padding-bottom: 0.875rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.legal-article-wrapper .prose > h2 {
+  font-size: 1rem;
+  font-weight: 650;
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  padding-left: 0.875rem;
+  border-left: 2px solid var(--color-primary);
+  scroll-margin-top: 96px;
+}
+
+.legal-article-wrapper .prose > h1 + h2 {
+  margin-top: 0;
+}
+
+/* Ordered lists */
+.legal-article-wrapper .prose > ol {
+  counter-reset: legal;
+  list-style: none;
+  padding-left: 0;
+}
+
+.legal-article-wrapper .prose > ol > li {
+  counter-increment: legal;
+  position: relative;
+  padding-left: 2rem;
+  margin-bottom: 0.625rem;
+}
+
+.legal-article-wrapper .prose > ol > li::before {
+  content: counter(legal) ".";
+  position: absolute;
+  left: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-muted-foreground);
+  width: 1.5rem;
+  text-align: right;
+}
+
+.legal-article-wrapper .prose li > p {
+  margin: 0;
+}
+
+/* Links */
+.legal-article-wrapper .prose a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklch, var(--color-primary) 30%, transparent);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.15s;
+}
+
+.legal-article-wrapper .prose a:hover {
+  text-decoration-color: var(--color-primary);
+}
+
+/* "Stand: März 2026" — only target paragraphs starting with "Stand:" */
+.legal-article-wrapper .prose > p:last-child {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.8125rem;
+  color: var(--color-muted-foreground);
+}
