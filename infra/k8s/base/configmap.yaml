@@ -4,9 +4,9 @@ metadata:
   name: zunftgewerk-config
   namespace: zunftgewerk
 data:
-  api-url: "https://api.zunftgewerk.app"
-  landing-url: "https://zunftgewerk.app"
-  web-url: "https://app.zunftgewerk.app"
-  cors-allowed-origins: "https://zunftgewerk.app,https://app.zunftgewerk.app"
-  passkey-rp-id: "app.zunftgewerk.app"
-  passkey-origin: "https://app.zunftgewerk.app"
+  api-url: "https://api.zunftgewerk.de"
+  landing-url: "https://zunftgewerk.de"
+  web-url: "https://app.zunftgewerk.de"
+  cors-allowed-origins: "https://zunftgewerk.de,https://app.zunftgewerk.de"
+  passkey-rp-id: "app.zunftgewerk.de"
+  passkey-origin: "https://app.zunftgewerk.de"

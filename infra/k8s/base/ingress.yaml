@@ -10,12 +10,12 @@ spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - zunftgewerk.app
-        - app.zunftgewerk.app
-        - api.zunftgewerk.app
+        - zunftgewerk.de
+        - app.zunftgewerk.de
+        - api.zunftgewerk.de
       secretName: zunftgewerk-tls
   rules:
-    - host: zunftgewerk.app
+    - host: zunftgewerk.de
       http:
         paths:
           - path: /
@@ -25,7 +25,7 @@ spec:
                 name: zunftgewerk-landing
                 port:
                   number: 3000
-    - host: app.zunftgewerk.app
+    - host: app.zunftgewerk.de
       http:
         paths:
           - path: /
@@ -35,7 +35,7 @@ spec:
                 name: zunftgewerk-web
                 port:
                   number: 3001
-    - host: api.zunftgewerk.app
+    - host: api.zunftgewerk.de
       http:
         paths:
           - path: /
