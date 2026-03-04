@@ -2,14 +2,29 @@ import { createHmac } from 'node:crypto';
 
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
-function decodeBase32(input: string): Buffer {
-  const normalized = input.toUpperCase().replace(/=+$/g, '').replace(/\s+/g, '');
+function isHex(input: string): boolean {
+  return /^[0-9a-fA-F]+$/.test(input) && input.length % 2 === 0;
+}
+
+function decodeSecret(input: string): Buffer {
+  const trimmed = input.trim().replace(/\s+/g, '');
+
+  // Auto-detect hex-encoded secrets (contain 0, 1, 8, 9, or a-f)
+  if (isHex(trimmed)) {
+    return Buffer.from(trimmed, 'hex');
+  }
+
+  // Otherwise decode as base32
+  const normalized = trimmed.toUpperCase().replace(/=+$/g, '');
   let bits = '';
 
   for (const char of normalized) {
     const idx = BASE32_ALPHABET.indexOf(char);
     if (idx === -1) {
-      throw new Error(`Invalid base32 character in TOTP secret: "${char}"`);
+      throw new Error(
+        `Invalid base32 character in TOTP secret: "${char}". ` +
+        `If your secret is hex-encoded, ensure it only contains 0-9a-f characters.`
+      );
     }
     bits += idx.toString(2).padStart(5, '0');
   }
@@ -32,7 +47,7 @@ function counterBuffer(counter: number): Buffer {
 }
 
 export function generateTotpCode(secretBase32: string, now = Date.now()): string {
-  const key = decodeBase32(secretBase32);
+  const key = decodeSecret(secretBase32);
   const counter = Math.floor(now / 1000 / 30);
   const hmac = createHmac('sha1', key).update(counterBuffer(counter)).digest();
   const offset = hmac[hmac.length - 1] & 0x0f;
