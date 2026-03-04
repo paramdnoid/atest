@@ -1,19 +1,20 @@
 # Vollständiger Projektplan — Zunftgewerk
 
 > Erstellt: 2026-03-02 | Basis: vollständiges Monorepo-Audit
-> Zuletzt aktualisiert: 2026-03-02 (Session 6 — Code-Qualität & Bug-Fixes ✅)
+> Zuletzt aktualisiert: 2026-03-04 (Session 9 — Architektur-Review-Fixes, K8s voll deployed)
 
 ---
 
-## Status-Übersicht (Stand: 2026-03-02, Session 6)
+## Status-Übersicht (Stand: 2026-03-04, Session 9)
 
 | Bereich | Fertig | Kommentar |
 |---|---|---|
-| `apps/landing` | **99%** | Dynamische Preise ✅, Billing-Step ✅, Employees ✅, MFA Management ✅, **Code-Qualität ✅** |
-| `apps/web` | **92%** | Dashboard ✅, alle Seiten ✅, Auth ✅, Cookie-Fix ✅, MFA Management ✅, **router.refresh() Bug ✅** |
-| `services/api` | **99%** | Billing ✅, Team-API ✅, Feature-Flags ✅, DSGVO-Delete ✅, Audit-Export ✅ |
-| `apps/mobile` | **65%** | Auth + Navigation + Dashboard + Sync-Stub + Settings; formale iOS/Android-Abnahme noch offen |
+| `apps/landing` | **100%** | Dynamische Preise ✅, Billing-Step ✅, Employees ✅, MFA Management ✅, Middleware ✅ |
+| `apps/web` | **92%** | Dashboard ✅, alle Seiten ✅, Auth ✅, Cookie-Fix ✅, MFA Management ✅ |
+| `services/api` | **100%** | Billing ✅, Team-API ✅, Feature-Flags ✅, DSGVO ✅, GlobalExceptionHandler ✅, SecurityConfig gehärtet ✅ |
+| `apps/mobile` | **65%** | Auth + Navigation + Dashboard + Sync-Stub + Settings; iOS ✅ 12/12 Tests, Android offen |
 | CI/CD | **100%** | Docker ✅, K8s ✅, E2E ✅, Jacoco ✅, Deploy ✅, Mobile TypeCheck ✅ |
+| Infra/K8s | **100%** | Secrets deployed ✅, TLS/cert-manager ✅, Traefik Ingress ✅, PG-Backup CronJob ✅, .de Domains ✅ |
 
 ---
 
@@ -90,12 +91,8 @@
 - ✅ `infra/k8s/base/configmap.yaml` — Prod-Config-Werte
 - ✅ `infra/k8s/base/kustomization.yaml` — alle Ressourcen verknüpft
 - ✅ `infra/k8s/base/secrets-template.yaml` — Template mit Anleitung (alle Werte `REPLACE_ME`)
-- ⏳ **Secrets-Management (noch zu erledigen)**:
-  1. `zunftgewerk-secrets` K8s Secret **manuell anlegen** (JWT-Keys, Stripe, MFA-Encryption-Key, etc.)
-     - Vorlage: `infra/k8s/base/secrets-template.yaml`
-  2. `KUBECONFIG_B64` Secret **in GitHub Repo-Settings** setzen
-     - Base64-encoded kubeconfig file für Production-Cluster
-  3. Nach Setup: `.github/workflows/ci.yml` `deploy`-Job kann deployen
+- ✅ **Secrets-Management**: `zunftgewerk-secrets` deployed (JWT-Keys, DB-Credentials, MFA-Key, Redis), TLS via cert-manager + Let's Encrypt, PG-Backup CronJob, .de Domains live
+- ⏳ `KUBECONFIG_B64` Secret in GitHub Repo-Settings setzen (für CI/CD auto-deploy)
 
 ### ✅ P2.3 — Dynamische Preispläne
 
@@ -285,62 +282,42 @@ Residual Risk (bewusst deferred):
 
 ---
 
-## 📋 Noch zu erledigende Punkte (Session 7+)
+## 📋 Noch zu erledigende Punkte (Stand: Session 9)
 
-### Kritisch für Production (P1 + P2)
+### Production-Readiness
 
-| Priority | Task | Owner | Dauer | Blockers |
-|---|---|---|---|---|
-| **P1.2** | `mfaEnforcementAdmin` Flag aktivieren | QA/Dev | ~30min | — |
-| **P2.2** | K8s Secrets anlegen + `KUBECONFIG_B64` GitHub Secret setzen | DevOps/Admin | ~1h | — |
+| Priority | Task | Dauer | Status |
+|---|---|---|---|
+| **P1.2** | `mfaEnforcementAdmin` Flag manuell testen & aktivieren | ~30min | ⏳ |
+| **P1.3** | Stripe-Webhook lokal testen (Stripe CLI) | ~1h | ⏳ |
+| **P2.2** | `KUBECONFIG_B64` GitHub Secret setzen → CI auto-deploy testen | ~15min | ⏳ |
+| **P3.1** | `OPENROUTESERVICE_API_KEY` in Prod setzen | ~5min | ⏳ |
+| **P3.2** | Refresh-Token-Rotation Reuse-Detection Integrationstest | ~1h | ⏳ |
 
-**P1.2 Checklist:**
-- [ ] MFA im Settings aktivieren mit Admin-User
-- [ ] Neu anmelden als Admin → MFA wird erzwungen ✓
-- [ ] `mfaEnforcementAdmin: true` in `application.yml` setzen
-- [ ] `.env.example` aktualisieren
+### Niedrig-Priorität / Zukunft
 
-**P2.2 Checklist:**
-- [ ] `infra/k8s/base/secrets-template.yaml` mit echten Werten befüllen:
-  - `JWT_PRIVATE_KEY_PEM`, `JWT_PUBLIC_KEY_PEM`
-  - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
-  - `MFA_ENCRYPTION_KEY`
-  - `OPENROUTESERVICE_API_KEY` (falls verwendet)
-- [ ] `kubectl apply -f infra/k8s/base/secrets-template.yaml` in Prod-Cluster
-- [ ] `KUBECONFIG_B64` (base64-encoded kubeconfig) zu GitHub Repo-Secrets hinzufügen
-- [ ] CI `deploy`-Job testen
-
-### Optional / Niedrig-Priorität (P4)
-
-| Priority | Task | Owner | Dauer | Blockers |
-|---|---|---|---|---|
-| **P4.1** | Mobile iOS Acceptance Testing (12 Test-Cases) | Mobile QA | ~2h | iOS Simulator |
-| **P4.1** | Mobile Android Acceptance Testing (12 Test-Cases) | Mobile QA | ~2h | Android SDK/Emulator |
-| **P4.4** | gRPC Sync: Proto Code-Gen für Mobile | Dev | ~1 Woche | — |
-
-**P4.1 iOS Acceptance Checklist (siehe Tabelle weiter unten):**
-```
-AUTH-01 .. GUARD-01 → müssen alle auf iOS Simulator oder Device PASS sein
-```
-
-**P4.1 Android Acceptance:** Android SDK/Emulator erforderlich (nicht in dieser Umgebung)
+| Priority | Task | Dauer | Blocker |
+|---|---|---|---|
+| **P4.1** | Mobile Android Acceptance Testing (12 Cases) | ~2h | Android SDK/Emulator |
+| **P4.4** | gRPC Sync: Proto Code-Gen für Mobile + Client | ~1 Woche | — |
+| — | Frontend Unit-Tests für Hooks/Components | ~2-3 Tage | — |
+| — | Legal-Seiten Inhalte finalisieren | ~1h | Juristisch |
+| — | Log-Aggregation (Loki/CloudWatch) + Alerting | ~1 Tag | — |
 
 ---
 
-## 📊 Session 6 Summary
+## 📊 Session 9 Summary (2026-03-04)
 
 ### ✅ Abgeschlossen
-1. **Code-Qualität MFA**: Alle UI-Strings → Deutsch, Error-Handling, API-Konsistenz
-2. **Bug-Fixes**:
-   - Base64url JWT-Dekodierung gefixt
-   - `router.refresh()` nach Login-Redirect in `apps/web`
-   - Clipboard-Fehlerbehandlung in Setup-Dialog
-3. **TypeScript-Checks**: Alle Komponenten ✓, keine Fehler
-
-### ⏳ Nächste Schritte
-1. Manual Test: MFA mit Admin-User → Flag aktivieren (P1.2, ~30min)
-2. K8s Secrets Setup (P2.2, ~1h)
-3. Optional: Mobile Acceptance (P4.1, ~4h Gesamtaufwand)
+1. **K8s Full Deployment**: Secrets, Postgres, Redis, TLS, Traefik Ingress, .de Domains — alles live
+2. **Architektur-Review**: 15-Punkte-Analyse, Top 5 Findings implementiert:
+   - X-Forwarded-For Spoofing gefixt (rightmost IP)
+   - GlobalExceptionHandler mit @ControllerAdvice
+   - Landing Middleware für Auth-Route-Protection
+   - SecurityConfig auf explizite Endpoints eingeschränkt
+   - PostgreSQL Backup CronJob (täglich 03:00 UTC, 14 Tage Retention)
+3. **iOS Acceptance**: 12/12 Test-Cases bestanden
+4. **Doc-Cleanup**: 6 erledigte Planungsdokumente gelöscht
 
 ---
 
