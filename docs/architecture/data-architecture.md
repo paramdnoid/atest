@@ -1,5 +1,10 @@
 # Data Architecture
 
+Diagrammquellen:
+
+- `docs/architecture/diagrams/sync-runtime-flow.md`
+- `docs/architecture/diagrams/billing-webhook-flow.md`
+
 ## Kernmodell
 
 Zentraler fachlicher Kern:
@@ -28,3 +33,10 @@ Zentraler fachlicher Kern:
 - **Write-Path:** Auth-Kontext ermittelt Tenant, Service schreibt tenant-gebunden, Audit wird protokolliert.
 - **Sync-Path:** Client pusht Operationen -> Server prueft Idempotenz/Konflikt -> schreibt Changelog -> Client zieht Delta oder streamt.
 - **Billing-Path:** Stripe-Events werden verifiziert, dedupliziert, persistent gespeichert und asynchron verarbeitet.
+
+## Data Governance und Lifecycle
+
+- Sensible Auth-Daten (Token-Hashes, MFA-Secrets, Passkey-Material) sind strikt zweckgebunden zu verarbeiten.
+- Audit-Events sind append-only und duerfen nicht fachlich ueberschrieben werden.
+- Tenant-Loeschungen folgen definierten FK-Kaskaden fuer konsistente Datenbereinigung.
+- Schemaevolution erfolgt migrationsbasiert mit Flyway; manuelle ad-hoc DDL-Aenderungen sind zu vermeiden.

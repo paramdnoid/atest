@@ -1,5 +1,7 @@
 # Container Architecture (C4 Level 2)
 
+Diagrammquelle: `docs/architecture/diagrams/container-view.md`
+
 ## Uebersicht
 
 Zunftgewerk besteht aus drei Clients (Landing, Web, Mobile), einem zentralen API-Backend sowie PostgreSQL und Redis.
@@ -67,3 +69,9 @@ Dual-Protocol-Ansatz: REST fuer Browser-Clients, gRPC fuer Mobile; beide greifen
 | Version | 7 |
 | Uses | Auth rate limiting, session cache |
 | Persistence | Not configured (ephemeral) |
+
+## Container-Grenzen und Verantwortungen
+
+- Frontends enthalten keine dauerhafte Geschaeftslogik fuer Kernprozesse; diese liegt im API-Backend.
+- API kapselt Domänenlogik und Datenzugriff; Clients greifen ausschliesslich ueber REST/gRPC-Vertraege zu.
+- PostgreSQL bleibt die fachliche Quelle der Wahrheit; Redis ist ein technischer Beschleuniger.

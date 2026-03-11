@@ -1,5 +1,7 @@
 # System Context (C4 Level 1)
 
+Diagrammquelle: `docs/architecture/diagrams/system-context.md`
+
 ## Actors
 
 | Actor | Type | Description |
@@ -7,6 +9,15 @@
 | Mitarbeiter im Betrieb | Human | Nutzt Landing/Web/Mobile fuer operative Aufgaben |
 | Tenant Owner/Admin | Human | Verantwortet Team, Berechtigungen und Abrechnung |
 | Operations/Finance | Human | Bearbeitet Betriebs- und Billingvorfaelle |
+
+## Stakeholder und Ziele
+
+| Stakeholder | Primere Ziele | Architekturbezug |
+|---|---|---|
+| Produkt/Business | Schnelle Feature-Iteration | Modularer Monolith, klare Modulgrenzen |
+| Operations | Stabiler, beobachtbarer Betrieb | Runbooks, Recovery-Endpunkte, zentrale Konfiguration |
+| Security/Compliance | Schutz sensibler Daten | MFA, Audit, Token-Rotation, Tenant-Isolation |
+| Entwicklungsteam | Hohe Aenderbarkeit | C4-Doku, ADR-Prozess, konsistente Schnittstellen |
 
 ## External Systems
 

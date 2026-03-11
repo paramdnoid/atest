@@ -1,5 +1,10 @@
 # Security Architecture
 
+Diagrammquellen:
+
+- `docs/architecture/diagrams/auth-runtime-flow.md`
+- `docs/architecture/diagrams/billing-webhook-flow.md`
+
 ## Sicherheitskern
 
 - Authentifizierung unterstuetzt Passwort-Login und Passkeys.
@@ -45,6 +50,29 @@ Schluesselbereitstellung erfolgt ueber `/.well-known/jwks.json`.
 - Rate Limiting fuer sensible Auth-Endpunkte.
 - Rollenbasierte Autorisierung fuer Admin-/Owner-Aktionen.
 - CORS/Cookie-Policies werden zentral in Security-Konfigurationen gesteuert.
+
+## Threat Model (kompakt)
+
+| Bedrohung | Risiko | Gegenmassnahmen |
+|---|---|---|
+| Token-Diebstahl | Session-Uebernahme | Kurze Access-TTL, Refresh-Rotation, Reuse-Detection |
+| Credential Stuffing | Konto-Kompromittierung | Rate-Limits, MFA-Erzwingung fuer privilegierte Rollen |
+| Cross-Tenant Data Leakage | Datenschutzverletzung | Tenant-Kontext, `tenant_id`-Invarianten, Rollenpruefung |
+| Webhook-Spoofing | Falsche Billing-Aenderungen | Stripe-Signaturpruefung, deduplizierte Verarbeitung |
+| Replay-Angriffe in Auth-Flows | Unberechtigte Wiederverwendung | Nonce/Challenge bei Passkeys, Token-Familien-Sperre |
+
+## Compliance und Controls
+
+- Datenschutz: Tenant-Isolation und Zweckbindung sicherheitsrelevanter Daten.
+- Nachvollziehbarkeit: Audit-Events fuer sicherheitskritische Aktionen.
+- Zugriffskontrolle: Rollenmodell mit erhoehter Absicherung fuer Owner/Admin.
+- Incident Readiness: Runbooks fuer Billing-, Sync- und Tenant-Vorfaelle in `docs/runbooks/`.
+
+## Security Monitoring und Incident Response
+
+- Auffaellige Login-/Refresh-Muster sind als Security-Signal zu behandeln.
+- Wiederholte Rate-Limit-Events koennen auf Angriffe hinweisen und muessen auswertbar sein.
+- Security-relevante Vorfaelle folgen dem passenden Runbook und werden mit Postmortem abgeschlossen.
 
 ## Audit-relevante Ereignisse (Beispiele)
 
