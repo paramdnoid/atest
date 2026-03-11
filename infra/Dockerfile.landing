@@ -7,14 +7,13 @@ FROM base AS deps
 WORKDIR /app
 
 # Copy workspace manifests
-COPY package.json pnpm-workspace.yaml ./
-COPY pnpm-lock.yaml* ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 
 # Copy app and package manifests for dependency resolution
 COPY apps/landing/package.json apps/landing/
 COPY packages/ packages/
 
-RUN pnpm install --frozen-lockfile=false
+RUN pnpm install --frozen-lockfile
 
 # Builder stage
 FROM base AS builder
@@ -22,6 +21,7 @@ WORKDIR /app
 
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/landing/node_modules ./apps/landing/node_modules
@@ -35,6 +35,7 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
 
@@ -48,5 +49,8 @@ USER nextjs
 
 EXPOSE 3000
 ENV PORT=3000 HOSTNAME=0.0.0.0
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://localhost:3000/ || exit 1
 
 CMD ["node", "apps/landing/server.js"]

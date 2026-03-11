@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 export type Session = {
   userId: string;
   email: string;
+  fullName: string | null;
   workspaceId: string;
   role: string;
   canManageBilling: boolean;
@@ -39,6 +40,7 @@ export async function getSession(): Promise<Session | null> {
     return {
       userId: data.userId,
       email: data.email,
+      fullName: data.fullName ?? null,
       workspaceId: data.workspaceId,
       role: data.role ?? "member",
       canManageBilling: data.canManageBilling ?? false,

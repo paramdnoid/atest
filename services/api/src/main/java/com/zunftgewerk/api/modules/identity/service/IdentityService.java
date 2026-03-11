@@ -219,13 +219,34 @@ public class IdentityService {
     }
 
     @Transactional
-    public MfaVerifyResult verifyMfa(UUID userId, String mfaToken, String code, String backupCode) {
+    public void sendMfaEmailCode(UUID userId, String mfaToken) {
         JwtPrincipal principal = jwtService.verifyMfaToken(mfaToken);
         if (!principal.userId().equals(userId)) {
             throw new IllegalArgumentException("MFA token user mismatch");
         }
 
-        boolean verified = mfaService.verify(userId, code, backupCode);
+        UserEntity user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        mfaService.sendEmailCode(userId, user.getEmail());
+
+        SessionContext sessionContext = loadSessionContext(userId);
+        auditService.record(sessionContext.tenantId(), userId, AuditEventType.MFA_EMAIL_CODE_SENT, "{}");
+    }
+
+    @Transactional
+    public MfaVerifyResult verifyMfa(UUID userId, String mfaToken, String code, String backupCode, String emailCode) {
+        JwtPrincipal principal = jwtService.verifyMfaToken(mfaToken);
+        if (!principal.userId().equals(userId)) {
+            throw new IllegalArgumentException("MFA token user mismatch");
+        }
+
+        boolean verified;
+        if (emailCode != null && !emailCode.isBlank()) {
+            verified = mfaService.verifyEmailCode(userId, emailCode);
+        } else {
+            verified = mfaService.verify(userId, code, backupCode);
+        }
         if (!verified) {
             throw new IllegalArgumentException("Invalid MFA code");
         }

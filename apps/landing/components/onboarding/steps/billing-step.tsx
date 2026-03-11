@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { ExternalLink } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
 
 import { fetchApi } from "@/lib/api-client";
+import { stripePromise } from "@/lib/stripe";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import type { BillingInterval, OnboardingPlan } from "@/lib/onboarding/types";
@@ -17,6 +23,54 @@ function formatPrice(cents: number, interval: BillingInterval): string {
   return `EUR ${amount} / ${interval === "year" ? "Jahr" : "Monat"}`;
 }
 
+function CheckoutForm({ onSuccess }: { onSuccess: () => void }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+
+    setError(null);
+    setPending(true);
+
+    try {
+      const { error: stripeError } = await stripe.confirmPayment({
+        elements,
+        redirect: "if_required",
+      });
+
+      if (stripeError) {
+        setError(stripeError.message ?? GENERIC_ERROR_MESSAGE);
+      } else {
+        onSuccess();
+      }
+    } catch {
+      setError(GENERIC_ERROR_MESSAGE);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
+      <PaymentElement />
+      {error && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+      <div className="flex justify-end">
+        <LoadingButton type="submit" pending={pending} disabled={!stripe}>
+          Jetzt bezahlen
+        </LoadingButton>
+      </div>
+    </form>
+  );
+}
+
 export function BillingStep({
   selectedPlan,
   billingInterval,
@@ -26,8 +80,66 @@ export function BillingStep({
   billingInterval: BillingInterval;
   onSkipToComplete: () => void;
 }) {
-  const [pending, setPending] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isFree = !selectedPlan || selectedPlan.priceMonthlyCents === 0;
+  const effectiveCents =
+    selectedPlan && billingInterval === "year" && selectedPlan.priceYearlyCents != null
+      ? selectedPlan.priceYearlyCents
+      : selectedPlan?.priceMonthlyCents ?? 0;
+
+  useEffect(() => {
+    if (isFree || !selectedPlan) return;
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    (async () => {
+      try {
+        const res = await fetchApi("/v1/billing/create-subscription", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planId: selectedPlan.code,
+            billingCycle: billingInterval === "year" ? "yearly" : "monthly",
+          }),
+        });
+
+        if (!res.ok) {
+          let msg = GENERIC_ERROR_MESSAGE;
+          try {
+            const payload = (await res.json()) as Record<string, unknown>;
+            if (typeof payload.error === "string" && payload.error.length > 0) {
+              msg = payload.error;
+            }
+          } catch {
+            // ignore parse errors
+          }
+          if (!cancelled) setError(msg);
+          return;
+        }
+
+        const data = (await res.json()) as { clientSecret?: string };
+        if (!data.clientSecret) {
+          if (!cancelled) setError(GENERIC_ERROR_MESSAGE);
+          return;
+        }
+
+        if (!cancelled) setClientSecret(data.clientSecret);
+      } catch {
+        if (!cancelled) setError(GENERIC_ERROR_MESSAGE);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isFree, selectedPlan, billingInterval]);
 
   if (!selectedPlan) {
     return (
@@ -35,53 +147,6 @@ export function BillingStep({
         Kein Plan ausgewählt. Bitte gehe zurück zum Lizenz-Schritt.
       </div>
     );
-  }
-
-  const isFree = selectedPlan.priceMonthlyCents === 0;
-  const effectiveCents =
-    billingInterval === "year" && selectedPlan.priceYearlyCents != null
-      ? selectedPlan.priceYearlyCents
-      : selectedPlan.priceMonthlyCents;
-
-  async function handleCheckout() {
-    setError(null);
-    setPending(true);
-    try {
-      const res = await fetchApi("/v1/billing/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          planId: selectedPlan!.code,
-          billingCycle: billingInterval === "year" ? "yearly" : "monthly",
-        }),
-      });
-
-      if (!res.ok) {
-        let msg = GENERIC_ERROR_MESSAGE;
-        try {
-          const payload = (await res.json()) as Record<string, unknown>;
-          if (typeof payload.error === "string" && payload.error.length > 0) {
-            msg = payload.error;
-          }
-        } catch {
-          // ignore parse errors
-        }
-        setError(msg);
-        return;
-      }
-
-      const data = (await res.json()) as { url?: string };
-      if (!data.url) {
-        setError(GENERIC_ERROR_MESSAGE);
-        return;
-      }
-
-      window.location.href = data.url;
-    } catch {
-      setError(GENERIC_ERROR_MESSAGE);
-    } finally {
-      setPending(false);
-    }
   }
 
   return (
@@ -123,27 +188,31 @@ export function BillingStep({
             </Button>
           </div>
         </div>
-      ) : (
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Du wirst zu Stripe weitergeleitet, um die Zahlung abzuschließen.
-            Danach kehrt du automatisch zurück.
-          </p>
-          <div className="flex justify-end">
-            <LoadingButton
-              type="button"
-              pending={pending}
-              icon={ExternalLink}
-              iconSize="h-4 w-4"
-              onClick={() => {
-                void handleCheckout();
-              }}
-            >
-              Zur Zahlung
-            </LoadingButton>
-          </div>
+      ) : loading ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <span className="ml-3 text-sm text-muted-foreground">
+            Zahlungsformular wird geladen…
+          </span>
         </div>
-      )}
+      ) : clientSecret ? (
+        <Elements
+          stripe={stripePromise}
+          options={{
+            clientSecret,
+            locale: "de",
+            appearance: {
+              theme: "night",
+              variables: {
+                colorPrimary: "#6d28d9",
+                borderRadius: "8px",
+              },
+            },
+          }}
+        >
+          <CheckoutForm onSuccess={onSkipToComplete} />
+        </Elements>
+      ) : null}
     </div>
   );
 }

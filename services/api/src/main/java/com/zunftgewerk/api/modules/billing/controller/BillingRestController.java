@@ -2,6 +2,7 @@ package com.zunftgewerk.api.modules.billing.controller;
 
 import com.zunftgewerk.api.modules.billing.entity.BillingAuditLogEntity;
 import com.zunftgewerk.api.modules.billing.repository.BillingAuditLogRepository;
+import com.zunftgewerk.api.modules.identity.repository.UserRepository;
 import com.zunftgewerk.api.modules.identity.service.RefreshTokenService;
 import com.zunftgewerk.api.modules.identity.web.AuthCookieService;
 import com.zunftgewerk.api.modules.license.repository.DeviceRepository;
@@ -16,6 +17,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,22 +32,37 @@ public class BillingRestController {
     private final MembershipRepository membershipRepository;
     private final DeviceRepository deviceRepository;
     private final BillingAuditLogRepository billingAuditLogRepository;
+    private final UserRepository userRepository;
 
     @Value("${zunftgewerk.app.landing-url:http://localhost:3000}")
     private String landingUrl;
+
+    @Value("${zunftgewerk.stripe.price.starter-monthly:}")
+    private String priceStarterMonthly;
+
+    @Value("${zunftgewerk.stripe.price.starter-yearly:}")
+    private String priceStarterYearly;
+
+    @Value("${zunftgewerk.stripe.price.professional-monthly:}")
+    private String priceProfessionalMonthly;
+
+    @Value("${zunftgewerk.stripe.price.professional-yearly:}")
+    private String priceProfessionalYearly;
 
     public BillingRestController(
         RefreshTokenService refreshTokenService,
         SubscriptionRepository subscriptionRepository,
         MembershipRepository membershipRepository,
         DeviceRepository deviceRepository,
-        BillingAuditLogRepository billingAuditLogRepository
+        BillingAuditLogRepository billingAuditLogRepository,
+        UserRepository userRepository
     ) {
         this.refreshTokenService = refreshTokenService;
         this.subscriptionRepository = subscriptionRepository;
         this.membershipRepository = membershipRepository;
         this.deviceRepository = deviceRepository;
         this.billingAuditLogRepository = billingAuditLogRepository;
+        this.userRepository = userRepository;
     }
 
     @GetMapping("/summary")
@@ -237,6 +254,123 @@ public class BillingRestController {
             return ResponseEntity.internalServerError()
                 .body(Map.of("error", "Stripe-Fehler: " + e.getMessage()));
         }
+    }
+
+    @PostMapping("/create-subscription")
+    public ResponseEntity<?> createSubscription(
+        @RequestHeader(value = "Cookie", required = false) String cookieHeader,
+        @RequestBody Map<String, String> body
+    ) {
+        var session = resolveSession(cookieHeader);
+        if (session == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+
+        String planId = body.getOrDefault("planId", "starter");
+        String billingCycle = body.getOrDefault("billingCycle", "monthly");
+        boolean yearly = billingCycle.toLowerCase().startsWith("year");
+
+        String stripePriceId = resolveStripePriceId(planId, yearly);
+        if (stripePriceId == null || stripePriceId.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Kein Stripe-Preis für diesen Plan konfiguriert"));
+        }
+
+        try {
+            UUID tenantId = session.tenantId();
+            UUID userId = session.userId();
+
+            // Idempotency: if an INCOMPLETE subscription already exists, return its clientSecret
+            SubscriptionEntity existingSub = subscriptionRepository.findByTenantId(tenantId).orElse(null);
+            if (existingSub != null
+                && "incomplete".equalsIgnoreCase(existingSub.getStatus())
+                && existingSub.getStripeSubscriptionId() != null) {
+                com.stripe.model.Subscription stripeSub =
+                    com.stripe.model.Subscription.retrieve(
+                        existingSub.getStripeSubscriptionId(),
+                        com.stripe.param.SubscriptionRetrieveParams.builder()
+                            .addExpand("latest_invoice.confirmation_secret")
+                            .build(),
+                        com.stripe.net.RequestOptions.builder().build()
+                    );
+                String clientSecret = stripeSub.getLatestInvoiceObject()
+                    .getConfirmationSecret().getClientSecret();
+                return ResponseEntity.ok(Map.of(
+                    "clientSecret", clientSecret,
+                    "subscriptionId", existingSub.getStripeSubscriptionId()
+                ));
+            }
+
+            // Resolve or create Stripe Customer
+            String stripeCustomerId = existingSub != null ? existingSub.getStripeCustomerId() : null;
+            if (stripeCustomerId == null || stripeCustomerId.isBlank()) {
+                String email = userRepository.findById(userId)
+                    .map(u -> u.getEmail())
+                    .orElse(null);
+
+                com.stripe.param.CustomerCreateParams customerParams =
+                    com.stripe.param.CustomerCreateParams.builder()
+                        .setEmail(email)
+                        .putMetadata("tenantId", tenantId.toString())
+                        .putMetadata("userId", userId.toString())
+                        .build();
+                com.stripe.model.Customer customer =
+                    com.stripe.model.Customer.create(customerParams);
+                stripeCustomerId = customer.getId();
+            }
+
+            // Create Stripe Subscription with incomplete payment behavior
+            com.stripe.param.SubscriptionCreateParams subParams =
+                com.stripe.param.SubscriptionCreateParams.builder()
+                    .setCustomer(stripeCustomerId)
+                    .addItem(
+                        com.stripe.param.SubscriptionCreateParams.Item.builder()
+                            .setPrice(stripePriceId)
+                            .build()
+                    )
+                    .setPaymentBehavior(
+                        com.stripe.param.SubscriptionCreateParams.PaymentBehavior.DEFAULT_INCOMPLETE
+                    )
+                    .addExpand("latest_invoice.payment_intent")
+                    .build();
+
+            com.stripe.model.Subscription stripeSub =
+                com.stripe.model.Subscription.create(subParams);
+
+            String clientSecret = stripeSub.getLatestInvoiceObject()
+                .getConfirmationSecret().getClientSecret();
+
+            // Save or update SubscriptionEntity
+            OffsetDateTime now = OffsetDateTime.now();
+            if (existingSub == null) {
+                existingSub = new SubscriptionEntity();
+                existingSub.setId(UUID.randomUUID());
+                existingSub.setTenantId(tenantId);
+                existingSub.setCreatedAt(now);
+            }
+            existingSub.setPlanId(planId);
+            existingSub.setBillingCycle(yearly ? "yearly" : "monthly");
+            existingSub.setStripeCustomerId(stripeCustomerId);
+            existingSub.setStripeSubscriptionId(stripeSub.getId());
+            existingSub.setStatus("incomplete");
+            existingSub.setUpdatedAt(now);
+            subscriptionRepository.save(existingSub);
+
+            return ResponseEntity.ok(Map.of(
+                "clientSecret", clientSecret,
+                "subscriptionId", stripeSub.getId()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                .body(Map.of("error", "Stripe-Fehler: " + e.getMessage()));
+        }
+    }
+
+    private String resolveStripePriceId(String planId, boolean yearly) {
+        return switch (planId.toLowerCase()) {
+            case "starter" -> yearly ? priceStarterYearly : priceStarterMonthly;
+            case "professional" -> yearly ? priceProfessionalYearly : priceProfessionalMonthly;
+            default -> null;
+        };
     }
 
     private RefreshTokenService.PeekedSession resolveSession(String cookieHeader) {

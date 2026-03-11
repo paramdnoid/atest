@@ -40,5 +40,14 @@ pnpm-debug.log*
 docs/
 *.md
 
+# Mobile app (not needed in web/landing/api builds)
+apps/mobile/
+
+# Infrastructure & scripts (not needed in app builds)
+infra/
+scripts/
+docker-compose*.yml
+Makefile
+
 # Claude
 .claude/

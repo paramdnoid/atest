@@ -162,7 +162,8 @@ public class AuthGrpcService extends AuthServiceGrpc.AuthServiceImplBase {
                 UUID.fromString(request.getUserId()),
                 request.getMfaToken(),
                 request.getCode(),
-                request.getBackupCode()
+                request.getBackupCode(),
+                null
             );
 
             responseObserver.onNext(VerifyMfaResponse.newBuilder()

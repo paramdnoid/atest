@@ -102,11 +102,11 @@ public class AuthController {
         try {
             identityService.verifyEmail(token);
             return ResponseEntity.status(HttpStatus.FOUND)
-                .location(URI.create(landingBaseUrl + "/onboarding/verified"))
+                .location(URI.create(landingBaseUrl + "/onboarding?step=verify&verified=1"))
                 .build();
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.FOUND)
-                .location(URI.create(landingBaseUrl + "/onboarding/verified?error=invalid_token"))
+                .location(URI.create(landingBaseUrl + "/onboarding?step=verify&verified=1&error=invalid_token"))
                 .build();
         }
     }
@@ -258,7 +258,8 @@ public class AuthController {
                 UUID.fromString(request.userId()),
                 request.mfaToken(),
                 request.code(),
-                request.backupCode()
+                request.backupCode(),
+                request.emailCode()
             );
 
             ResponseCookie cookie = authCookieService.buildRefreshCookie(result.refreshToken());
@@ -272,6 +273,33 @@ public class AuthController {
                 ));
         } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/mfa/send-email-code")
+    public ResponseEntity<?> sendMfaEmailCode(
+        @RequestBody SendMfaEmailCodeHttpRequest request,
+        @RequestHeader(value = "X-Forwarded-For", required = false) String forwardedFor,
+        HttpServletRequest servletRequest
+    ) {
+        if (request.userId() == null || request.mfaToken() == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "userId and mfaToken required"));
+        }
+
+        AuthRateLimitService.RateLimitDecision rateLimit = authRateLimitService.checkMfaEmailSend(
+            request.userId(),
+            clientFingerprint(forwardedFor, servletRequest),
+            "http"
+        );
+        if (rateLimit.limited()) {
+            return rateLimited("mfa_email", rateLimit.retryAfterSeconds());
+        }
+
+        try {
+            identityService.sendMfaEmailCode(UUID.fromString(request.userId()), request.mfaToken());
+            return ResponseEntity.ok(Map.of("sent", true));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
         }
     }
 
@@ -487,7 +515,10 @@ public class AuthController {
     public record PasskeyVerifyHttpRequest(String email, String challengeId, String credentialJson, String mode) {
     }
 
-    public record VerifyMfaHttpRequest(String userId, String mfaToken, String code, String backupCode) {
+    public record VerifyMfaHttpRequest(String userId, String mfaToken, String code, String backupCode, String emailCode) {
+    }
+
+    public record SendMfaEmailCodeHttpRequest(String userId, String mfaToken) {
     }
 
     public record EnableMfaHttpRequest(String userId) {

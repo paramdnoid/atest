@@ -43,6 +43,12 @@ public class AuthRateLimitService {
     @Value("${zunftgewerk.auth.rate-limit.mfa-window-seconds:300}")
     private long mfaWindowSeconds;
 
+    @Value("${zunftgewerk.auth.rate-limit.mfa-email-send-limit:3}")
+    private long mfaEmailSendLimit;
+
+    @Value("${zunftgewerk.auth.rate-limit.mfa-email-send-window-seconds:300}")
+    private long mfaEmailSendWindowSeconds;
+
     @Value("${zunftgewerk.auth.rate-limit.refresh-limit:30}")
     private long refreshLimit;
 
@@ -72,6 +78,11 @@ public class AuthRateLimitService {
     public RateLimitDecision checkMfa(String userId, String clientFingerprint, String protocol) {
         String userHash = tokenHashService.hash(normalize(userId));
         return check("mfa", userHash, clientFingerprint, protocol, mfaLimit, mfaWindowSeconds);
+    }
+
+    public RateLimitDecision checkMfaEmailSend(String userId, String clientFingerprint, String protocol) {
+        String userHash = tokenHashService.hash(normalize(userId));
+        return check("mfa_email_send", userHash, clientFingerprint, protocol, mfaEmailSendLimit, mfaEmailSendWindowSeconds);
     }
 
     public RateLimitDecision checkRefreshLike(String rawRefreshToken, String clientFingerprint, String protocol) {

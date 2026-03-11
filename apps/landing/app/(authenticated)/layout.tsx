@@ -38,6 +38,7 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
   return (
     <AppShell
       userEmail={session.email}
+      userName={session.fullName ?? undefined}
       workspaceName={workspaceName}
     >
       {children}

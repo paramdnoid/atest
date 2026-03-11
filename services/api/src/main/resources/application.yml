@@ -126,6 +126,11 @@ zunftgewerk:
   stripe:
     secret-key: ${STRIPE_SECRET_KEY:}
     webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+    price:
+      starter-monthly: ${STRIPE_PRICE_STARTER_MONTHLY:}
+      starter-yearly: ${STRIPE_PRICE_STARTER_YEARLY:}
+      professional-monthly: ${STRIPE_PRICE_PROFESSIONAL_MONTHLY:}
+      professional-yearly: ${STRIPE_PRICE_PROFESSIONAL_YEARLY:}
     retries:
       worker-enabled: ${STRIPE_RETRY_WORKER_ENABLED:true}
       scan-interval-seconds: ${STRIPE_RETRY_SCAN_INTERVAL_SECONDS:30}

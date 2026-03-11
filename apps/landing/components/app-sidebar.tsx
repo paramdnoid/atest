@@ -66,12 +66,17 @@ export function AppSidebar({
     <Sidebar variant="inset">
       <SidebarHeader className="px-3 py-3">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground text-xs font-bold">
-            ZG
-          </div>
+          <Image
+            src="/logo.png"
+            alt=""
+            role="presentation"
+            width={28}
+            height={28}
+            className="shrink-0 object-contain"
+          />
           <div className="flex flex-col leading-none">
-            <span className="font-display text-sm font-bold tracking-tight">
-              Zunft<span className="text-foreground/45">Gewerk</span>
+            <span className="font-display text-sm font-bold uppercase tracking-tight">
+              Zunft<span className="text-primary">Gewerk</span>
             </span>
             <span className="mt-0.5 truncate text-[11px] text-muted-foreground">{workspaceName}</span>
           </div>

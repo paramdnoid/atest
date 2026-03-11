@@ -100,6 +100,7 @@ public class OnboardingController {
         result.put("authenticated", true);
         result.put("userId", userId.toString());
         result.put("email", user.getEmail());
+        result.put("fullName", user.getFullName());
         result.put("isEmailVerified", emailVerified);
         result.put("workspaceId", tenantId.toString());
         result.put("role", role);

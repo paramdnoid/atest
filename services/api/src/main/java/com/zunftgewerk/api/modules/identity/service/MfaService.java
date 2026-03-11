@@ -3,7 +3,9 @@ package com.zunftgewerk.api.modules.identity.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.eatthepath.otp.TimeBasedOneTimePasswordGenerator;
+import com.zunftgewerk.api.modules.identity.entity.MfaEmailCodeEntity;
 import com.zunftgewerk.api.modules.identity.entity.MfaSecretEntity;
+import com.zunftgewerk.api.modules.identity.repository.MfaEmailCodeRepository;
 import com.zunftgewerk.api.modules.identity.repository.MfaSecretRepository;
 import com.zunftgewerk.api.shared.security.SecurityRuntimePolicy;
 import org.apache.commons.codec.binary.Base32;
@@ -32,21 +34,29 @@ public class MfaService {
 
     private static final String INSECURE_DEFAULT_ENCRYPTION_KEY = "dev-dev-dev-dev-dev-dev-dev-dev";
 
+    private static final int EMAIL_CODE_TTL_MINUTES = 5;
+
     private final MfaSecretRepository mfaSecretRepository;
+    private final MfaEmailCodeRepository mfaEmailCodeRepository;
     private final TokenHashService tokenHashService;
+    private final EmailService emailService;
     private final ObjectMapper objectMapper;
     private final byte[] encryptionKey;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public MfaService(
         MfaSecretRepository mfaSecretRepository,
+        MfaEmailCodeRepository mfaEmailCodeRepository,
         TokenHashService tokenHashService,
+        EmailService emailService,
         ObjectMapper objectMapper,
         @Value("${zunftgewerk.security.mfa-encryption-key}") String encryptionKeySeed,
         Environment environment
     ) {
         this.mfaSecretRepository = mfaSecretRepository;
+        this.mfaEmailCodeRepository = mfaEmailCodeRepository;
         this.tokenHashService = tokenHashService;
+        this.emailService = emailService;
         this.objectMapper = objectMapper;
         this.encryptionKey = deriveKey(validateEncryptionKey(encryptionKeySeed, environment));
     }
@@ -108,6 +118,54 @@ public class MfaService {
         } catch (Exception ex) {
             throw new IllegalStateException("Unable to verify TOTP", ex);
         }
+    }
+
+    public void sendEmailCode(UUID userId, String email) {
+        // Invalidate any outstanding unused codes for this user
+        List<MfaEmailCodeEntity> outstanding = mfaEmailCodeRepository.findByUserIdAndUsedAtIsNull(userId);
+        for (MfaEmailCodeEntity old : outstanding) {
+            old.setUsedAt(OffsetDateTime.now());
+        }
+        mfaEmailCodeRepository.saveAll(outstanding);
+
+        String code = generateNumericCode(6);
+        String codeHash = tokenHashService.hash(code);
+
+        MfaEmailCodeEntity entity = new MfaEmailCodeEntity();
+        entity.setId(UUID.randomUUID());
+        entity.setUserId(userId);
+        entity.setCodeHash(codeHash);
+        entity.setExpiresAt(OffsetDateTime.now().plusMinutes(EMAIL_CODE_TTL_MINUTES));
+        entity.setCreatedAt(OffsetDateTime.now());
+        mfaEmailCodeRepository.save(entity);
+
+        emailService.sendMfaEmailCode(email, code);
+    }
+
+    public boolean verifyEmailCode(UUID userId, String code) {
+        String codeHash = tokenHashService.hash(code);
+        MfaEmailCodeEntity entity = mfaEmailCodeRepository.findByCodeHash(codeHash).orElse(null);
+        if (entity == null) {
+            return false;
+        }
+        if (!entity.getUserId().equals(userId)) {
+            return false;
+        }
+        if (entity.getUsedAt() != null) {
+            return false;
+        }
+        if (entity.getExpiresAt().isBefore(OffsetDateTime.now())) {
+            return false;
+        }
+        entity.setUsedAt(OffsetDateTime.now());
+        mfaEmailCodeRepository.save(entity);
+        return true;
+    }
+
+    private String generateNumericCode(int digits) {
+        int bound = (int) Math.pow(10, digits);
+        int code = secureRandom.nextInt(bound);
+        return String.format("%0" + digits + "d", code);
     }
 
     public boolean isMfaActive(UUID userId) {

@@ -14,6 +14,8 @@ import { Label } from "@/components/ui/label";
 
 type Step = "credentials" | "mfa";
 
+type MfaMode = "totp" | "backup" | "email";
+
 type MfaContext = {
   userId: string;
   mfaToken: string;
@@ -26,9 +28,11 @@ export function LoginForm() {
   const [step, setStep] = useState<Step>("credentials");
   const [mfaContext, setMfaContext] = useState<MfaContext | null>(null);
   const [mfaCode, setMfaCode] = useState("");
-  const [useBackupCode, setUseBackupCode] = useState(false);
+  const [mfaMode, setMfaMode] = useState<MfaMode>("totp");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   function redirectToDashboard() {
     router.push("/dashboard");
@@ -81,6 +85,40 @@ export function LoginForm() {
     }
   }
 
+  async function handleSendEmailCode() {
+    if (!mfaContext) return;
+    setError(null);
+    setEmailSending(true);
+    setEmailSent(false);
+
+    try {
+      const res = await fetchApi("/v1/auth/mfa/send-email-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: mfaContext.userId,
+          mfaToken: mfaContext.mfaToken,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+        setError(
+          typeof data?.error === "string" ? data.error : "Code konnte nicht gesendet werden.",
+        );
+        return;
+      }
+
+      setMfaMode("email");
+      setMfaCode("");
+      setEmailSent(true);
+    } catch {
+      setError(GENERIC_ERROR_MESSAGE);
+    } finally {
+      setEmailSending(false);
+    }
+  }
+
   async function handleMfa(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -88,7 +126,12 @@ export function LoginForm() {
     if (!mfaContext) return;
 
     if (!mfaCode) {
-      setError(useBackupCode ? "Bitte Backup-Code eingeben." : "Bitte Authenticator-Code eingeben.");
+      const labels: Record<MfaMode, string> = {
+        totp: "Bitte Authenticator-Code eingeben.",
+        backup: "Bitte Backup-Code eingeben.",
+        email: "Bitte E-Mail-Code eingeben.",
+      };
+      setError(labels[mfaMode]);
       return;
     }
 
@@ -100,8 +143,9 @@ export function LoginForm() {
         body: JSON.stringify({
           userId: mfaContext.userId,
           mfaToken: mfaContext.mfaToken,
-          code: useBackupCode ? null : mfaCode,
-          backupCode: useBackupCode ? mfaCode : null,
+          code: mfaMode === "totp" ? mfaCode : null,
+          backupCode: mfaMode === "backup" ? mfaCode : null,
+          emailCode: mfaMode === "email" ? mfaCode : null,
         }),
       });
 
@@ -122,7 +166,26 @@ export function LoginForm() {
     }
   }
 
+  function switchMfaMode(mode: MfaMode) {
+    setMfaMode(mode);
+    setMfaCode("");
+    setError(null);
+    setEmailSent(false);
+  }
+
   if (step === "mfa") {
+    const labels: Record<MfaMode, string> = {
+      totp: "Authenticator-Code",
+      backup: "Backup-Code",
+      email: "E-Mail-Code",
+    };
+
+    const helperTexts: Record<MfaMode, string | null> = {
+      totp: "6-stelliger Code aus deiner Authenticator-App",
+      backup: null,
+      email: "6-stelliger Code aus deiner E-Mail",
+    };
+
     return (
       <AuthFormCard
         onSubmit={handleMfa}
@@ -130,42 +193,66 @@ export function LoginForm() {
         error={error}
         footerLink={{ href: "/login", label: "Anmeldung abbrechen", prefix: "" }}
         extraFooter={
-          <p className="text-center text-sm text-muted-foreground">
-            <button
-              type="button"
-              onClick={() => {
-                setUseBackupCode((v) => !v);
-                setMfaCode("");
-                setError(null);
-              }}
-              className="text-primary hover:underline"
-            >
-              {useBackupCode ? "Authenticator-Code verwenden" : "Backup-Code verwenden"}
-            </button>
-          </p>
+          <div className="space-y-1 text-center text-sm text-muted-foreground">
+            {mfaMode !== "totp" && (
+              <p>
+                <button
+                  type="button"
+                  onClick={() => switchMfaMode("totp")}
+                  className="text-primary hover:underline"
+                >
+                  Authenticator-Code verwenden
+                </button>
+              </p>
+            )}
+            {mfaMode !== "backup" && (
+              <p>
+                <button
+                  type="button"
+                  onClick={() => switchMfaMode("backup")}
+                  className="text-primary hover:underline"
+                >
+                  Backup-Code verwenden
+                </button>
+              </p>
+            )}
+            {mfaMode !== "email" && (
+              <p>
+                <button
+                  type="button"
+                  onClick={handleSendEmailCode}
+                  disabled={emailSending}
+                  className="text-primary hover:underline disabled:opacity-50"
+                >
+                  {emailSending ? "Sende..." : "Code per E-Mail senden"}
+                </button>
+              </p>
+            )}
+          </div>
         }
       >
         <div className="space-y-2">
           <Label htmlFor="mfa-code" className="billing-enterprise-label text-foreground">
-            {useBackupCode ? "Backup-Code" : "Authenticator-Code"}
+            {labels[mfaMode]}
           </Label>
           <Input
             id="mfa-code"
             type="text"
-            inputMode={useBackupCode ? undefined : "numeric"}
-            autoComplete={useBackupCode ? "off" : "one-time-code"}
+            inputMode={mfaMode === "backup" ? undefined : "numeric"}
+            autoComplete={mfaMode === "backup" ? "off" : "one-time-code"}
             value={mfaCode}
             onChange={(e) => setMfaCode(e.target.value)}
-            placeholder={useBackupCode ? "XXXXXXXX" : "000000"}
-            maxLength={useBackupCode ? 20 : 6}
-            className={`h-10 font-mono${useBackupCode ? "" : " tracking-widest text-center"}`}
+            placeholder={mfaMode === "backup" ? "XXXXXXXX" : "000000"}
+            maxLength={mfaMode === "backup" ? 20 : 6}
+            className={`h-10 font-mono${mfaMode === "backup" ? "" : " tracking-widest text-center"}`}
             required
             autoFocus
           />
-          {!useBackupCode && (
-            <p className="text-xs text-muted-foreground">
-              6-stelliger Code aus deiner Authenticator-App
-            </p>
+          {helperTexts[mfaMode] && (
+            <p className="text-xs text-muted-foreground">{helperTexts[mfaMode]}</p>
+          )}
+          {emailSent && mfaMode === "email" && (
+            <p className="text-xs text-green-600">Code gesendet</p>
           )}
         </div>
 

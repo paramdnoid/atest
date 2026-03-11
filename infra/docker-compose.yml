@@ -1,7 +1,21 @@
+# Development compose
+#
+# Infrastructure only (default):
+#   docker compose -f infra/docker-compose.yml up
+#
+# Full stack (infra + API + frontends):
+#   docker compose -f infra/docker-compose.yml --profile full up
+#
+# Full stack with rebuild:
+#   docker compose -f infra/docker-compose.yml --profile full up --build
+
 services:
+  # --- Infrastructure (always started) ---
+
   postgres:
     image: postgres:16
     container_name: zunftgewerk-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: zunftgewerk
       POSTGRES_USER: zunftgewerk
@@ -10,19 +24,125 @@ services:
       - '5432:5432'
     volumes:
       - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U zunftgewerk']
+      interval: 10s
+      timeout: 5s
+      start_period: 5s
+      retries: 5
 
   redis:
     image: redis:7
     container_name: zunftgewerk-redis
+    restart: unless-stopped
     ports:
       - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      start_period: 5s
+      retries: 5
 
   mailpit:
     image: axllent/mailpit
     container_name: zunftgewerk-mailpit
+    restart: unless-stopped
     ports:
-      - '1025:1025'   # SMTP (no auth/TLS)
-      - '8025:8025'   # Web UI → http://localhost:8025
+      - '1025:1025'
+      - '8025:8025'
+
+  # --- App services (profile: full) ---
+
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    profiles: [full]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Database
+      DATABASE_URL: jdbc:postgresql://postgres:5432/zunftgewerk
+      DATABASE_USERNAME: zunftgewerk
+      DATABASE_PASSWORD: zunftgewerk
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # CORS
+      CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001
+      # Auth cookies
+      AUTH_COOKIE_SAMESITE: Lax
+      AUTH_COOKIE_SECURE: ''
+      AUTH_COOKIE_DOMAIN: ''
+      AUTH_COOKIE_PATH: /
+      # JWT (auto-generated if empty)
+      JWT_ISSUER: zunftgewerk-local
+      JWT_AUDIENCE: zunftgewerk-clients
+      JWT_KID: dev-key-1
+      JWT_PRIVATE_KEY_PEM: ''
+      JWT_PUBLIC_KEY_PEM: ''
+      # MFA
+      MFA_ENCRYPTION_KEY: dev-dev-dev-dev-dev-dev-dev-dev
+      # Passkey/WebAuthn
+      PASSKEY_RP_ID: localhost
+      PASSKEY_RP_NAME: Zunftgewerk
+      PASSKEY_ORIGIN: http://localhost:3001
+      # SMTP -> Mailpit (no auth/TLS)
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_USER: ''
+      SMTP_PASS: ''
+      SMTP_AUTH: 'false'
+      SMTP_STARTTLS: 'false'
+      SMTP_SSL: 'false'
+      MAIL_FROM: noreply@localhost
+      EMAIL_FROM_NAME: ZunftGewerk
+      # Email links
+      LANDING_BASE_URL: http://localhost:3000
+      API_BASE_URL: http://localhost:8080
+      # Stripe (test keys — override via .env if needed)
+      STRIPE_SECRET_KEY: ''
+      STRIPE_WEBHOOK_SECRET: ''
+    ports:
+      - '8080:8080'
+      - '9090:9090'
+
+  landing:
+    image: node:22-alpine
+    profiles: [full]
+    working_dir: /app
+    volumes:
+      - ..:/app
+      - landing_node_modules:/app/apps/landing/node_modules
+    command: sh -c "pnpm install && pnpm --filter @zunftgewerk/landing dev"
+    depends_on:
+      - api
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+    ports:
+      - '3000:3000'
+
+  web:
+    image: node:22-alpine
+    profiles: [full]
+    working_dir: /app
+    volumes:
+      - ..:/app
+      - web_node_modules:/app/apps/web/node_modules
+    command: sh -c "pnpm install && pnpm --filter @zunftgewerk/web dev"
+    depends_on:
+      - api
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+    ports:
+      - '3001:3001'
 
 volumes:
   pg_data:
+  landing_node_modules:
+  web_node_modules:

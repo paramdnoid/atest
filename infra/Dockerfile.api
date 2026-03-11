@@ -15,7 +15,8 @@ COPY services/api/src/ services/api/src/
 
 RUN chmod +x services/api/gradlew && \
     cd services/api && \
-    ./gradlew bootJar -x test --no-daemon
+    ./gradlew bootJar -x test --no-daemon && \
+    rm -f /build/services/api/build/libs/*-plain.jar
 
 # Runtime stage
 FROM eclipse-temurin:21-jre-alpine
@@ -28,4 +29,10 @@ COPY --from=builder /build/services/api/build/libs/*.jar app.jar
 
 EXPOSE 8080 9090
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
+  CMD wget -qO- http://localhost:8080/actuator/health || exit 1
+
+ENTRYPOINT ["java", \
+  "-XX:+UseContainerSupport", \
+  "-XX:MaxRAMPercentage=75.0", \
+  "-jar", "app.jar"]
