@@ -6,17 +6,17 @@
 
 | Method | Endpoint | Auth | Request | Response |
 |---|---|---|---|---|
-| POST | `/signup` | None | `{ email, password, workspaceName, tradeSlug, address? }` | `{ userId, tenantId, accessToken, expiresAt }` + Set-Cookie |
+| POST | `/signup` | None | Signup-Daten | Zugriffstoken + Session-Cookie |
 | GET | `/verify-email?token=` | None | Query param | Redirect to landing app |
 | POST | `/request-password-reset` | None | `{ email }` | `{ message }` |
 | POST | `/reset-password` | None | `{ email, code, newPassword }` | `{ message }` |
-| POST | `/login` | None | `{ email, password }` | `{ state, accessToken?, mfaToken?, userId?, expiresAt? }` + Set-Cookie |
-| POST | `/passkey/begin` | None | `{ email, mode }` | `{ challengeId, publicKeyOptionsJson }` |
-| POST | `/passkey/verify` | None | `{ email, challengeId, credentialJson, mode }` | `{ state, accessToken, expiresAt }` + Set-Cookie |
-| POST | `/mfa/enable` | Bearer JWT | — | `{ provisioningUri, backupCodes[] }` |
-| POST | `/mfa/verify` | None | `{ userId, mfaToken, code?, backupCode? }` | `{ accessToken, expiresAt }` + Set-Cookie |
-| POST | `/refresh` | Cookie/Body | — | `{ accessToken, expiresAt }` + Set-Cookie |
-| POST | `/logout` | Cookie/Body | — | 204 + Clear-Cookie |
+| POST | `/login` | None | `{ email, password }` | Auth-State (`AUTHENTICATED` oder `MFA_REQUIRED`) |
+| POST | `/passkey/begin` | None | `{ email, mode }` | Challenge + PublicKey Options |
+| POST | `/passkey/verify` | None | Verify-Daten | Auth-State + Session-Update |
+| POST | `/mfa/enable` | Bearer JWT | — | Provisioning-Infos + Backup-Codes |
+| POST | `/mfa/verify` | None | MFA-Daten | Zugriffstoken + Session-Update |
+| POST | `/refresh` | Cookie/Body | — | Neues Zugriffstoken + rotierte Session |
+| POST | `/logout` | Cookie/Body | — | 204 |
 | POST | `/revoke-family` | Cookie/Body | — | 204 |
 
 ### JWKS (`/.well-known`)
@@ -72,7 +72,7 @@
 
 ## gRPC Services (Port 9090)
 
-All gRPC calls require JWT in metadata (extracted by `GrpcAuthInterceptor`).
+Alle gRPC-Aufrufe nutzen JWT in Metadata.
 
 ### AuthService
 
@@ -88,9 +88,7 @@ service AuthService {
 }
 ```
 
-**Key types:**
-- `AuthState`: `AUTHENTICATED`, `MFA_REQUIRED`, `CHALLENGE_REQUIRED`
-- `PasskeyMode`: `REGISTER`, `AUTHENTICATE`
+Wichtige Enums/Zustaende: `AuthState`, `PasskeyMode`.
 
 ### SyncService
 
@@ -102,11 +100,7 @@ service SyncService {
 }
 ```
 
-**Key types:**
-- `VectorClockEntry`: `{ node, counter }`
-- `ClientOperation`: `{ clientOpId, entityType, entityId, operation, payloadDeltaJson, baseVersion, occurredAt, vectorClock[] }`
-- `ChangeEvent`: `{ id, entityType, entityId, operation, payloadDeltaJson, serverVersion, occurredAt, resultVectorClock[], conflict }`
-- `ConflictResolution`: `{ clientOpId, resolutionType, resolvedPayloadJson, serverVectorClock[], serverVersion, reason }`
+Wichtige Typen: `ClientOperation`, `ChangeEvent`, `VectorClockEntry`.
 
 ### PlanService
 
@@ -129,7 +123,7 @@ service TenantService {
 }
 ```
 
-All tenant operations require `TenantContext { tenant_id, actor_user_id }`.
+Tenant-Operationen nutzen Tenant-Kontext.
 
 ### LicenseService
 
@@ -142,29 +136,11 @@ service LicenseService {
 }
 ```
 
-### Common Types
-
-```protobuf
-message TenantContext {
-  string tenant_id = 1;
-  string actor_user_id = 2;
-}
-
-message PaginationRequest {
-  int32 page_size = 1;
-  string page_token = 2;
-}
-
-message PaginationResponse {
-  string next_page_token = 1;
-}
-```
-
 ---
 
 ## Proto File Locations
 
-All proto definitions live in `packages/proto/zunftgewerk/v1/`:
+Alle Proto-Definitionen liegen in `packages/proto/zunftgewerk/v1/`.
 
 | File | Service |
 |---|---|
@@ -175,22 +151,20 @@ All proto definitions live in `packages/proto/zunftgewerk/v1/`:
 | `license.proto` | LicenseService |
 | `common.proto` | Shared messages (TenantContext, Pagination) |
 
-Proto files are shared between the Spring Boot API (via Gradle `sourceSets`) and the mobile app.
+Diese Dateien sind gemeinsame Vertragsquelle fuer API und Mobile-Client.
 
 ---
 
-## Error Responses
-
-### REST Error Format
+## Fehlerformat (REST)
 
 ```json
 {
-  "error": "INVALID_CREDENTIALS",
-  "message": "Invalid email or password"
+  "error": "ERROR_CODE",
+  "message": "Human readable message"
 }
 ```
 
-### Rate Limit Response (429)
+Rate-Limit-Fehler liefern zusaetzlich `retryAfterSeconds`.
 
 ```json
 {
@@ -198,11 +172,3 @@ Proto files are shared between the Spring Boot API (via Gradle `sourceSets`) and
   "retryAfterSeconds": 45
 }
 ```
-
-### Auth State Responses
-
-| State | HTTP | Meaning |
-|---|---|---|
-| `AUTHENTICATED` | 200 | Login complete, tokens issued |
-| `MFA_REQUIRED` | 200 | Must verify TOTP before tokens are issued |
-| `CHALLENGE_REQUIRED` | 200 | WebAuthn challenge in progress |

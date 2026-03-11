@@ -1,89 +1,44 @@
 # System Context (C4 Level 1)
 
-## System Context Diagram
-
-```
-                    ┌──────────────┐
-                    │  Tradesperson │
-                    │   (End User)  │
-                    └──────┬───────┘
-                           │ uses
-              ┌────────────┼────────────┐
-              ▼            ▼            ▼
-     ┌────────────┐ ┌───────────┐ ┌──────────┐
-     │  Landing   │ │    Web    │ │  Mobile  │
-     │   Site     │ │ Dashboard │ │   App    │
-     │  (Browser) │ │ (Browser) │ │(iOS/And) │
-     └─────┬──────┘ └─────┬─────┘ └────┬─────┘
-           │               │             │
-           └───────────────┼─────────────┘
-                           │
-                           ▼
-              ┌────────────────────────┐
-              │                        │
-              │    Zunftgewerk API     │
-              │    (Spring Boot)       │
-              │                        │
-              └──┬─────┬─────┬────┬───┘
-                 │     │     │    │
-        ┌────────┘     │     │    └────────┐
-        ▼              ▼     ▼             ▼
-   ┌─────────┐   ┌────────┐ ┌──────┐ ┌──────────┐
-   │ Stripe  │   │  SMTP  │ │Redis │ │PostgreSQL│
-   │Payments │   │ Server │ │      │ │          │
-   └─────────┘   └────────┘ └──────┘ └──────────┘
-        │
-        ▼
-   ┌─────────┐
-   │ Stripe  │
-   │Dashboard│
-   │ (Admin) │
-   └─────────┘
-```
-
 ## Actors
 
 | Actor | Type | Description |
 |---|---|---|
-| Tradesperson | Human | End user who manages their trade business (electrician, plumber, etc.) |
-| Business Owner | Human | Tenant owner who manages subscription, billing, team members |
-| Field Worker | Human | Uses mobile app for offline-first job documentation |
-| Stripe Admin | Human | Finance team managing billing via Stripe Dashboard |
+| Mitarbeiter im Betrieb | Human | Nutzt Landing/Web/Mobile fuer operative Aufgaben |
+| Tenant Owner/Admin | Human | Verantwortet Team, Berechtigungen und Abrechnung |
+| Operations/Finance | Human | Bearbeitet Betriebs- und Billingvorfaelle |
 
 ## External Systems
 
 | System | Integration | Purpose |
 |---|---|---|
-| **Stripe** | REST API + Webhooks | Payment processing, subscription lifecycle, invoicing |
-| **SMTP Server** | SMTP (port 587) | Email delivery for verification, password reset |
-| **OpenRouteService** | REST API | Address autocomplete and reverse geocoding |
-| **Mailpit** (dev only) | SMTP (port 1025) | Local email testing with web UI at :8025 |
+| Stripe | REST + Webhooks | Subscription/Billing Events |
+| SMTP Provider | SMTP | E-Mail Versand (Verifikation, Passwort-Reset) |
+| Geocoding Provider | REST | Adresssuche (ueber App-Proxy) |
 
 ## System Boundaries
 
 ### Internal (owned by Zunftgewerk)
 
-- **Landing App** — Marketing site, auth flows, onboarding wizard, authenticated dashboard
-- **Web App** — Tenant admin dashboard, license management, sync operations cockpit
-- **Mobile App** — Offline-first field client with encrypted local storage and deterministic sync
-- **API** — Modular monolith handling all business logic, auth, billing, sync
+- Landing App: Marketing, Auth, Onboarding, einfacher Workspace-Zugang.
+- Web App: Tenant-Administration, Lizenzen, operative Verwaltung.
+- Mobile App: Offline-first Feldanwendung mit Sync.
+- API: Modularer Monolith mit zentraler Fachlogik.
 
 ### External (third-party)
 
-- Stripe handles all payment processing and PCI compliance
-- SMTP provider handles email delivery
-- OpenRouteService provides geocoding (address lookup for workspace settings)
+- Zahlungsabwicklung liegt bei Stripe.
+- E-Mail Versand liegt beim SMTP-Provider.
+- Geocoding liegt beim externen Karten-/Adressdienst.
 
 ## Communication Patterns
 
 | From | To | Protocol | Auth |
 |---|---|---|---|
-| Landing App | API | HTTPS REST | HTTP-only cookie (refresh token) |
-| Web App | API | HTTPS REST | Bearer JWT (access token) |
-| Mobile App | API | gRPC (HTTP/2) | JWT in metadata |
+| Landing App | API | HTTPS REST | Cookie-basierte Session + Token-Flows |
+| Web App | API | HTTPS REST | Bearer JWT |
+| Mobile App | API | gRPC | JWT in Metadata |
 | API | Stripe | HTTPS REST | API key |
 | Stripe | API | HTTPS Webhook | Signature verification |
-| API | SMTP | SMTP/TLS | Username/password |
-| API | PostgreSQL | TCP :5432 | Username/password |
-| API | Redis | TCP :6379 | None (local) |
-| Landing App | OpenRouteService | HTTPS REST | API key (proxied via Next.js API route) |
+| API | SMTP | SMTP/TLS | Provider credentials |
+| API | PostgreSQL/Redis | Intern | Service credentials/config |

@@ -1,42 +1,52 @@
 # Runbook: Stripe Webhook Ausfall
 
+## Scope
+
+- Betrifft Billing-Events aus Stripe, die nicht oder fehlerhaft verarbeitet werden.
+- Fokus auf Wiederherstellung der korrekten Subscription-/Seat-Sicht im System.
+
 ## Symptome
 
 - Planwechsel nicht sichtbar
 - Seat Limits inkonsistent
 - Erhoehte failed webhook events
 
+## Auswirkung
+
+- Abrechnung und Entitlements laufen zeitweise auseinander.
+- Support-Faelle zu falschen Plan-/Seat-Zustaenden nehmen zu.
+
 ## Sofortmassnahmen
 
-1. Stripe Dashboard Event Queue pruefen.
-2. Signaturvalidierung und Secret-Rotation pruefen.
-3. Webhook Retry aktivieren und Dead-Letter protokollieren.
+1. Stripe Event-Lieferung und Signaturvalidierung pruefen.
+2. Lokale Event-Queue auf haengende/nicht verarbeitete Events pruefen.
+3. Fehlerkontext (letzte Deployments, DB/Redis, Secrets) erfassen.
 
-## Recovery
+## Diagnose
 
-1. Fehlende Events per Stripe API nachziehen.
-2. Subscription-State fuer betroffene Tenants re-konsolidieren.
-3. Audit Event mit manual reconciliation markieren.
+1. In Stripe Dashboard/Logs fehlgeschlagene Zustellungen und Wiederholungen pruefen.
+2. In API-Logs Signatur- und Payload-Fehler fuer betroffene Eventtypen eingrenzen.
+3. Queue/Worker-Zustand validieren (Rueckstau, Exceptions, Dead-Letter-Anteil).
 
-## Worker und Statusmodell
+## Statusmodell
 
-- `RECEIVED`: Event gespeichert, noch nicht verarbeitet.
-- `PROCESSED`: Event erfolgreich verarbeitet.
-- `FAILED`: Verarbeitungsfehler, geplanter Retry ueber `next_retry_at`.
-- `DEAD_LETTER`: Retry-Limit erreicht oder nicht-retrybarer Fehler.
+- `RECEIVED`: Event persistiert, noch nicht erfolgreich verarbeitet.
+- `PROCESSED`: Erfolgreich verarbeitet.
+- `RETRY` oder aequivalenter Fehlerstatus: fuer erneute Verarbeitung vorgemerkt.
+- `DEAD_LETTER`: nach definierten Versuchen nicht verarbeitet.
 
-## Auto-Recovery
+## Recovery Schritte
 
-- Der Retry-Worker scannt `FAILED` Events (Default: alle 30 Sekunden).
-- Backoff ist exponentiell mit Cap (`base-delay-seconds`, `max-delay-seconds`).
-- Der Dead-Letter-Recovery-Worker scannt `DEAD_LETTER` Events nach Cooldown (Default: 1 Stunde, Scan alle 5 Minuten).
-- Pro Event ist die Anzahl der Recovery-Zyklen begrenzt (`max-recovery-attempts`, Default: 3).
+1. Dead-Letter Events ueber internen Recovery-Endpunkt erneut einreihen.
+2. Fuer betroffene Tenants Subscription-/Billing-Status fachlich validieren.
+3. Fehlende (nie empfangene) Events aus Stripe-Historie manuell nachziehen.
+4. Reconciliation als Audit-relevanten Vorgang dokumentieren.
 
-## Manueller Recovery Trigger
+## Manueller Recovery-Trigger
 
 - Endpoint: `POST /internal/billing/stripe-webhooks/dead-letter/recover`
-- Authentifizierung erforderlich (`/internal/**` ist nicht `permitAll`).
-- Request-Beispiele:
+- Authentifizierung: erforderlich.
+- Typische Aufrufe:
 
 ```json
 {"eventId":"evt_123"}
@@ -46,12 +56,13 @@
 {"limit":25}
 ```
 
-- Antwort:
-  - `requeuedCount`
-  - `skippedCount`
-  - `eventIds`
+## Verifikation
 
-## Wann Stripe API Backfill noetig bleibt
+1. Fehlerrate fuer Webhook-Verarbeitung sinkt auf Normalniveau.
+2. Dead-Letter-Backlog ist abgearbeitet oder kontrolliert ruecklaeufig.
+3. Stichprobe betroffener Tenants: Plan-/Seat-Zustand fachlich korrekt.
 
-- Wenn Events im Stripe-Dashboard nie zugestellt wurden (also nicht im lokalen Event-Store liegen), kann der Worker sie nicht replayen.
-- In diesem Fall weiterhin manuell per Stripe API/Event-Historie nachziehen.
+## Eskalation
+
+- Bei anhaltender Signatur-/Authentifizierungsproblematik an Platform/Security eskalieren.
+- Bei Datenabweichungen trotz Recovery an Billing-Owner + DBA eskalieren.
