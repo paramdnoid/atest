@@ -41,6 +41,7 @@ export type Device = {
 
 type Props = {
   devices: Device[];
+  error?: boolean;
   licensedCount: number;
   licenseLimit: number | null;
   registrationToken: string | null;
@@ -74,6 +75,7 @@ function DeviceStatusBadge({ device }: { device: Device }) {
 
 export function DevicesPanel({
   devices: initialDevices,
+  error,
   licensedCount,
   licenseLimit,
   registrationToken: initialToken,
@@ -87,6 +89,7 @@ export function DevicesPanel({
   const [loadingDeviceId, setLoadingDeviceId] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<Device | null>(null);
   const [confirmRevoke, setConfirmRevoke] = useState<Device | null>(null);
+  const localLicensedCount = devices.filter((d) => d.status === "licensed").length;
 
   async function handleCopyToken() {
     if (!registrationToken) return;
@@ -164,6 +167,8 @@ export function DevicesPanel({
     : null;
 
   const atLimit = licenseLimit != null && licensedCount >= licenseLimit;
+  const effectiveLicensedCount = Math.max(licensedCount, localLicensedCount);
+  const effectiveAtLimit = licenseLimit != null && effectiveLicensedCount >= licenseLimit;
 
   return (
     <>
@@ -178,10 +183,10 @@ export function DevicesPanel({
                 </CardDescription>
               </div>
               <Badge
-                variant={atLimit ? "destructive" : "outline"}
+                variant={effectiveAtLimit ? "destructive" : "outline"}
                 className="text-sm tabular-nums"
               >
-                {licensedCount}
+                {effectiveLicensedCount}
                 {licenseLimit != null ? ` / ${licenseLimit}` : ""} Lizenzen vergeben
               </Badge>
             </div>
@@ -192,7 +197,7 @@ export function DevicesPanel({
                 <code className="flex-1 rounded-md bg-muted px-3 py-2 font-mono text-sm select-none">
                   {maskedToken}
                 </code>
-                <Button variant="outline" size="icon" onClick={handleCopyToken} title="Kopieren">
+                <Button variant="outline" size="icon" onClick={handleCopyToken} title="Kopieren" aria-label="Registrierungscode kopieren">
                   {copied ? (
                     <Check className="h-4 w-4 text-green-600" />
                   ) : (
@@ -206,6 +211,7 @@ export function DevicesPanel({
                     onClick={handleRenewToken}
                     disabled={renewingToken}
                     title="Token erneuern"
+                    aria-label="Registrierungscode erneuern"
                   >
                     <RefreshCw className={`h-4 w-4 ${renewingToken ? "animate-spin" : ""}`} />
                   </Button>
@@ -218,7 +224,7 @@ export function DevicesPanel({
               </Button>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Kein Token konfiguriert. Ein Admin kann einen generieren.
+                Nur Admins oder Inhaber können den Registrierungscode anzeigen und erneuern.
               </p>
             )}
           </CardContent>
@@ -228,13 +234,19 @@ export function DevicesPanel({
           <CardHeader>
             <CardTitle className="text-base">Geräte</CardTitle>
             <CardDescription>
-              {devices.length === 0
+              {error
+                ? "Geräte konnten nicht geladen werden."
+                : devices.length === 0
                 ? "Noch keine Geräte registriert."
                 : `${devices.length} Gerät${devices.length !== 1 ? "e" : ""} registriert`}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-            {devices.length > 0 && (
+            {error ? (
+              <div className="px-6 py-6 text-sm text-muted-foreground">
+                Gerätedaten konnten nicht geladen werden. Bitte Seite neu laden.
+              </div>
+            ) : devices.length > 0 && (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -281,10 +293,10 @@ export function DevicesPanel({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                disabled={loadingDeviceId === device.id || atLimit}
+                                disabled={loadingDeviceId === device.id || effectiveAtLimit}
                                 onClick={() => handleAssignLicense(device)}
                                 className="text-xs"
-                                title={atLimit ? "Lizenzlimit erreicht" : undefined}
+                                title={effectiveAtLimit ? "Lizenzlimit erreicht" : undefined}
                               >
                                 <ShieldCheck className="mr-1 h-3 w-3" />
                                 Lizenz vergeben

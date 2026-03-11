@@ -124,7 +124,7 @@ function TradeTabSelector({
     <div
       role="tablist"
       aria-label="Gewerke"
-      className="flex items-center gap-0.5 rounded-lg bg-muted/40 p-0.5"
+      className="flex items-center gap-1 rounded-lg bg-muted/40 p-1"
       onKeyDown={handleKeyDown}
     >
       {trades.map((trade, i) => {
@@ -142,7 +142,7 @@ function TradeTabSelector({
             aria-selected={isActive}
             aria-controls={`trades-panel-${trade.slug}`}
             aria-label={`${trade.name} (${i + 1} / ${trades.length})`}
-            className={`relative flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-300 ${
+            className={`relative flex flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-2 text-[11px] font-medium transition-all duration-300 sm:px-3 sm:py-1.5 sm:text-xs ${
               isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
             onClick={() => onSelect(i)}
@@ -170,7 +170,7 @@ function TradeTabSelector({
 
 function TradeFeature({ feature }: { feature: TradeFeatureItem }) {
   return (
-    <div className="group flex items-start gap-4 rounded-xl p-4 transition-all duration-200 hover:bg-primary/[0.04]">
+    <div className="group flex items-start gap-3 rounded-xl p-3.5 transition-all duration-200 hover:bg-primary/4 sm:gap-4 sm:p-4">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/8 ring-1 ring-primary/10 transition-colors duration-200 group-hover:bg-primary/12 group-hover:ring-primary/20">
         <FeatureIcon name={feature.icon} />
       </div>
@@ -178,7 +178,7 @@ function TradeFeature({ feature }: { feature: TradeFeatureItem }) {
         <p className="text-sm font-semibold leading-tight text-foreground">
           {feature.label}
         </p>
-        <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+        <p className="mt-1 text-sm leading-relaxed text-muted-foreground sm:text-[13px]">
           {feature.description}
         </p>
       </div>
@@ -200,9 +200,9 @@ function TradeContent({
   const prefersReduced = useReducedMotion();
 
   return (
-    <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[340px_1fr] lg:gap-0">
+    <div className="grid grid-cols-1 items-start gap-9 lg:grid-cols-[340px_1fr] lg:gap-0">
       {/* Left column: Trade info */}
-      <div className="flex flex-col gap-6 lg:sticky lg:top-24 lg:pr-8">
+      <div className="flex flex-col gap-5 lg:sticky lg:top-24 lg:pr-8">
         <TradeTabSelector activeIndex={activeIndex} onSelect={onSelect} />
 
         <div
@@ -231,7 +231,7 @@ function TradeContent({
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
                 {trade.stats.map((stat) => (
                   <div key={stat.label} className="text-center">
                     <p className="font-display text-lg font-bold text-primary">
@@ -269,11 +269,11 @@ function TradeContent({
               <Button
                 variant="gradient"
                 size="sm"
-                className="gap-2 shadow-md shadow-primary/25"
+                className="h-11 gap-2 shadow-md shadow-primary/25"
                 asChild
               >
                 <a href="#pricing">
-                  Jetzt kostenlos testen
+                  Jetzt Testphase starten
                   <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </a>
               </Button>
@@ -292,7 +292,7 @@ function TradeContent({
             exit={prefersReduced ? {} : { opacity: 0, y: -8 }}
             transition={{ duration: 0.3, ease: EASE_SMOOTH }}
           >
-            <p className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground sm:mb-4">
               Branchenspezifisch
             </p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -327,7 +327,7 @@ export function TradesSection() {
   return (
     <section
       id="trades"
-      className="relative scroll-mt-40 overflow-hidden py-16 md:py-24"
+      className="relative scroll-mt-40 overflow-hidden py-14 md:py-24"
       aria-labelledby="trades-heading"
     >
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
@@ -338,14 +338,14 @@ export function TradesSection() {
 
       <SectionContainer className="relative">
         {/* Compact section header */}
-        <FadeIn className="mx-auto mb-16 max-w-xl text-center">
+        <FadeIn className="mx-auto mb-12 max-w-xl text-center md:mb-16">
           <h2
             id="trades-heading"
-            className="hero-text-gloss font-display mb-4 text-3xl font-extrabold tracking-tight md:text-4xl lg:text-5xl"
+            className="hero-text-gloss font-display mb-3 text-[1.9rem] font-extrabold tracking-tight sm:text-3xl md:mb-4 md:text-4xl lg:text-5xl"
           >
             Für Ihr Gewerk <GradientText>optimiert</GradientText>
           </h2>
-          <p className="text-lg text-muted-foreground text-balance">
+          <p className="text-muted-foreground text-base leading-relaxed text-balance sm:text-lg">
             Branchenspezifische Funktionen, die genau auf Ihre Anforderungen zugeschnitten
             sind.
           </p>
@@ -362,7 +362,7 @@ export function TradesSection() {
 
         {/* Secondary trades */}
         <FadeIn delay={0.2}>
-          <div className="mt-20 border-t border-border/30 pt-10">
+          <div className="mt-14 border-t border-border/30 pt-8 sm:mt-20 sm:pt-10">
             <p className="mb-5 text-center text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
               Weitere Gewerke
             </p>

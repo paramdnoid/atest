@@ -9,12 +9,18 @@ public final class PlanCatalog {
 
     public static List<PlanDefinition> plans() {
         return List.of(
-            new PlanDefinition("free", "Free", 5, "monthly", 0),
-            new PlanDefinition("starter", "Starter", 5, "monthly", 19900),
-            new PlanDefinition("professional", "Professional", 10, "monthly", 39900)
+            new PlanDefinition("starter", "Starter", 5, "monthly", 19900, 30),
+            new PlanDefinition("professional", "Professional", 10, "monthly", 39900, 30)
         );
     }
 
-    public record PlanDefinition(String planId, String displayName, int includedSeats, String billingCycle, long amountCents) {
+    public record PlanDefinition(
+        String planId,
+        String displayName,
+        int includedSeats,
+        String billingCycle,
+        long amountCents,
+        int trialDays
+    ) {
     }
 }

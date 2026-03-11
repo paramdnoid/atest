@@ -11,7 +11,7 @@ class PlanCatalogTest {
     void shouldContainExpectedPlans() {
         assertThat(PlanCatalog.plans())
             .extracting(PlanCatalog.PlanDefinition::planId)
-            .containsExactly("free", "starter", "professional");
+            .containsExactly("starter", "professional");
     }
 
     @Test
@@ -21,18 +21,14 @@ class PlanCatalogTest {
     }
 
     @Test
-    void shouldHaveFreeplanWithZeroCost() {
-        PlanCatalog.PlanDefinition freePlan = PlanCatalog.plans().stream()
-            .filter(p -> "free".equals(p.planId()))
-            .findFirst()
-            .orElseThrow();
-        assertThat(freePlan.amountCents()).isZero();
+    void shouldHavePaidPlansWithPositiveCost() {
+        assertThat(PlanCatalog.plans())
+            .allSatisfy(plan -> assertThat(plan.amountCents()).isPositive());
     }
 
     @Test
-    void shouldHavePaidPlansWithPositiveCost() {
-        assertThat(PlanCatalog.plans().stream()
-            .filter(p -> !"free".equals(p.planId())))
-            .allSatisfy(plan -> assertThat(plan.amountCents()).isPositive());
+    void shouldEnableTrialForAllPlans() {
+        assertThat(PlanCatalog.plans())
+            .allSatisfy(plan -> assertThat(plan.trialDays()).isPositive());
     }
 }

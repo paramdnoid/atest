@@ -1,6 +1,6 @@
 export type OnboardingStepId = "plan" | "account" | "verify" | "signin" | "billing" | "complete";
 
-export type BillingState = "none" | "free" | "active" | "issue" | "canceled";
+export type BillingState = "none" | "active" | "issue" | "canceled";
 
 export type BillingInterval = "month" | "year";
 

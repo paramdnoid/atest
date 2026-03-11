@@ -57,14 +57,14 @@ function BillingToggle({
       <div
         role="radiogroup"
         aria-label="Abrechnungszeitraum"
-        className="premium-panel inline-flex max-w-full flex-wrap items-center justify-center gap-1 rounded-lg p-1 backdrop-blur-sm"
+        className="premium-panel inline-flex max-w-full flex-wrap items-center justify-center gap-1 rounded-lg p-1.5 backdrop-blur-sm sm:p-1"
       >
         <button
           type="button"
           role="radio"
           aria-checked={!yearly}
           onClick={() => yearly && onToggle()}
-          className={`relative rounded-md px-3 py-2 text-sm font-medium transition-all duration-200 sm:px-5 ${
+          className={`relative rounded-md px-4 py-2.5 text-sm font-medium transition-all duration-200 sm:px-5 sm:py-2 ${
             !yearly
               ? "bg-primary text-primary-foreground shadow-sm shadow-primary/30"
               : "text-muted-foreground hover:text-foreground"
@@ -77,7 +77,7 @@ function BillingToggle({
           role="radio"
           aria-checked={yearly}
           onClick={() => !yearly && onToggle()}
-          className={`relative flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200 sm:px-5 ${
+          className={`relative flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all duration-200 sm:px-5 sm:py-2 ${
             yearly
               ? "bg-primary text-primary-foreground shadow-sm shadow-primary/30"
               : "text-muted-foreground hover:text-foreground"
@@ -86,7 +86,7 @@ function BillingToggle({
           Jährlich
         </button>
         {maxSavings > 0 && (
-          <span className="rounded-md bg-emerald-500 px-2 py-1 text-[11px] font-bold text-white">
+          <span className="rounded-md bg-emerald-500 px-2.5 py-1 text-[11px] font-bold text-white">
             -{maxSavings}%
           </span>
         )}
@@ -227,21 +227,21 @@ function PricingCard({
       }`}
     >
       {isPopular && (
-        <div className="absolute -top-3 left-6">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1 text-[10px] font-semibold tracking-[0.12em] uppercase text-white shadow-sm shadow-primary/30">
+        <div className="absolute -top-3 left-4 sm:left-6">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-[10px] font-semibold tracking-[0.12em] uppercase text-white shadow-sm shadow-primary/30 sm:px-3.5">
             Beliebtester Plan
           </span>
         </div>
       )}
 
       <div className={isPopular ? "pt-2" : ""}>
-        <h3 className="font-display text-lg font-bold tracking-[0.02em]">{plan.name}</h3>
-        <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+        <h3 className="font-display text-[1.08rem] font-bold tracking-[0.02em] sm:text-lg">{plan.name}</h3>
+        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
           {plan.description}
         </p>
       </div>
 
-      <div className="mt-5 mb-5">
+      <div className="mt-4 mb-5 sm:mt-5">
         {amount != null ? (
           <div>
             <AnimatedPrice
@@ -265,7 +265,7 @@ function PricingCard({
             </span>
             {plan.trialDays > 0 && (
               <span className="mt-1 block text-sm font-medium text-primary">
-                {plan.trialDays} Tage kostenlos testen
+                {plan.trialDays} Tage Testphase
               </span>
             )}
           </div>
@@ -278,7 +278,7 @@ function PricingCard({
         )}
       </div>
 
-      <div className="mb-5 h-px bg-border/50" />
+      <div className="mb-4 h-px bg-border/50 sm:mb-5" />
 
       <div className="flex-1">
         <FeatureList
@@ -288,11 +288,11 @@ function PricingCard({
         />
       </div>
 
-      <div className="mt-6">
+      <div className="mt-5 sm:mt-6">
         {isPopular ? (
           authTemporarilyDisabled ? (
             <Button
-              className="w-full bg-primary text-xs font-semibold tracking-[0.04em] uppercase text-white shadow-sm shadow-primary/25 opacity-70 sm:text-sm sm:tracking-[0.08em]"
+              className="h-11 w-full bg-primary text-xs font-semibold tracking-[0.04em] uppercase text-white shadow-sm shadow-primary/25 opacity-70 sm:h-10 sm:text-sm sm:tracking-[0.08em]"
               size="lg"
               disabled
               title="Vorübergehend deaktiviert"
@@ -302,7 +302,7 @@ function PricingCard({
             </Button>
           ) : (
             <Button
-              className="w-full bg-primary text-xs font-semibold tracking-[0.04em] uppercase text-white shadow-sm shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-md hover:shadow-primary/35 sm:text-sm sm:tracking-[0.08em]"
+              className="h-11 w-full bg-primary text-xs font-semibold tracking-[0.04em] uppercase text-white shadow-sm shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-md hover:shadow-primary/35 sm:h-10 sm:text-sm sm:tracking-[0.08em]"
               size="lg"
               asChild
             >
@@ -314,7 +314,7 @@ function PricingCard({
           )
         ) : authTemporarilyDisabled ? (
           <Button
-            className="w-full border-border/70 text-xs font-semibold tracking-[0.04em] uppercase opacity-70 sm:text-sm sm:tracking-[0.08em]"
+            className="h-11 w-full border-border/70 text-xs font-semibold tracking-[0.04em] uppercase opacity-70 sm:h-10 sm:text-sm sm:tracking-[0.08em]"
             variant="outline"
             size="lg"
             disabled
@@ -324,7 +324,7 @@ function PricingCard({
           </Button>
         ) : (
           <Button
-            className="w-full border-border/70 text-xs font-semibold tracking-[0.04em] uppercase transition-all hover:border-foreground/20 sm:text-sm sm:tracking-[0.08em]"
+            className="h-11 w-full border-border/70 text-xs font-semibold tracking-[0.04em] uppercase transition-all hover:border-foreground/20 sm:h-10 sm:text-sm sm:tracking-[0.08em]"
             variant="outline"
             size="lg"
             asChild
@@ -353,8 +353,6 @@ export function PricingCards({
     return max;
   }, 0);
 
-  const regularPlans = plans.filter((p) => p.priceMonthly >= 0);
-
   return (
     <>
       {hasYearlyOption && (
@@ -366,15 +364,15 @@ export function PricingCards({
       )}
 
       <StaggerChildren
-        className="mx-auto grid max-w-7xl items-stretch gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3"
+        className="mx-auto grid max-w-7xl items-stretch gap-4 sm:gap-5 md:grid-cols-2"
         staggerDelay={0.1}
       >
-        {regularPlans.map((plan, i) => (
+        {plans.map((plan, i) => (
           <StaggerItem key={plan.tier}>
             <PricingCard
               plan={plan}
               yearly={yearly}
-              previousTierName={i > 0 ? regularPlans[i - 1]!.name : undefined}
+              previousTierName={i > 0 ? plans[i - 1]!.name : undefined}
             />
           </StaggerItem>
         ))}

@@ -66,7 +66,8 @@ public class AuthController {
     public ResponseEntity<?> signup(@RequestBody SignupHttpRequest request) {
         if (request.email() == null || request.email().isBlank()
             || request.password() == null || request.password().length() < 12
-            || request.workspaceName() == null || request.workspaceName().isBlank()) {
+            || request.workspaceName() == null || request.workspaceName().isBlank()
+            || request.planCode() == null || request.planCode().isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Missing required fields"));
         }
 
@@ -91,7 +92,10 @@ public class AuthController {
             );
             return ResponseEntity.ok(Map.of("message", "Verification email sent"));
         } catch (IllegalArgumentException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
+            if ("User already exists".equals(ex.getMessage())) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
+            }
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
         } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Registration failed"));
         }

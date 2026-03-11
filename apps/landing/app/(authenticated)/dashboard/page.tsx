@@ -47,7 +47,7 @@ export default async function DashboardPage() {
     fetchBillingSummary(cookieHeader),
   ]);
 
-  const planName = billing?.plan?.name ?? "Free";
+  const planName = billing?.plan?.name ?? "Kein Plan";
   const subscriptionStatus = billing?.subscription?.status ?? "none";
   const memberCount = workspace?.memberCount ?? billing?.memberCount ?? 0;
   const recentEvents = billing?.recentEvents ?? [];

@@ -6,6 +6,7 @@ import { SectionContainer } from "@/components/section-container";
 import { PricingCards, type PublicPlan } from "./pricing-cards";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+const ALLOWED_PLAN_CODES = new Set(["starter", "professional"]);
 
 // Shape returned by GET /v1/plans
 type ApiPlan = {
@@ -24,29 +25,6 @@ type ApiPlan = {
 
 const STATIC_PLANS: PublicPlan[] = [
   {
-    tier: "free",
-    name: "Free",
-    description:
-      "Kostenloser Einstieg mit Basisfunktionen – keine Kreditkarte nötig.",
-    priceMonthly: 0,
-    priceYearly: null,
-    trialDays: 30,
-    isPopular: false,
-    ctaText: "Kostenlos starten",
-    ctaLink: "/onboarding?plan=free",
-    features: [
-      { label: "Max. 5 Benutzer" },
-      { label: "1 GB Speicher" },
-      { label: "2 Lizenzen" },
-      { label: "30 Tage kostenlos testen" },
-      { label: "Mobile App" },
-      { label: "Desktop App" },
-      { label: "DSGVO-konform" },
-      { label: "Starke Datenverschlüsselung" },
-      { label: "Keine Kreditkarte nötig" },
-    ],
-  },
-  {
     tier: "starter",
     name: "Starter",
     description: "Für kleine Teams mit professionellen Anforderungen.",
@@ -60,12 +38,12 @@ const STATIC_PLANS: PublicPlan[] = [
       { label: "Max. 5 Benutzer" },
       { label: "10 GB Speicher" },
       { label: "5 Lizenzen" },
-      { label: "30 Tage kostenlos testen" },
+      { label: "30 Tage Testphase" },
       { label: "Mobile App" },
       { label: "Desktop App" },
       { label: "DSGVO-konform" },
       { label: "Starke Datenverschlüsselung" },
-      { label: "Keine Kreditkarte nötig" },
+      { label: "Abrechnung startet nach Trial-Ende" },
     ],
   },
   {
@@ -83,12 +61,12 @@ const STATIC_PLANS: PublicPlan[] = [
       { label: "Max. 10 Benutzer" },
       { label: "50 GB Speicher" },
       { label: "10 Lizenzen" },
-      { label: "30 Tage kostenlos testen" },
+      { label: "30 Tage Testphase" },
       { label: "Mobile App" },
       { label: "Desktop App" },
       { label: "DSGVO-konform" },
       { label: "Starke Datenverschlüsselung" },
-      { label: "Keine Kreditkarte nötig" },
+      { label: "Abrechnung startet nach Trial-Ende" },
       { label: "DATEV-Schnittstelle" },
       { label: "GAEB-Schnittstelle" },
     ],
@@ -123,7 +101,11 @@ async function fetchPlans(): Promise<PublicPlan[]> {
     if (!res.ok) return STATIC_PLANS;
     const data: ApiPlan[] = await res.json();
     if (!Array.isArray(data) || data.length === 0) return STATIC_PLANS;
-    return data.map(mapApiPlanToPublicPlan);
+    const supportedPlans = data.filter((plan) =>
+      ALLOWED_PLAN_CODES.has(plan.planId.toLowerCase()),
+    );
+    if (supportedPlans.length === 0) return STATIC_PLANS;
+    return supportedPlans.map(mapApiPlanToPublicPlan);
   } catch {
     return STATIC_PLANS;
   }
@@ -138,7 +120,7 @@ export async function PricingSection() {
   return (
     <section
       id="pricing"
-      className="premium-noise bg-muted/15 relative scroll-mt-12 overflow-x-clip py-6 md:py-10 lg:py-14"
+      className="premium-noise bg-muted/15 relative scroll-mt-12 overflow-x-clip py-10 sm:py-12 md:py-10 lg:py-14"
       aria-labelledby="pricing-heading"
     >
       <div aria-hidden="true" className="enterprise-grid pointer-events-none absolute inset-0 opacity-70" />
@@ -157,16 +139,16 @@ export async function PricingSection() {
       <GlowBackground variant="subtle" />
 
       <SectionContainer className="relative z-20">
-        <FadeIn className="mx-auto mb-8 max-w-2xl text-center md:mb-9">
+        <FadeIn className="mx-auto mb-7 max-w-2xl text-center sm:mb-8 md:mb-9">
           <h2
             id="pricing-heading"
-            className="hero-text-gloss font-display mb-3 text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl lg:text-5xl"
+            className="hero-text-gloss font-display mb-3 text-[1.9rem] font-bold tracking-tight sm:text-3xl md:text-4xl lg:text-5xl"
           >
             Planungssicher.
             <br />
             <GradientText>Skalierbar.</GradientText>
           </h2>
-          <p className="text-muted-foreground text-sm leading-relaxed text-pretty sm:text-base md:text-lg">
+          <p className="text-muted-foreground text-base leading-[1.68] text-pretty sm:text-base md:text-lg">
             Transparente Pakete für kleine Teams bis wachsende Betriebe mit klaren
             Leistungsgrenzen und ohne versteckte Zusatzkosten.
           </p>
@@ -177,8 +159,7 @@ export async function PricingSection() {
 
         <FadeIn delay={0.3}>
           <p className="text-muted-foreground mt-8 text-center text-sm">
-            Alle Preise zzgl. MwSt. · 30 Tage kostenlos testen · Keine Kreditkarte
-            erforderlich
+            Alle Preise zzgl. MwSt. · 30 Tage Testphase · Zahlung startet automatisch nach Trial-Ende
           </p>
         </FadeIn>
       </SectionContainer>

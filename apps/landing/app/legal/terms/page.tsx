@@ -47,7 +47,7 @@ export default function TermsPage() {
           Der Anbieter stellt dem Kunden die ZunftGewerk-Software als
           SaaS-Lösung über das Internet zur Verfügung. Der genaue
           Funktionsumfang ergibt sich aus dem jeweils gebuchten Tarif
-          (Free, Starter oder Professional).
+          (Starter oder Professional).
         </li>
         <li>
           Der Anbieter bemüht sich um eine Verfügbarkeit der Plattform von
@@ -140,9 +140,7 @@ export default function TermsPage() {
       <ol>
         <li>
           Der Anbieter gewährleistet, dass die Plattform im Wesentlichen den
-          beschriebenen Funktionen entspricht. Für den kostenlosen Tarif
-          (Free) wird die Software ohne Gewährleistung („as is") zur Verfügung
-          gestellt.
+          beschriebenen Funktionen entspricht.
         </li>
         <li>
           Die Haftung des Anbieters ist bei leichter Fahrlässigkeit auf die

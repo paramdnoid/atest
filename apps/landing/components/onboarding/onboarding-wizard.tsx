@@ -20,19 +20,6 @@ import { tradeOptions } from "@/content/trade-options";
 // Default plans used when the API is unreachable
 const DEFAULT_PLANS: OnboardingPlan[] = [
   {
-    code: "free",
-    name: "Free",
-    description: "Kostenloser Einstieg mit Basisfunktionen",
-    trialDays: 30,
-    priceMonthlyCents: 0,
-    priceYearlyCents: null,
-    stripePriceIdMonthly: null,
-    stripePriceIdYearly: null,
-    purchasableMonthly: false,
-    purchasableYearly: false,
-    featureHighlights: ["5 Nutzer", "1 GB Speicher", "2 Lizenzen", "30 Tage Testphase"],
-  },
-  {
     code: "starter",
     name: "Starter",
     description: "Für kleine Teams",
@@ -71,7 +58,8 @@ export function OnboardingWizard({
   initialStep: OnboardingStepId | null;
   initialVerificationState: { verified: boolean; reason: string | null };
 }) {
-  const resolvedPlans = plans && plans.length > 0 ? plans : DEFAULT_PLANS;
+  const apiPlans = plans?.filter((plan) => plan.code === "starter" || plan.code === "professional") ?? [];
+  const resolvedPlans = apiPlans.length > 0 ? apiPlans : DEFAULT_PLANS;
   const flow = useOnboardingFlow(
     resolvedPlans,
     initialPlanCode,
@@ -183,7 +171,11 @@ export function OnboardingWizard({
                       onSelectBillingInterval={flow.setBillingInterval}
                     />
                     <div className="flex justify-end">
-                      <Button onClick={flow.handleContinueFromPlan} type="button">
+                      <Button
+                        onClick={flow.handleContinueFromPlan}
+                        type="button"
+                        disabled={!flow.selectedPlanCode}
+                      >
                         Weiter
                       </Button>
                     </div>

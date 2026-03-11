@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import type { BillingInterval, OnboardingPlan } from "@/lib/onboarding/types";
 
 function formatCurrency(cents: number) {
-  if (cents === 0) return "Kostenlos";
+  if (cents === 0) return "EUR 0";
   return `EUR ${Math.round(cents / 100)}`;
 }
 
@@ -34,7 +34,7 @@ function AnimatedEur({
   const amount = Math.max(0, Math.round(cents / 100));
   const shown = useAnimatedNumber(amount, { stiffness: 110, damping: 28, restDelta: 0.5 });
 
-  if (cents <= 0) return <span className={className}>Kostenlos</span>;
+  if (cents <= 0) return <span className={className}>EUR 0</span>;
 
   return (
     <span className={className}>
@@ -57,18 +57,21 @@ export function PlanStep({
   onSelectPlan: (planCode: string) => void;
   onSelectBillingInterval: (interval: BillingInterval) => void;
 }) {
-  const selectedPlan = plans.find((p) => p.code === selectedPlanCode) ?? plans[0] ?? null;
+  const selectedPlan = plans.find((p) => p.code === selectedPlanCode) ?? null;
 
-  if (!selectedPlan) return null;
-
-  const monthlyDisplayCents = getMonthlyCents(selectedPlan, billingInterval);
+  const monthlyDisplayCents = selectedPlan ? getMonthlyCents(selectedPlan, billingInterval) : 0;
 
   return (
     <div className="space-y-4">
       <div className="billing-enterprise-panel rounded-xl p-2.5">
-        <div role="tablist" aria-label="Pläne" className="grid grid-cols-3 gap-1.5">
+        <div
+          role="tablist"
+          aria-label="Pläne"
+          className="grid gap-1.5"
+          style={{ gridTemplateColumns: `repeat(${plans.length}, minmax(0, 1fr))` }}
+        >
           {plans.map((plan) => {
-            const selected = plan.code === selectedPlan.code;
+            const selected = selectedPlan?.code === plan.code;
             const tabCents = getMonthlyCents(plan, billingInterval);
             return (
               <button
@@ -126,36 +129,46 @@ export function PlanStep({
         <div className="billing-enterprise-panel-strong mt-3 rounded-xl p-3.5 sm:p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="billing-editorial-title">{selectedPlan.name}</p>
-              <p className="billing-enterprise-muted mt-1 text-xs">{selectedPlan.description}</p>
+              <p className="billing-editorial-title">
+                {selectedPlan ? selectedPlan.name : "Plan auswählen"}
+              </p>
+              <p className="billing-enterprise-muted mt-1 text-xs">
+                {selectedPlan
+                  ? selectedPlan.description
+                  : "Wähle Starter oder Professional, um mit der Registrierung fortzufahren."}
+              </p>
             </div>
-            <div className="text-right">
-              <AnimatedEur
-                cents={monthlyDisplayCents}
-                suffix={monthlyDisplayCents > 0 ? "/ Monat" : "im Einstieg"}
-                className="font-display inline-flex items-baseline gap-1.5 text-xl sm:text-2xl"
-                suffixClassName="billing-enterprise-muted text-[11px]"
-              />
-            </div>
+            {selectedPlan ? (
+              <div className="text-right">
+                <AnimatedEur
+                  cents={monthlyDisplayCents}
+                  suffix="/ Monat"
+                  className="font-display inline-flex items-baseline gap-1.5 text-xl sm:text-2xl"
+                  suffixClassName="billing-enterprise-muted text-[11px]"
+                />
+              </div>
+            ) : null}
           </div>
 
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {selectedPlan.featureHighlights.slice(0, 5).map((item) => (
-              <span
-                key={`${selectedPlan.code}-${item}`}
-                className="billing-enterprise-chip inline-flex items-center gap-1 px-2.5 py-1 text-[10px]"
-              >
-                <Check className="h-3 w-3" />
-                {item}
-              </span>
-            ))}
-          </div>
+          {selectedPlan ? (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {selectedPlan.featureHighlights.slice(0, 5).map((item) => (
+                <span
+                  key={`${selectedPlan.code}-${item}`}
+                  className="billing-enterprise-chip inline-flex items-center gap-1 px-2.5 py-1 text-[10px]"
+                >
+                  <Check className="h-3 w-3" />
+                  {item}
+                </span>
+              ))}
+            </div>
+          ) : null}
 
-          {selectedPlan.trialDays > 0 && (
+          {selectedPlan?.trialDays ? (
             <p className="billing-enterprise-muted mt-2.5 text-[11px]">
-              {selectedPlan.trialDays} Tage kostenlos testen — keine Kreditkarte erforderlich.
+              {selectedPlan.trialDays} Tage Testphase aktiv. Zahlung startet automatisch nach Trial-Ende.
             </p>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

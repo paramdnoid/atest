@@ -17,14 +17,14 @@ import { SectionContainer } from "@/components/section-container";
 const trustItems = [
   { icon: ShieldCheck, text: "AES-256-GCM Verschlüsselung" },
   { icon: Server, text: "Hosting in Deutschland" },
-  { icon: CreditCard, text: "Keine Kreditkarte nötig" },
+  { icon: CreditCard, text: "Abrechnung erst nach Testphase" },
   { icon: Timer, text: "In 2 Minuten startklar" },
 ];
 
 export function CtaSection() {
   return (
     <section
-      className="relative overflow-hidden py-24 md:py-32"
+      className="relative overflow-hidden py-16 sm:py-20 md:py-32"
       aria-labelledby="cta-heading"
     >
       <div
@@ -39,10 +39,10 @@ export function CtaSection() {
 
       <SectionContainer width="narrow" className="text-center">
         <FadeIn delay={0.1}>
-          <p className="text-primary mb-4 text-xs font-bold tracking-[0.15em] uppercase">Jetzt durchstarten</p>
+          <p className="text-primary mb-3 text-xs font-bold tracking-[0.15em] uppercase sm:mb-4">Jetzt durchstarten</p>
           <h2
             id="cta-heading"
-            className="hero-text-gloss font-display mb-6 text-3xl font-extrabold tracking-tight md:text-4xl lg:text-5xl"
+            className="hero-text-gloss font-display mb-4 text-[1.9rem] font-extrabold tracking-tight sm:mb-6 sm:text-3xl md:text-4xl lg:text-5xl"
           >
             Bereit, Ihren Betrieb zu{" "}
             <GradientText>digitalisieren</GradientText>?
@@ -50,22 +50,22 @@ export function CtaSection() {
         </FadeIn>
 
         <FadeIn delay={0.2}>
-          <p className="text-muted-foreground mx-auto mb-10 max-w-2xl text-lg text-balance">
-            Starten Sie noch heute mit ZunftGewerk — 30 Tage kostenlos,
-            ohne Risiko. Ihre sensiblen Kunden- und Betriebsdaten werden
+          <p className="text-muted-foreground mx-auto mb-8 max-w-2xl text-base leading-[1.7] text-balance sm:mb-10 sm:text-lg">
+            Starten Sie noch heute mit ZunftGewerk — 30 Tage Testphase ohne
+            Risiko. Ihre sensiblen Kunden- und Betriebsdaten werden
             bei uns verschlüsselt gespeichert.
           </p>
         </FadeIn>
 
         <FadeIn delay={0.3}>
-          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <GradientCta href="/onboarding">
-              Kostenlos testen
+          <div className="flex flex-col items-center justify-center gap-3.5 sm:flex-row sm:gap-4">
+            <GradientCta href="/onboarding" className="min-h-12 sm:min-h-13">
+              Testphase starten
             </GradientCta>
             <Button
               size="lg"
               variant="outline"
-              className="h-13 w-full px-8 text-base font-medium sm:w-auto"
+              className="min-h-12 w-full px-8 text-base font-medium sm:min-h-13 sm:w-auto"
               asChild
             >
               <Link href="mailto:sales@zunftgewerk.de">
@@ -77,7 +77,7 @@ export function CtaSection() {
 
         {/* Trust badges */}
         <StaggerChildren
-          className="mt-12 flex flex-wrap items-center justify-center gap-3"
+          className="mt-10 flex flex-wrap items-center justify-center gap-2.5 sm:mt-12 sm:gap-3"
           delay={0.4}
           staggerDelay={0.06}
         >
@@ -85,7 +85,7 @@ export function CtaSection() {
             <StaggerItem key={item.text}>
               <Badge
                 variant="secondary"
-                className="border-border/60 bg-background/60 text-muted-foreground gap-2 border px-4 py-2 text-[13px] font-medium backdrop-blur-sm"
+                className="border-border/60 bg-background/60 text-muted-foreground gap-2 border px-3.5 py-2 text-xs font-medium backdrop-blur-sm sm:px-4 sm:text-[13px]"
               >
                 <item.icon className="text-primary size-3.5" aria-hidden="true" />
                 {item.text}

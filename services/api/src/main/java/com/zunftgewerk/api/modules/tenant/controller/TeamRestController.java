@@ -1,5 +1,6 @@
 package com.zunftgewerk.api.modules.tenant.controller;
 
+import com.zunftgewerk.api.modules.audit.service.AuditService;
 import com.zunftgewerk.api.modules.identity.entity.UserEntity;
 import com.zunftgewerk.api.modules.identity.repository.UserRepository;
 import com.zunftgewerk.api.modules.identity.service.RefreshTokenService;
@@ -8,6 +9,7 @@ import com.zunftgewerk.api.modules.tenant.entity.MembershipEntity;
 import com.zunftgewerk.api.modules.tenant.entity.TeamInviteTokenEntity;
 import com.zunftgewerk.api.modules.tenant.repository.MembershipRepository;
 import com.zunftgewerk.api.modules.tenant.service.TeamInviteService;
+import com.zunftgewerk.api.shared.audit.AuditEventType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -46,17 +48,20 @@ public class TeamRestController {
     private final MembershipRepository membershipRepository;
     private final UserRepository userRepository;
     private final TeamInviteService teamInviteService;
+    private final AuditService auditService;
 
     public TeamRestController(
         RefreshTokenService refreshTokenService,
         MembershipRepository membershipRepository,
         UserRepository userRepository,
-        TeamInviteService teamInviteService
+        TeamInviteService teamInviteService,
+        AuditService auditService
     ) {
         this.refreshTokenService = refreshTokenService;
         this.membershipRepository = membershipRepository;
         this.userRepository = userRepository;
         this.teamInviteService = teamInviteService;
+        this.auditService = auditService;
     }
 
     /**
@@ -76,7 +81,7 @@ public class TeamRestController {
     ) {
         var session = resolveSession(cookieHeader);
         if (session == null) {
-            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+            return error(401, "UNAUTHORIZED", "Nicht authentifiziert.");
         }
 
         UUID tenantId = session.tenantId();
@@ -125,18 +130,29 @@ public class TeamRestController {
             .anyMatch(m -> "owner".equals(m.getRoleKey()) || "admin".equals(m.getRoleKey()));
 
         if (!isAdmin) {
-            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+            return error(403, "FORBIDDEN", "Keine Berechtigung.");
         }
 
         String email = body.email();
         String roleKey = body.role() != null ? body.role() : "member";
 
         if (email == null || email.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "E-Mail-Adresse ist erforderlich."));
+            return error(400, "EMAIL_REQUIRED", "E-Mail-Adresse ist erforderlich.");
         }
 
-        TeamInviteTokenEntity invite = teamInviteService.invite(
-            session.tenantId(), session.userId(), email.trim().toLowerCase(), roleKey);
+        TeamInviteTokenEntity invite;
+        try {
+            invite = teamInviteService.invite(
+                session.tenantId(), session.userId(), email.trim().toLowerCase(), roleKey);
+        } catch (TeamInviteService.TeamInvitePolicyException ex) {
+            auditService.record(
+                session.tenantId(),
+                session.userId(),
+                AuditEventType.MEMBER_INVITE_BLOCKED,
+                "{\"email\":\"" + email.trim().toLowerCase() + "\",\"reason\":\"" + ex.code() + "\"}"
+            );
+            return error(409, ex.code(), ex.getMessage());
+        }
 
         return ResponseEntity.ok(Map.of(
             "inviteId", invite.getId().toString(),
@@ -158,19 +174,24 @@ public class TeamRestController {
     @PostMapping("/invites/accept")
     public ResponseEntity<?> acceptInvite(@RequestBody AcceptInviteRequest body) {
         if (body.token() == null || body.token().isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Token ist erforderlich."));
+            return error(400, "TOKEN_REQUIRED", "Token ist erforderlich.");
         }
 
         TeamInviteService.AcceptInviteResult result = teamInviteService.acceptInvite(body.token());
 
         if (!result.success()) {
-            return ResponseEntity.badRequest().body(Map.of("error", result.error()));
+            int status = "NO_AVAILABLE_SEAT".equals(result.code()) ? 409 : 400;
+            return error(status, result.code(), result.error());
         }
 
         return ResponseEntity.ok(Map.of(
             "message", "Einladung erfolgreich angenommen.",
             "membershipId", result.membershipId().toString()
         ));
+    }
+
+    private ResponseEntity<Map<String, Object>> error(int status, String code, String message) {
+        return ResponseEntity.status(status).body(Map.of("code", code, "error", message));
     }
 
     // -------------------------------------------------------------------------

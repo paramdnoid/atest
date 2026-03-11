@@ -78,16 +78,20 @@ public class BillingRestController {
         UUID tenantId = session.tenantId();
         SubscriptionEntity sub = subscriptionRepository.findByTenantId(tenantId).orElse(null);
 
-        String planCode = sub != null ? sub.getPlanId() : "free";
-        PlanCatalog.PlanDefinition planDef = PlanCatalog.plans().stream()
-            .filter(p -> p.planId().equals(planCode))
-            .findFirst()
-            .orElse(new PlanCatalog.PlanDefinition("free", "Free", 5, "monthly", 0));
+        Map<String, Object> planMap = null;
+        if (sub != null) {
+            PlanCatalog.PlanDefinition planDef = PlanCatalog.plans().stream()
+                .filter(p -> p.planId().equalsIgnoreCase(sub.getPlanId()))
+                .findFirst()
+                .orElse(null);
 
-        Map<String, Object> planMap = new HashMap<>();
-        planMap.put("code", planDef.planId());
-        planMap.put("name", planDef.displayName());
-        planMap.put("priceMonthlyCents", planDef.amountCents());
+            if (planDef != null) {
+                planMap = new HashMap<>();
+                planMap.put("code", planDef.planId());
+                planMap.put("name", planDef.displayName());
+                planMap.put("priceMonthlyCents", planDef.amountCents());
+            }
+        }
 
         Map<String, Object> subscriptionMap = null;
         if (sub != null) {
@@ -269,6 +273,13 @@ public class BillingRestController {
         String planId = body.getOrDefault("planId", "starter");
         String billingCycle = body.getOrDefault("billingCycle", "monthly");
         boolean yearly = billingCycle.toLowerCase().startsWith("year");
+        PlanCatalog.PlanDefinition plan = PlanCatalog.plans().stream()
+            .filter(p -> p.planId().equalsIgnoreCase(planId))
+            .findFirst()
+            .orElse(null);
+        if (plan == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Ungültiger Plan"));
+        }
 
         String stripePriceId = resolveStripePriceId(planId, yearly);
         if (stripePriceId == null || stripePriceId.isBlank()) {
