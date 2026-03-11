@@ -56,9 +56,12 @@ export function useOnboardingFlow(
   initialVerificationState: { verified: boolean; reason: string | null },
 ) {
   const [currentStep, setCurrentStep] = useState<OnboardingStepId>(initialStep ?? "plan");
-  const [selectedPlanCode, setSelectedPlanCode] = useState<string | null>(
-    initialPlanCode ?? plans[0]?.code ?? null,
-  );
+  const [selectedPlanCode, setSelectedPlanCode] = useState<string | null>(() => {
+    if (initialPlanCode && plans.some((plan) => plan.code === initialPlanCode)) {
+      return initialPlanCode;
+    }
+    return null;
+  });
   const [billingInterval, setBillingInterval] = useState<BillingInterval>("month");
   const [accountValues, setAccountValues] = useState<AccountFormValues>(buildDefaultAccountValues);
   const [signinValues, setSigninValues] = useState({ email: "", password: "" });
@@ -68,7 +71,7 @@ export function useOnboardingFlow(
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const selectedPlan = plans.find((p) => p.code === selectedPlanCode) ?? plans[0] ?? null;
+  const selectedPlan = plans.find((p) => p.code === selectedPlanCode) ?? null;
   const currentStepIndex = getStepIndex(currentStep);
   const stepMeta = ONBOARDING_STEPS[currentStepIndex];
 

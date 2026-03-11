@@ -5,6 +5,7 @@ import com.zunftgewerk.api.modules.identity.entity.UserEntity;
 import com.zunftgewerk.api.modules.identity.repository.UserRepository;
 import com.zunftgewerk.api.modules.identity.service.EmailService;
 import com.zunftgewerk.api.modules.identity.service.TokenHashService;
+import com.zunftgewerk.api.modules.license.service.SeatLicenseManagementService;
 import com.zunftgewerk.api.modules.tenant.entity.MembershipEntity;
 import com.zunftgewerk.api.modules.tenant.entity.TeamInviteTokenEntity;
 import com.zunftgewerk.api.modules.tenant.entity.TenantEntity;
@@ -42,6 +43,7 @@ public class TeamInviteService {
     private final MembershipRepository membershipRepository;
     private final TenantRepository tenantRepository;
     private final AuditService auditService;
+    private final SeatLicenseManagementService seatLicenseManagementService;
 
     @Value("${zunftgewerk.invite.ttl-seconds:604800}")
     private long inviteTtlSeconds;
@@ -53,7 +55,8 @@ public class TeamInviteService {
         UserRepository userRepository,
         MembershipRepository membershipRepository,
         TenantRepository tenantRepository,
-        AuditService auditService
+        AuditService auditService,
+        SeatLicenseManagementService seatLicenseManagementService
     ) {
         this.inviteTokenRepository = inviteTokenRepository;
         this.tokenHashService = tokenHashService;
@@ -62,6 +65,7 @@ public class TeamInviteService {
         this.membershipRepository = membershipRepository;
         this.tenantRepository = tenantRepository;
         this.auditService = auditService;
+        this.seatLicenseManagementService = seatLicenseManagementService;
     }
 
     /**
@@ -76,6 +80,14 @@ public class TeamInviteService {
      */
     @Transactional
     public TeamInviteTokenEntity invite(UUID tenantId, UUID inviterId, String email, String roleKey) {
+        var summary = seatLicenseManagementService.summary(tenantId);
+        if (summary.availableSeats() <= 0) {
+            throw new TeamInvitePolicyException(
+                "NO_AVAILABLE_SEAT",
+                "Keine freie Benutzerlizenz verfuegbar. Bitte Plan upgraden oder Sitz freigeben."
+            );
+        }
+
         // Generate raw token (32 bytes, Base64 URL-encoded, no padding)
         byte[] randomBytes = new byte[TOKEN_BYTES];
         new SecureRandom().nextBytes(randomBytes);
@@ -127,23 +139,24 @@ public class TeamInviteService {
 
         Optional<TeamInviteTokenEntity> inviteOpt = inviteTokenRepository.findByTokenHash(tokenHash);
         if (inviteOpt.isEmpty()) {
-            return new AcceptInviteResult(false, "Einladung nicht gefunden oder ungueltig.", null);
+            return new AcceptInviteResult(false, "INVITE_NOT_FOUND", "Einladung nicht gefunden oder ungueltig.", null);
         }
 
         TeamInviteTokenEntity invite = inviteOpt.get();
 
         if (invite.getAcceptedAt() != null) {
-            return new AcceptInviteResult(false, "Diese Einladung wurde bereits angenommen.", null);
+            return new AcceptInviteResult(false, "INVITE_ALREADY_ACCEPTED", "Diese Einladung wurde bereits angenommen.", null);
         }
 
         if (invite.getExpiresAt().isBefore(OffsetDateTime.now())) {
-            return new AcceptInviteResult(false, "Diese Einladung ist abgelaufen.", null);
+            return new AcceptInviteResult(false, "INVITE_EXPIRED", "Diese Einladung ist abgelaufen.", null);
         }
 
         // Look up the user by invited email — they must already have an account
         Optional<UserEntity> userOpt = userRepository.findByEmail(invite.getInvitedEmail());
         if (userOpt.isEmpty()) {
             return new AcceptInviteResult(false,
+                "INVITED_USER_NOT_FOUND",
                 "Kein Konto mit dieser E-Mail-Adresse gefunden. Bitte registriere dich zuerst.", null);
         }
 
@@ -156,8 +169,20 @@ public class TeamInviteService {
             // Mark invite as accepted even if already a member
             invite.setAcceptedAt(OffsetDateTime.now());
             inviteTokenRepository.save(invite);
-            return new AcceptInviteResult(false, "Du bist bereits Mitglied dieses Teams.", null);
+            return new AcceptInviteResult(false, "ALREADY_MEMBER", "Du bist bereits Mitglied dieses Teams.", null);
         }
+
+        var seatSummary = seatLicenseManagementService.summary(invite.getTenantId());
+        if (seatSummary.availableSeats() <= 0) {
+            return new AcceptInviteResult(
+                false,
+                "NO_AVAILABLE_SEAT",
+                "Keine freie Benutzerlizenz verfuegbar. Bitte Admin kontaktieren.",
+                null
+            );
+        }
+
+        seatLicenseManagementService.assignSeat(invite.getTenantId(), user.getId());
 
         // Create membership
         MembershipEntity membership = new MembershipEntity();
@@ -173,15 +198,29 @@ public class TeamInviteService {
         inviteTokenRepository.save(invite);
 
         log.info("[INVITE] Accepted invite for {} to tenant {}", invite.getInvitedEmail(), invite.getTenantId());
-        return new AcceptInviteResult(true, null, membership.getId());
+        return new AcceptInviteResult(true, null, null, membership.getId());
     }
 
     /**
      * Result of accepting a team invite.
      *
      * @param success      whether the acceptance succeeded
+     * @param code         machine-readable error code, {@code null} on success
      * @param error        human-readable error message (German), {@code null} on success
      * @param membershipId the newly created membership ID, {@code null} on failure
      */
-    public record AcceptInviteResult(boolean success, String error, UUID membershipId) {}
+    public record AcceptInviteResult(boolean success, String code, String error, UUID membershipId) {}
+
+    public static final class TeamInvitePolicyException extends RuntimeException {
+        private final String code;
+
+        public TeamInvitePolicyException(String code, String message) {
+            super(message);
+            this.code = code;
+        }
+
+        public String code() {
+            return code;
+        }
+    }
 }

@@ -27,22 +27,19 @@ function statusVariant(
 
 export function PlanCard({
   planName,
-  planCode,
   priceCents,
   billingInterval,
   status,
   currentPeriodEnd,
 }: {
   planName: string;
-  planCode: string;
   priceCents: number;
   billingInterval?: string;
   status: string;
   currentPeriodEnd?: Date | string | null;
 }) {
   const isActive = status === "active" || status === "trialing" || status === "ACTIVE";
-  const priceLabel =
-    planCode === "free" ? "Kostenlos" : formatCurrency(priceCents, billingInterval);
+  const priceLabel = formatCurrency(priceCents, billingInterval);
 
   return (
     <Card>

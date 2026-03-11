@@ -98,8 +98,7 @@ export default async function BillingPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <PlanCard
-          planName={plan?.name ?? "Free"}
-          planCode={plan?.code ?? "free"}
+          planName={plan?.name ?? "Kein Plan"}
           priceCents={plan?.priceMonthlyCents ?? 0}
           billingInterval={subscription?.billingInterval}
           status={subscription?.status ?? "none"}

@@ -14,6 +14,10 @@ import com.zunftgewerk.api.modules.identity.model.RegisterResult;
 import com.zunftgewerk.api.modules.identity.repository.EmailVerificationTokenRepository;
 import com.zunftgewerk.api.modules.identity.repository.PasswordResetTokenRepository;
 import com.zunftgewerk.api.modules.identity.repository.UserRepository;
+import com.zunftgewerk.api.modules.license.service.SeatLicenseManagementService;
+import com.zunftgewerk.api.modules.plan.entity.SubscriptionEntity;
+import com.zunftgewerk.api.modules.plan.repository.SubscriptionRepository;
+import com.zunftgewerk.api.modules.plan.service.PlanCatalog;
 import com.zunftgewerk.api.modules.tenant.entity.MembershipEntity;
 import com.zunftgewerk.api.modules.tenant.repository.MembershipRepository;
 import com.zunftgewerk.api.modules.tenant.service.TenantService;
@@ -43,6 +47,7 @@ public class IdentityService {
     private final UserRepository userRepository;
     private final MembershipRepository membershipRepository;
     private final TenantService tenantService;
+    private final SubscriptionRepository subscriptionRepository;
     private final PasswordHasher passwordHasher;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
@@ -55,6 +60,7 @@ public class IdentityService {
     private final TokenHashService tokenHashService;
     private final EmailService emailService;
     private final FeatureFlagProperties featureFlagProperties;
+    private final SeatLicenseManagementService seatLicenseManagementService;
 
     @Value("${zunftgewerk.email-verification.ttl-seconds:86400}")
     private long emailVerificationTtlSeconds;
@@ -66,6 +72,7 @@ public class IdentityService {
         UserRepository userRepository,
         MembershipRepository membershipRepository,
         TenantService tenantService,
+        SubscriptionRepository subscriptionRepository,
         PasswordHasher passwordHasher,
         JwtService jwtService,
         RefreshTokenService refreshTokenService,
@@ -77,11 +84,13 @@ public class IdentityService {
         PasswordResetTokenRepository passwordResetTokenRepository,
         TokenHashService tokenHashService,
         EmailService emailService,
-        FeatureFlagProperties featureFlagProperties
+        FeatureFlagProperties featureFlagProperties,
+        SeatLicenseManagementService seatLicenseManagementService
     ) {
         this.userRepository = userRepository;
         this.membershipRepository = membershipRepository;
         this.tenantService = tenantService;
+        this.subscriptionRepository = subscriptionRepository;
         this.passwordHasher = passwordHasher;
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
@@ -94,6 +103,7 @@ public class IdentityService {
         this.tokenHashService = tokenHashService;
         this.emailService = emailService;
         this.featureFlagProperties = featureFlagProperties;
+        this.seatLicenseManagementService = seatLicenseManagementService;
     }
 
     @Transactional
@@ -318,6 +328,11 @@ public class IdentityService {
         String addressJson,
         String planCode
     ) {
+        PlanCatalog.PlanDefinition selectedPlan = PlanCatalog.plans().stream()
+            .filter(plan -> plan.planId().equalsIgnoreCase(planCode))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Ungültiger Plan"));
+
         String normalizedEmail = email.toLowerCase();
         userRepository.findByEmail(normalizedEmail).ifPresent(existing -> {
             throw new IllegalArgumentException("User already exists");
@@ -334,6 +349,20 @@ public class IdentityService {
         userRepository.save(user);
 
         UUID tenantId = tenantService.createTenant(workspaceName, user.getId(), tradeSlug, addressJson);
+        OffsetDateTime now = OffsetDateTime.now();
+
+        SubscriptionEntity subscription = new SubscriptionEntity();
+        subscription.setId(UUID.randomUUID());
+        subscription.setTenantId(tenantId);
+        subscription.setPlanId(selectedPlan.planId());
+        subscription.setBillingCycle("monthly");
+        subscription.setStatus("trialing");
+        subscription.setCurrentPeriodEnd(now.plusDays(selectedPlan.trialDays()));
+        subscription.setCreatedAt(now);
+        subscription.setUpdatedAt(now);
+        subscriptionRepository.save(subscription);
+        seatLicenseManagementService.assignSeat(tenantId, user.getId());
+
         auditService.record(tenantId, user.getId(), AuditEventType.USER_REGISTERED, "{\"email\":\"" + normalizedEmail + "\"}");
 
         String rawToken = generateSecureToken(32);

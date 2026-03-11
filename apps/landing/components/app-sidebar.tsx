@@ -40,7 +40,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     label: "Verwaltung",
     items: [
       { href: "/dashboard/billing", label: "Abrechnung", icon: CreditCard },
-      { href: "/dashboard/employees", label: "Geräte", icon: Users },
+      { href: "/dashboard/employees", label: "Team & Lizenzen", icon: Users },
       { href: "/dashboard/settings", label: "Einstellungen", icon: Settings },
     ],
   },

@@ -18,8 +18,8 @@ type QuickAction = {
 const actions: QuickAction[] = [
   {
     href: "/dashboard/employees",
-    title: "Mitarbeiter einladen",
-    description: "Mitglieder verwalten",
+    title: "Team & Lizenzen",
+    description: "Benutzerlizenzen verwalten",
     icon: Users,
     accent: true,
   },

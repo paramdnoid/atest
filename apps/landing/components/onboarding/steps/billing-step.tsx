@@ -18,7 +18,7 @@ const GENERIC_ERROR_MESSAGE =
   "Ein Fehler ist aufgetreten. Bitte versuche es erneut.";
 
 function formatPrice(cents: number, interval: BillingInterval): string {
-  if (cents === 0) return "Kostenlos";
+  if (cents <= 0) return "EUR 0";
   const amount = Math.round(cents / 100);
   return `EUR ${amount} / ${interval === "year" ? "Jahr" : "Monat"}`;
 }
@@ -64,7 +64,7 @@ function CheckoutForm({ onSuccess }: { onSuccess: () => void }) {
       )}
       <div className="flex justify-end">
         <LoadingButton type="submit" pending={pending} disabled={!stripe}>
-          Jetzt bezahlen
+          Zahlungsmethode speichern
         </LoadingButton>
       </div>
     </form>
@@ -84,14 +84,13 @@ export function BillingStep({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isFree = !selectedPlan || selectedPlan.priceMonthlyCents === 0;
   const effectiveCents =
     selectedPlan && billingInterval === "year" && selectedPlan.priceYearlyCents != null
       ? selectedPlan.priceYearlyCents
       : selectedPlan?.priceMonthlyCents ?? 0;
 
   useEffect(() => {
-    if (isFree || !selectedPlan) return;
+    if (!selectedPlan) return;
 
     let cancelled = false;
     setLoading(true);
@@ -139,7 +138,7 @@ export function BillingStep({
     return () => {
       cancelled = true;
     };
-  }, [isFree, selectedPlan, billingInterval]);
+  }, [selectedPlan, billingInterval]);
 
   if (!selectedPlan) {
     return (
@@ -166,7 +165,7 @@ export function BillingStep({
         )}
         {selectedPlan.trialDays > 0 && (
           <p className="mt-2 text-xs text-primary">
-            {selectedPlan.trialDays} Tage kostenlos testen — keine Kreditkarte erforderlich.
+            {selectedPlan.trialDays} Tage Testphase aktiv. Die erste Abbuchung erfolgt automatisch nach Trial-Ende.
           </p>
         )}
       </div>
@@ -177,18 +176,7 @@ export function BillingStep({
         </div>
       )}
 
-      {isFree ? (
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Der Free-Plan ist kostenlos. Kein Checkout nötig.
-          </p>
-          <div className="flex justify-end">
-            <Button type="button" onClick={onSkipToComplete}>
-              Weiter
-            </Button>
-          </div>
-        </div>
-      ) : loading ? (
+      {loading ? (
         <div className="flex items-center justify-center py-8">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           <span className="ml-3 text-sm text-muted-foreground">
@@ -213,6 +201,14 @@ export function BillingStep({
           <CheckoutForm onSuccess={onSkipToComplete} />
         </Elements>
       ) : null}
+
+      {!loading && !clientSecret && (
+        <div className="flex justify-end">
+          <Button type="button" variant="outline" onClick={onSkipToComplete}>
+            Später im Dashboard
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

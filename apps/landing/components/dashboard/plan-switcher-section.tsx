@@ -43,9 +43,7 @@ export function PlanSwitcherSection({
             plan.billingCycle === "yearly" ? "year" : "month";
 
           const priceLabel =
-            plan.amountCents === 0
-              ? "Kostenlos"
-              : formatCurrency(plan.amountCents, billingCycle);
+            formatCurrency(plan.amountCents, billingCycle);
 
           return (
             <Card key={plan.planId} className="relative">
@@ -77,7 +75,7 @@ export function PlanSwitcherSection({
                       plan.billingCycle === "yearly" ? "yearly" : "monthly"
                     }
                     label={`Wechseln zu ${plan.displayName}`}
-                    variant={plan.amountCents === 0 ? "outline" : "default"}
+                    variant="default"
                   />
                 )}
               </CardContent>

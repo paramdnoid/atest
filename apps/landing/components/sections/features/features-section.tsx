@@ -38,17 +38,17 @@ export function FeaturesSection() {
       <div className="bg-dot-pattern absolute inset-0 opacity-20" aria-hidden="true" />
       <GlowBackground />
       <SectionContainer className="relative z-20">
-        <FadeIn className="mx-auto mb-10 max-w-2xl text-center md:mb-10 lg:mb-12">
+        <FadeIn className="mx-auto mb-9 max-w-2xl text-center md:mb-10 lg:mb-12">
           <SectionBadge icon={Sparkles}>Funktionen</SectionBadge>
           <h2
             id="features-heading"
-            className="hero-text-gloss font-display mb-3 text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl"
+            className="hero-text-gloss font-display mb-3 text-[1.9rem] font-bold tracking-tight sm:text-3xl md:text-4xl lg:text-5xl"
           >
             Operative Exzellenz
             <br />
             <GradientText>in einem System</GradientText>
           </h2>
-          <p className="text-muted-foreground text-base leading-relaxed text-pretty md:text-lg">
+          <p className="text-muted-foreground text-base leading-[1.7] text-pretty md:text-lg">
             Von Disposition bis Dokumentation: Alle Kernprozesse greifen nahtlos ineinander
             und halten Ihr Team auch unterwegs produktiv.
           </p>

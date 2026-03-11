@@ -123,7 +123,7 @@ export function Header({ revealDelayMs = 0 }: HeaderProps) {
               size="sm"
               className="bg-primary/95 hover:bg-primary text-primary-foreground border-primary/80 border font-semibold tracking-[0.06em] uppercase transition-all"
             >
-              <Link href="/onboarding">Kostenlos testen</Link>
+              <Link href="/onboarding">Testphase starten</Link>
             </Button>
           </div>
 
@@ -201,7 +201,7 @@ export function Header({ revealDelayMs = 0 }: HeaderProps) {
               className="h-11 w-full"
               tabIndex={mobileOpen ? 0 : -1}
             >
-              <Link href="/onboarding" onClick={closeMobile}>Kostenlos testen</Link>
+              <Link href="/onboarding" onClick={closeMobile}>Testphase starten</Link>
             </Button>
           </div>
         </SectionContainer>

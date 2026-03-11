@@ -3,6 +3,7 @@ package com.zunftgewerk.api.modules.license.grpc;
 import com.zunftgewerk.api.modules.license.entity.EntitlementEntity;
 import com.zunftgewerk.api.modules.license.entity.SeatLicenseEntity;
 import com.zunftgewerk.api.modules.license.service.LicenseService;
+import com.zunftgewerk.api.modules.license.service.SeatLicenseManagementService;
 import com.zunftgewerk.api.proto.v1.AssignSeatRequest;
 import com.zunftgewerk.api.proto.v1.AssignSeatResponse;
 import com.zunftgewerk.api.proto.v1.Entitlement;
@@ -14,6 +15,7 @@ import com.zunftgewerk.api.proto.v1.LicenseServiceGrpc;
 import com.zunftgewerk.api.proto.v1.RevokeSeatRequest;
 import com.zunftgewerk.api.proto.v1.RevokeSeatResponse;
 import com.zunftgewerk.api.proto.v1.SeatLicense;
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
 
@@ -50,22 +52,44 @@ public class LicenseGrpcService extends LicenseServiceGrpc.LicenseServiceImplBas
 
     @Override
     public void assignSeat(AssignSeatRequest request, StreamObserver<AssignSeatResponse> responseObserver) {
-        UUID seatId = licenseService.assignSeat(
-            UUID.fromString(request.getContext().getTenantId()),
-            UUID.fromString(request.getUserId())
-        );
-        responseObserver.onNext(AssignSeatResponse.newBuilder().setSeatId(seatId.toString()).build());
-        responseObserver.onCompleted();
+        try {
+            UUID seatId = licenseService.assignSeat(
+                UUID.fromString(request.getContext().getTenantId()),
+                UUID.fromString(request.getUserId())
+            );
+            responseObserver.onNext(AssignSeatResponse.newBuilder().setSeatId(seatId.toString()).build());
+            responseObserver.onCompleted();
+        } catch (SeatLicenseManagementService.SeatPolicyException ex) {
+            responseObserver.onError(
+                Status.FAILED_PRECONDITION
+                    .withDescription(ex.code() + ":" + ex.getMessage())
+                    .asRuntimeException()
+            );
+        } catch (IllegalStateException ex) {
+            responseObserver.onError(
+                Status.FAILED_PRECONDITION
+                    .withDescription(ex.getMessage())
+                    .asRuntimeException()
+            );
+        }
     }
 
     @Override
     public void revokeSeat(RevokeSeatRequest request, StreamObserver<RevokeSeatResponse> responseObserver) {
-        boolean revoked = licenseService.revokeSeat(
-            UUID.fromString(request.getContext().getTenantId()),
-            UUID.fromString(request.getSeatId())
-        );
-        responseObserver.onNext(RevokeSeatResponse.newBuilder().setRevoked(revoked).build());
-        responseObserver.onCompleted();
+        try {
+            boolean revoked = licenseService.revokeSeat(
+                UUID.fromString(request.getContext().getTenantId()),
+                UUID.fromString(request.getSeatId())
+            );
+            responseObserver.onNext(RevokeSeatResponse.newBuilder().setRevoked(revoked).build());
+            responseObserver.onCompleted();
+        } catch (SeatLicenseManagementService.SeatPolicyException ex) {
+            responseObserver.onError(
+                Status.FAILED_PRECONDITION
+                    .withDescription(ex.code() + ":" + ex.getMessage())
+                    .asRuntimeException()
+            );
+        }
     }
 
     @Override

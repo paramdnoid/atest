@@ -7,7 +7,6 @@ import com.zunftgewerk.api.modules.license.repository.EntitlementRepository;
 import com.zunftgewerk.api.modules.license.repository.SeatLicenseRepository;
 import org.springframework.stereotype.Service;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,15 +16,18 @@ public class LicenseService {
     private final SeatLicenseRepository seatLicenseRepository;
     private final EntitlementRepository entitlementRepository;
     private final StripeBillingService stripeBillingService;
+    private final SeatLicenseManagementService seatLicenseManagementService;
 
     public LicenseService(
         SeatLicenseRepository seatLicenseRepository,
         EntitlementRepository entitlementRepository,
-        StripeBillingService stripeBillingService
+        StripeBillingService stripeBillingService,
+        SeatLicenseManagementService seatLicenseManagementService
     ) {
         this.seatLicenseRepository = seatLicenseRepository;
         this.entitlementRepository = entitlementRepository;
         this.stripeBillingService = stripeBillingService;
+        this.seatLicenseManagementService = seatLicenseManagementService;
     }
 
     public List<SeatLicenseEntity> listSeats(UUID tenantId) {
@@ -43,13 +45,7 @@ public class LicenseService {
             throw new IllegalStateException("Seat assignment is frozen while billing is inactive");
         }
 
-        SeatLicenseEntity seat = new SeatLicenseEntity();
-        seat.setId(UUID.randomUUID());
-        seat.setTenantId(tenantId);
-        seat.setUserId(userId);
-        seat.setStatus("ACTIVE");
-        seat.setUpdatedAt(OffsetDateTime.now());
-        SeatLicenseEntity saved = seatLicenseRepository.save(seat);
+        SeatLicenseEntity saved = seatLicenseManagementService.assignSeat(tenantId, userId);
         stripeBillingService.syncSeatQuantity(tenantId, seatLicenseRepository.countActiveByTenantId(tenantId));
         return saved.getId();
     }
@@ -58,11 +54,11 @@ public class LicenseService {
         return seatLicenseRepository.findById(seatId)
             .filter(seat -> seat.getTenantId().equals(tenantId))
             .map(seat -> {
-                seat.setStatus("REVOKED");
-                seat.setUpdatedAt(OffsetDateTime.now());
-                seatLicenseRepository.save(seat);
-                stripeBillingService.syncSeatQuantity(tenantId, seatLicenseRepository.countActiveByTenantId(tenantId));
-                return true;
+                boolean revoked = seatLicenseManagementService.revokeSeat(tenantId, seat.getUserId());
+                if (revoked) {
+                    stripeBillingService.syncSeatQuantity(tenantId, seatLicenseRepository.countActiveByTenantId(tenantId));
+                }
+                return revoked;
             })
             .orElse(false);
     }

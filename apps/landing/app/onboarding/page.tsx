@@ -4,6 +4,7 @@ import { isKnownStep } from "@/lib/onboarding/steps";
 import type { OnboardingPlan, OnboardingStepId } from "@/lib/onboarding/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+const ALLOWED_PLAN_CODES = new Set(["starter", "professional"]);
 
 // Shape returned by GET /v1/plans
 type ApiPlan = {
@@ -28,7 +29,10 @@ async function fetchOnboardingPlans(): Promise<OnboardingPlan[] | null> {
     if (!res.ok) return null;
     const data: ApiPlan[] = await res.json();
     if (!Array.isArray(data) || data.length === 0) return null;
-    return data.map((api): OnboardingPlan => ({
+    const supportedPlans = data.filter((api) => ALLOWED_PLAN_CODES.has(api.planId.toLowerCase()));
+    if (supportedPlans.length === 0) return null;
+
+    return supportedPlans.map((api): OnboardingPlan => ({
       code: api.planId,
       name: api.displayName,
       description: api.description ?? null,
@@ -61,7 +65,8 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
     fetchOnboardingPlans(),
   ]);
 
-  const initialPlanCode = params.plan ?? null;
+  const initialPlanCode =
+    params.plan && ALLOWED_PLAN_CODES.has(params.plan.toLowerCase()) ? params.plan : null;
   const initialStep: OnboardingStepId | null =
     params.step && isKnownStep(params.step) ? params.step : null;
   const initialVerificationState = {

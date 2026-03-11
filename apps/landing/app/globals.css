@@ -306,6 +306,51 @@
   animation: panel-enter var(--motion-medium) var(--ease-enterprise) both;
 }
 
+@keyframes mobile-ambient-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.58;
+  }
+  50% {
+    transform: translate3d(0, -10px, 0) scale(1.05);
+    opacity: 0.78;
+  }
+}
+
+@keyframes mobile-ambient-pan {
+  0%,
+  100% {
+    background-position:
+      15% 12%,
+      84% 24%,
+      52% 84%;
+  }
+  50% {
+    background-position:
+      25% 18%,
+      76% 14%,
+      42% 76%;
+  }
+}
+
+.mobile-hero-ambient {
+  position: absolute;
+  inset: -14% -24% auto;
+  height: 75%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.7;
+  filter: blur(20px) saturate(1.05);
+  background:
+    radial-gradient(34rem 20rem at 15% 12%, color-mix(in oklch, var(--color-primary) 18%, transparent), transparent 72%),
+    radial-gradient(24rem 16rem at 84% 24%, color-mix(in oklch, var(--color-foreground) 11%, transparent), transparent 70%),
+    radial-gradient(20rem 14rem at 52% 84%, color-mix(in oklch, var(--color-primary) 10%, transparent), transparent 76%);
+  animation:
+    mobile-ambient-drift 8s ease-in-out infinite,
+    mobile-ambient-pan 10s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -314,6 +359,10 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .mobile-hero-ambient {
+    animation: none !important;
   }
 }
 

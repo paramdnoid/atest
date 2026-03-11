@@ -32,16 +32,17 @@ export function HeroSection() {
       aria-labelledby="hero-heading"
     >
       <HeroSceneWrapper />
+      <div aria-hidden="true" className="mobile-hero-ambient md:hidden" />
 
       <GlowBackground />
 
-      <SectionContainer className="flex min-h-screen flex-col items-center justify-center pt-24 pb-14 sm:pb-20">
-        <div className="grid w-full items-center gap-8 sm:gap-10 lg:grid-cols-[1fr_1.2fr] lg:gap-8 xl:gap-12">
+      <SectionContainer className="relative z-20 flex min-h-screen flex-col items-center justify-center pt-26 pb-16 sm:pt-24 sm:pb-20">
+        <div className="grid w-full items-center gap-9 sm:gap-10 lg:grid-cols-[1fr_1.2fr] lg:gap-8 xl:gap-12">
           <div className="relative z-30 text-center lg:pr-2 lg:text-left xl:pr-4">
             <FadeIn delay={0.1} duration={0.5}>
               <Badge
                 variant="secondary"
-                className="enterprise-kicker text-foreground mb-6 inline-flex max-w-full gap-2 border px-3 py-1.5 text-xs font-semibold tracking-[0.08em] uppercase backdrop-blur-sm sm:mb-8 sm:px-5 sm:py-2 sm:tracking-[0.12em]"
+                className="enterprise-kicker text-foreground mb-5 inline-flex max-w-full gap-2 border px-3.5 py-1.5 text-[0.68rem] font-semibold tracking-[0.08em] uppercase backdrop-blur-sm sm:mb-8 sm:px-5 sm:py-2 sm:text-xs sm:tracking-[0.12em]"
               >
                 <Sparkles className="text-primary h-3.5 w-3.5" />
                 Für Kaminfeger, Maler & SHK-Betriebe
@@ -51,7 +52,7 @@ export function HeroSection() {
             <FadeIn delay={0.2} duration={0.7}>
               <h1
                 id="hero-heading"
-                className="hero-text-gloss hero-title-brutal mb-5 text-[1.7rem] text-pretty sm:text-[2.2rem] md:text-[2.55rem] lg:mb-6 lg:max-w-none lg:text-[2.95rem] xl:text-[3.35rem]"
+                className="hero-text-gloss hero-title-brutal mb-4 text-[1.86rem] leading-[0.93] text-pretty sm:mb-5 sm:text-[2.2rem] md:text-[2.55rem] lg:mb-6 lg:max-w-none lg:text-[2.95rem] xl:text-[3.35rem]"
               >
                 <span className="block">Die Handwerker</span>
                 <span className="block">
@@ -61,21 +62,21 @@ export function HeroSection() {
             </FadeIn>
 
             <FadeIn delay={0.35} duration={0.6}>
-              <p className="hero-subtext mx-auto mb-8 text-[0.95rem] leading-relaxed text-pretty sm:text-[1rem] md:text-[0.98rem] lg:mb-10 lg:mx-0">
+              <p className="hero-subtext mx-auto mb-8 text-[0.97rem] leading-[1.68] text-pretty sm:text-[1rem] md:text-[0.98rem] lg:mb-10 lg:mx-0">
                 Skalieren Sie Abläufe von Einsatzplanung bis Faktura mit einer Oberfläche,
                 die für produktive Teams in kritischen Betriebsabläufen gebaut ist.
               </p>
             </FadeIn>
 
             <FadeIn delay={0.5} duration={0.5}>
-              <div className="flex flex-col items-center justify-center gap-4 sm:flex-row lg:justify-start">
-                <GradientCta href="/onboarding" className="text-[0.95rem]">
-                  30 Tage kostenlos testen
+              <div className="flex flex-col items-center justify-center gap-3.5 sm:flex-row sm:gap-4 lg:justify-start">
+                <GradientCta href="/onboarding" className="min-h-12 text-[0.95rem] sm:min-h-13">
+                  30 Tage Testphase starten
                 </GradientCta>
                 <Button
                   size="lg"
                   variant="outline"
-                  className="h-13 w-full gap-2 border-foreground/20 px-8 text-[0.95rem] font-medium backdrop-blur-sm transition-all hover:border-foreground/40 sm:w-auto"
+                  className="min-h-12 w-full gap-2 border-foreground/20 px-8 text-[0.95rem] font-medium backdrop-blur-sm transition-all hover:border-foreground/40 sm:min-h-13 sm:w-auto"
                   asChild
                 >
                   <Link href="#trades">
@@ -87,26 +88,26 @@ export function HeroSection() {
             </FadeIn>
 
             <FadeIn delay={0.65} duration={0.5}>
-              <div className="text-muted-foreground mt-8 flex flex-wrap items-center justify-center gap-x-2 gap-y-3 text-xs font-medium tracking-[0.04em] uppercase sm:mt-10 sm:gap-x-3 sm:gap-y-4 sm:tracking-[0.06em] lg:justify-start">
+              <div className="text-muted-foreground mt-8 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-3 text-[11px] font-medium tracking-[0.05em] uppercase sm:mt-10 sm:gap-x-3 sm:gap-y-4 sm:text-xs sm:tracking-[0.06em] lg:justify-start">
                 <span className="flex items-center gap-2">
                   <ShieldCheck className="text-primary h-4 w-4" aria-hidden="true" />
                   DSGVO-konform
                 </span>
-                <span className="text-border" aria-hidden="true">
+                <span className="text-border hidden sm:inline" aria-hidden="true">
                   |
                 </span>
                 <span className="flex items-center gap-2">
                   <LockKeyhole className="text-primary h-4 w-4" aria-hidden="true" />
                   Starke Datenverschlüsselung
                 </span>
-                <span className="text-border" aria-hidden="true">
+                <span className="text-border hidden sm:inline" aria-hidden="true">
                   |
                 </span>
                 <span className="flex items-center gap-2">
                   <Zap className="text-primary h-4 w-4" aria-hidden="true" />
-                  Keine Kreditkarte nötig
+                  Zahlung erst nach Trial-Ende
                 </span>
-                <span className="text-border" aria-hidden="true">
+                <span className="text-border hidden sm:inline" aria-hidden="true">
                   |
                 </span>
                 <span className="flex items-center gap-2">
@@ -117,7 +118,7 @@ export function HeroSection() {
             </FadeIn>
 
             <FadeIn delay={0.78} duration={0.55}>
-              <div className="mt-6 grid max-w-xl gap-3 sm:mt-7 sm:grid-cols-2">
+              <div className="mt-7 grid max-w-xl gap-3.5 sm:mt-7 sm:grid-cols-2">
                 <div className="premium-panel animate-panel-enter rounded-xl px-4 py-3 text-left">
                   <p className="text-muted-foreground text-xs font-semibold tracking-[0.12em] uppercase">
                     Plattform-Tempo
@@ -138,7 +139,7 @@ export function HeroSection() {
 
           <FadeIn delay={0.5} duration={0.7} direction="left">
             <motion.div
-              className="relative mx-auto mt-6 w-full max-w-[calc(100vw-2rem)] perspective-[520px] sm:mt-8 sm:max-w-xl sm:perspective-[600px] lg:mt-0 lg:ml-auto lg:max-w-[min(58vw,52rem)] lg:origin-center xl:max-w-[min(56vw,56rem)]"
+              className="relative mx-auto mt-4 w-full max-w-[calc(100vw-1.5rem)] perspective-[520px] sm:mt-8 sm:max-w-xl sm:perspective-[600px] lg:mt-0 lg:ml-auto lg:max-w-[min(58vw,52rem)] lg:origin-center xl:max-w-[min(56vw,56rem)]"
               initial={prefersReduced === true ? false : { opacity: 0, y: 36, scale: 0.97 }}
               animate={prefersReduced === true ? {} : { opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}

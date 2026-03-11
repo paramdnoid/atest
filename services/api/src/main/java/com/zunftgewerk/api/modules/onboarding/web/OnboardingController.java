@@ -91,7 +91,7 @@ public class OnboardingController {
                 "hasStripeCustomer", hasStripeCustomer,
                 "hasStripeSubscription", hasStripeSubscription
             );
-            billingState = deriveBillingState(status, sub.getPlanId(), hasStripeSubscription);
+            billingState = deriveBillingState(status);
         }
 
         String nextStep = deriveNextStep(emailVerified, billingState);
@@ -128,10 +128,10 @@ public class OnboardingController {
         return result;
     }
 
-    private String deriveBillingState(String subscriptionStatus, String planId, boolean hasStripeSubscription) {
+    private String deriveBillingState(String subscriptionStatus) {
         if (subscriptionStatus == null) return "none";
         return switch (subscriptionStatus.toLowerCase()) {
-            case "active" -> hasStripeSubscription ? "active" : "free";
+            case "active" -> "active";
             case "trialing" -> "active";
             case "past_due", "unpaid", "incomplete" -> "issue";
             case "canceled" -> "canceled";
@@ -147,7 +147,7 @@ public class OnboardingController {
     private String deriveNextStep(boolean emailVerified, String billingState) {
         if (!emailVerified) return "verify";
         return switch (billingState) {
-            case "active", "free" -> "complete";
+            case "active" -> "complete";
             default -> "billing";
         };
     }
