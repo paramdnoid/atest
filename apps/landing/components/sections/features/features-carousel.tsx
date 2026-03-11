@@ -28,6 +28,24 @@ const MOBILE_EDGE_MASK = {
     "linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)",
 } as const;
 
+const MOBILE_SWIPE_THRESHOLD_PX = 42;
+const MOBILE_VELOCITY_MAX_PX = 280;
+const MOBILE_VELOCITY_WEIGHT = 0.09;
+const DESKTOP_VELOCITY_MAX_PX = 1600;
+const CLICK_SUPPRESS_THRESHOLD_PX = 10;
+const CLICK_SUPPRESS_MS = 140;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getMobileSwipeDirection(offsetX: number, velocityX: number) {
+  const effective =
+    offsetX + clamp(velocityX, -MOBILE_VELOCITY_MAX_PX, MOBILE_VELOCITY_MAX_PX) * MOBILE_VELOCITY_WEIGHT;
+  if (Math.abs(effective) < MOBILE_SWIPE_THRESHOLD_PX) return 0;
+  return effective < 0 ? 1 : -1;
+}
+
 export function Features3DCarousel() {
   const bp = useBreakpoint();
   const isMd = bp === "md" || bp === "lg" || bp === "xl";
@@ -44,6 +62,8 @@ export function Features3DCarousel() {
     });
 
   const dragStartRotation = useRef(0);
+  const didDragRef = useRef(false);
+  const suppressClickRef = useRef(false);
 
   const markInteracted = useCallback(() => setHasInteracted(true), []);
 
@@ -75,10 +95,10 @@ export function Features3DCarousel() {
       <div
         ref={containerRef}
         className="relative px-2 sm:px-4 md:px-14 outline-none"
-        onPointerEnter={pauseAutoPlay}
-        onPointerLeave={resumeAutoPlay}
-        onFocus={pauseAutoPlay}
-        onBlur={resumeAutoPlay}
+        onMouseEnter={isMd ? pauseAutoPlay : undefined}
+        onMouseLeave={isMd ? resumeAutoPlay : undefined}
+        onFocus={isMd ? pauseAutoPlay : undefined}
+        onBlur={isMd ? resumeAutoPlay : undefined}
         role="region"
         aria-roledescription="carousel"
         aria-label="Funktionen"
@@ -86,7 +106,10 @@ export function Features3DCarousel() {
       >
         <button
           type="button"
-          onClick={prev}
+          onClick={() => {
+            prev();
+            markInteracted();
+          }}
           className="premium-panel absolute left-0 top-1/2 z-110 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-foreground transition-all duration-300 hover:scale-110 hover:bg-primary hover:text-primary-foreground hover:shadow-lg focus-visible:outline-2 md:flex"
           aria-label="Zurück"
         >
@@ -107,15 +130,39 @@ export function Features3DCarousel() {
                 pauseAutoPlay();
                 markInteracted();
                 dragStartRotation.current = rotation.get();
+                didDragRef.current = false;
               }}
               onDrag={(_, info) => {
+                if (Math.abs(info.offset.x) > CLICK_SUPPRESS_THRESHOLD_PX) {
+                  didDragRef.current = true;
+                }
                 rotation.set(
                   dragStartRotation.current + info.offset.x * DRAG_SENSITIVITY
                 );
               }}
               onDragEnd={(_, info) => {
+                if (didDragRef.current) {
+                  suppressClickRef.current = true;
+                  window.setTimeout(() => {
+                    suppressClickRef.current = false;
+                  }, CLICK_SUPPRESS_MS);
+                }
+
+                if (!isMd) {
+                  const direction = getMobileSwipeDirection(info.offset.x, info.velocity.x);
+                  if (direction === 0) {
+                    goTo(activeIndex);
+                  } else {
+                    goTo((activeIndex + direction + features.length) % features.length);
+                  }
+                  resumeAutoPlay();
+                  return;
+                }
+
                 const offsetDelta = info.offset.x * DRAG_SENSITIVITY;
-                const velocityDelta = info.velocity.x * VELOCITY_FACTOR;
+                const velocityDelta =
+                  clamp(info.velocity.x, -DESKTOP_VELOCITY_MAX_PX, DESKTOP_VELOCITY_MAX_PX) *
+                  VELOCITY_FACTOR;
                 const totalDelta = offsetDelta + velocityDelta;
                 const angleStep = (Math.PI * 2) / features.length;
                 const newRotation = dragStartRotation.current + totalDelta;
@@ -139,6 +186,7 @@ export function Features3DCarousel() {
                     radiusX={cfg.radius.x}
                     radiusY={cfg.radius.y}
                     onClick={() => {
+                      if (suppressClickRef.current) return;
                       goTo(i);
                       markInteracted();
                     }}
@@ -156,7 +204,10 @@ export function Features3DCarousel() {
 
         <button
           type="button"
-          onClick={next}
+          onClick={() => {
+            next();
+            markInteracted();
+          }}
           className="premium-panel absolute right-0 top-1/2 z-110 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-foreground transition-all duration-300 hover:scale-110 hover:bg-primary hover:text-primary-foreground hover:shadow-lg focus-visible:outline-2 md:flex"
           aria-label="Weiter"
         >
@@ -180,6 +231,35 @@ export function Features3DCarousel() {
               </motion.div>
             )}
           </AnimatePresence>
+        )}
+
+        {!isMd && (
+          <div className="mt-3 flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                prev();
+                markInteracted();
+              }}
+              className="premium-panel inline-flex h-9 min-w-24 items-center justify-center gap-1 rounded-full px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+              aria-label="Vorherige Funktion"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              <span>Zurück</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                next();
+                markInteracted();
+              }}
+              className="premium-panel inline-flex h-9 min-w-24 items-center justify-center gap-1 rounded-full px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+              aria-label="Nächste Funktion"
+            >
+              <span>Weiter</span>
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
         )}
 
         <div className="sr-only" aria-live="polite" aria-atomic="true">
