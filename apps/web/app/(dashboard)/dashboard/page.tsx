@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { CreditCard, ShieldCheck, Users } from 'lucide-react';
 import { apiRequest } from '@/lib/api';
 import { getAccessToken } from '@/lib/session-token';
 import { Badge } from '@/components/ui/badge';
@@ -9,11 +10,10 @@ import {
   CompanyInfoCard,
   type CompanyInfoWorkspace,
 } from '@/components/dashboard/company-info-card';
-import { PageHeader } from '@/components/dashboard/page-header';
+import { ModulePageTemplate } from '@/components/dashboard/module-page-template';
 import { QuickActions } from '@/components/dashboard/quick-actions';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
-import { StatsGrid } from '@/components/dashboard/stats-grid';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatSubscriptionStatus } from '@/lib/format';
 
 type RawWorkspace = {
   tenantId?: string;
@@ -226,38 +226,63 @@ export default function DashboardPage() {
     );
   }
 
+  const statusLabel =
+    data.subscriptionStatus === 'none'
+      ? 'Kein Abo'
+      : formatSubscriptionStatus(data.subscriptionStatus);
+  const statusSubtitle =
+    data.subscriptionStatus === 'active' || data.subscriptionStatus === 'trialing'
+      ? 'Aktives Abonnement'
+      : undefined;
+
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Übersicht"
-        description={data.workspace.name}
-        badge={
-          <Badge
-            variant="outline"
-            className="border-(--enterprise-accent)/40 bg-(--enterprise-accent-soft) font-mono text-xs text-(--enterprise-accent)"
-          >
-            {data.planName}
-          </Badge>
-        }
-      />
-      {data.hasPartialDataError && (
-        <p className="text-sm text-muted-foreground">
-          Einige Daten konnten nicht geladen werden. Es werden Fallback-Werte angezeigt.
-        </p>
-      )}
-      <StatsGrid
-        memberCount={data.memberCount}
-        planName={data.planName}
-        subscriptionStatus={data.subscriptionStatus}
-        trialLabel={data.trialLabel}
-      />
-      <div className="grid gap-4 lg:grid-cols-2">
-        <RecentActivity events={data.recentEvents} className="h-full" />
+    <ModulePageTemplate
+      title="Übersicht"
+      description={data.workspace.name}
+      badge={
+        <Badge
+          variant="outline"
+          className="border-(--enterprise-accent)/40 bg-(--enterprise-accent-soft) font-mono text-xs text-(--enterprise-accent)"
+        >
+          {data.planName}
+        </Badge>
+      }
+      topMessage={
+        data.hasPartialDataError ? (
+          <p className="text-sm text-muted-foreground">
+            Einige Daten konnten nicht geladen werden. Es werden Fallback-Werte angezeigt.
+          </p>
+        ) : undefined
+      }
+      kpis={[
+        {
+          icon: Users,
+          label: 'Teammitglieder',
+          value: data.memberCount,
+          subtitle:
+            data.memberCount === 1 ? 'Person im Workspace' : 'Personen im Workspace',
+        },
+        {
+          icon: CreditCard,
+          label: 'Aktueller Plan',
+          value: data.planName,
+          trialLabel: data.trialLabel ?? undefined,
+          accent: true,
+        },
+        {
+          icon: ShieldCheck,
+          label: 'Abo-Status',
+          value: statusLabel,
+          subtitle: statusSubtitle,
+        },
+      ]}
+      mainContent={<RecentActivity events={data.recentEvents} className="h-full" />}
+      sideContent={
         <div className="flex flex-col gap-4">
           <CompanyInfoCard workspace={data.workspace} />
           <QuickActions />
         </div>
-      </div>
-    </div>
+      }
+    />
   );
 }

@@ -1,6 +1,6 @@
 import { CreditCard, ShieldCheck, Users } from 'lucide-react';
 
-import { StatCard } from '@/components/dashboard/stat-card';
+import { KpiStrip } from '@/components/dashboard/kpi-strip';
 import { formatSubscriptionStatus } from '@/lib/format';
 
 export function StatsGrid({
@@ -21,25 +21,28 @@ export function StatsGrid({
   const statusSubtitle = isActive ? 'Aktives Abonnement' : undefined;
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <StatCard
-        icon={Users}
-        label="Teammitglieder"
-        value={memberCount}
-        subtitle={memberCount === 1 ? 'Person im Workspace' : 'Personen im Workspace'}
-      />
-      <StatCard
-        icon={CreditCard}
-        label="Aktueller Plan"
-        value={planName}
-        trialLabel={trialLabel ?? undefined}
-      />
-      <StatCard
-        icon={ShieldCheck}
-        label="Abo-Status"
-        value={statusLabel}
-        subtitle={statusSubtitle}
-      />
-    </div>
+    <KpiStrip
+      items={[
+        {
+          icon: Users,
+          label: 'Teammitglieder',
+          value: memberCount,
+          subtitle: memberCount === 1 ? 'Person im Workspace' : 'Personen im Workspace',
+        },
+        {
+          icon: CreditCard,
+          label: 'Aktueller Plan',
+          value: planName,
+          trialLabel: trialLabel ?? undefined,
+          accent: true,
+        },
+        {
+          icon: ShieldCheck,
+          label: 'Abo-Status',
+          value: statusLabel,
+          subtitle: statusSubtitle,
+        },
+      ]}
+    />
   );
 }

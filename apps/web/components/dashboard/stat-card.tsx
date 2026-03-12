@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { dashboardUiTokens } from '@/components/dashboard/ui-tokens';
 
 export function StatCard({
   icon: Icon,
@@ -31,7 +32,7 @@ export function StatCard({
       )}
 
       <div className="relative flex items-start justify-between gap-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <p className={dashboardUiTokens.kicker}>
           {label}
         </p>
         <div
@@ -47,7 +48,7 @@ export function StatCard({
       <div className="relative mt-3">
         <p
           className={cn(
-            'font-mono text-2xl font-bold tabular-nums leading-none tracking-tight',
+            dashboardUiTokens.kpiValue,
             accent ? 'text-primary' : 'text-foreground',
           )}
         >

@@ -1,4 +1,5 @@
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { dashboardUiTokens } from '@/components/dashboard/ui-tokens';
 
 export function PageHeader({
   title,
@@ -17,7 +18,7 @@ export function PageHeader({
         <SidebarTrigger className="shrink-0 text-muted-foreground hover:text-foreground" />
         <div className="h-6 w-px bg-border" />
         <div>
-          <h1 className="text-lg font-bold tracking-tight leading-none">{title}</h1>
+          <h1 className={dashboardUiTokens.heading}>{title}</h1>
           {description && (
             <p className="mt-0 text-sm text-muted-foreground">{description}</p>
           )}

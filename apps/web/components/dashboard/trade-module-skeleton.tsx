@@ -1,10 +1,11 @@
 import type { LucideIcon } from 'lucide-react';
-import { ClipboardList, Clock3, ListChecks } from 'lucide-react';
+import { ClipboardList, Clock3, ListChecks, Sparkles } from 'lucide-react';
 
-import { PageHeader } from '@/components/dashboard/page-header';
-import { DashboardCard, DashboardCardContent, StatCard } from '@/components/dashboard/cards';
+import { ModulePageTemplate } from '@/components/dashboard/module-page-template';
+import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { EmptyState } from '@/components/dashboard/states';
 import { Badge } from '@/components/ui/badge';
+import { DashboardCard, DashboardCardHeader } from '@/components/dashboard/dashboard-card';
 
 type TradeModuleSkeletonProps = {
   title: string;
@@ -30,43 +31,65 @@ export function TradeModuleSkeleton({
   icon: ModuleIcon,
 }: TradeModuleSkeletonProps) {
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={title}
-        description={description}
-        badge={
-          badge ? (
-            <Badge
-              variant="outline"
-              className="border-(--enterprise-accent)/40 bg-(--enterprise-accent-soft) text-(--enterprise-accent) font-mono text-xs"
-            >
-              {badge}
-            </Badge>
-          ) : undefined
-        }
-      />
-
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard icon={<ModuleIcon className="h-4 w-4" />} label={kpiLabel} value="–" meta="Wird mit API-Daten befüllt" />
-        <StatCard icon={<Clock3 className="h-4 w-4" />} label={nextLabel} value="–" meta="Noch keine Einträge vorhanden" />
-        <StatCard
-          icon={<ClipboardList className="h-4 w-4" />}
-          label={complianceLabel}
-          value="Vorbereitung"
-          meta="Grundstruktur aktiv"
+    <ModulePageTemplate
+      title={title}
+      description={description}
+      badge={
+        badge ? (
+          <Badge
+            variant="outline"
+            className="border-(--enterprise-accent)/40 bg-(--enterprise-accent-soft) text-(--enterprise-accent) font-mono text-xs"
+          >
+            {badge}
+          </Badge>
+        ) : undefined
+      }
+      kpis={[
+        {
+          icon: ModuleIcon,
+          label: kpiLabel,
+          value: '–',
+          subtitle: 'Wird mit API-Daten befüllt',
+        },
+        {
+          icon: Clock3,
+          label: nextLabel,
+          value: '–',
+          subtitle: 'Noch keine Einträge vorhanden',
+        },
+        {
+          icon: ClipboardList,
+          label: complianceLabel,
+          value: 'Vorbereitung',
+          subtitle: 'Grundstruktur aktiv',
+          accent: true,
+        },
+      ]}
+      mainContent={
+        <ModuleTableCard
+          icon={ModuleIcon}
+          label="Modulstatus"
+          title={`${title} Einträge`}
+          emptyState={{
+            icon: <ListChecks className="h-8 w-8" />,
+            title: emptyTitle,
+            description: emptyDescription,
+          }}
         />
-      </div>
-
-      <DashboardCard>
-        <DashboardCardContent className="p-0">
-          <EmptyState
-            icon={<ListChecks className="h-8 w-8" />}
-            title={emptyTitle}
-            description={emptyDescription}
-            className="rounded-none border-0 bg-transparent"
-          />
-        </DashboardCardContent>
-      </DashboardCard>
-    </div>
+      }
+      sideContent={
+        <DashboardCard>
+          <DashboardCardHeader icon={Sparkles} label="Nächste Schritte" title="Empfohlene Aktionen" />
+          <div className="p-4">
+            <EmptyState
+              icon={<ClipboardList className="h-8 w-8" />}
+              title="Modul in Vorbereitung"
+              description="In der nächsten Ausbaustufe folgen fachspezifische Tabellen, Filter und Aktionen."
+              className="border-0 bg-transparent px-0 py-8"
+            />
+          </div>
+        </DashboardCard>
+      }
+    />
   );
 }

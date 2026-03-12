@@ -1,0 +1,15 @@
+export const dashboardUiTokens = {
+  pageStack: 'space-y-6',
+  sectionStack: 'space-y-4',
+  kpiGrid: 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3',
+  mainGrid: 'grid gap-4 lg:grid-cols-2',
+  card: 'rounded-xl border border-border bg-sidebar/40',
+  cardHeader: 'px-4 py-3',
+  cardBody: 'p-4',
+  tableCell: 'px-4 py-3',
+  heading: 'text-lg font-bold tracking-tight leading-none',
+  body: 'text-sm',
+  meta: 'text-xs text-muted-foreground',
+  kicker: 'text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground',
+  kpiValue: 'font-mono text-2xl font-bold tabular-nums leading-none tracking-tight',
+} as const;
