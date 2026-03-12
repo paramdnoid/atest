@@ -115,7 +115,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         return;
       }
 
-      const activeRoute = visibleNavItems.find((item) => pathname === item.href);
+      const activeRoute = visibleNavItems.find((item) =>
+        item.href === '/dashboard' ? pathname === item.href : pathname.startsWith(item.href),
+      );
       if (!activeRoute && visibleNavItems.length > 0) {
         router.replace(visibleNavItems[0].href);
       }

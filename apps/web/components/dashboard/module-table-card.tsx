@@ -9,6 +9,7 @@ type ModuleTableCardProps = {
   label: string;
   title: string;
   action?: ReactNode;
+  className?: string;
   isLoading?: boolean;
   errorMessage?: string;
   emptyState?: { icon: ReactNode; title: string; description: string };
@@ -21,6 +22,7 @@ export function ModuleTableCard({
   label,
   title,
   action,
+  className,
   isLoading = false,
   errorMessage,
   emptyState,
@@ -28,7 +30,7 @@ export function ModuleTableCard({
   children,
 }: ModuleTableCardProps) {
   return (
-    <DashboardCard>
+    <DashboardCard className={className}>
       <DashboardCardHeader icon={icon} label={label} title={title} action={action} />
       <div className={dashboardUiTokens.cardBody}>
         {errorMessage && <ErrorBanner message={errorMessage} />}

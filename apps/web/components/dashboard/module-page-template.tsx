@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/dashboard/page-header';
 import { KpiStrip } from '@/components/dashboard/kpi-strip';
 import type { KpiStripItem } from '@/components/dashboard/kpi-strip';
 import { dashboardUiTokens } from '@/components/dashboard/ui-tokens';
+import { cn } from '@/lib/utils';
 
 type ModulePageTemplateProps = {
   title: string;
@@ -14,6 +15,7 @@ type ModulePageTemplateProps = {
   mainContent: ReactNode;
   sideContent?: ReactNode;
   topMessage?: ReactNode;
+  mainGridClassName?: string;
 };
 
 export function ModulePageTemplate({
@@ -25,6 +27,7 @@ export function ModulePageTemplate({
   mainContent,
   sideContent,
   topMessage,
+  mainGridClassName,
 }: ModulePageTemplateProps) {
   return (
     <div className={dashboardUiTokens.pageStack}>
@@ -33,7 +36,7 @@ export function ModulePageTemplate({
       </PageHeader>
       {topMessage}
       <KpiStrip items={kpis} />
-      <div className={dashboardUiTokens.mainGrid}>
+      <div className={cn(dashboardUiTokens.mainGrid, mainGridClassName)}>
         {mainContent}
         {sideContent}
       </div>

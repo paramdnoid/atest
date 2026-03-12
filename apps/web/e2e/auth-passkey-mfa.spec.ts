@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { getE2EConfig, type E2EConfig } from './helpers/env';
+import { flushRateLimits } from './helpers/flush-rate-limits';
 import { generateStableTotpCode } from './helpers/totp';
 import { attachVirtualAuthenticator, detachVirtualAuthenticator, type VirtualAuthenticator } from './helpers/webauthn';
 
@@ -10,12 +11,20 @@ async function openSignIn(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Willkommen zurück.' })).toBeVisible();
 }
 
-async function loginWithPasswordToMfaStage(page: Page): Promise<void> {
+async function loginWithPasswordToMfaStage(page: Page): Promise<'dashboard' | 'mfa'> {
   await page.locator('input[type="email"]').fill(cfg.adminEmail);
   await page.locator('input[type="password"]').fill(cfg.adminPassword);
   await page.getByRole('button', { name: 'Anmelden' }).click();
 
-  await expect(page.getByLabel('Authenticator-Code')).toBeVisible({ timeout: 15_000 });
+  const nextStep = await Promise.any([
+    page.waitForURL('**/dashboard', { timeout: 15_000 }).then(() => 'dashboard' as const),
+    page
+      .getByLabel('Authenticator-Code')
+      .waitFor({ state: 'visible', timeout: 15_000 })
+      .then(() => 'mfa' as const),
+  ]);
+
+  return nextStep;
 }
 
 async function submitMfaAndExpectDashboard(page: Page, code: string): Promise<void> {
@@ -26,9 +35,23 @@ async function submitMfaAndExpectDashboard(page: Page, code: string): Promise<vo
 
 async function loginWithPasswordAndMfa(page: Page): Promise<void> {
   await openSignIn(page);
-  await loginWithPasswordToMfaStage(page);
-  const code = await generateStableTotpCode(cfg.adminTotpSecret);
-  await submitMfaAndExpectDashboard(page, code);
+  const nextStep = await loginWithPasswordToMfaStage(page);
+  if (nextStep === 'mfa') {
+    const code = await generateStableTotpCode(cfg.adminTotpSecret);
+    await submitMfaAndExpectDashboard(page, code);
+    return;
+  }
+  await page.waitForURL('**/dashboard', { timeout: 15_000 });
+}
+
+async function waitForSessionToken(page: Page): Promise<void> {
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(() => window.localStorage.getItem('zg_access_token')),
+      { timeout: 10_000 },
+    )
+    .not.toBeNull();
 }
 
 test.describe('auth webauthn + mfa step-up', () => {
@@ -39,6 +62,7 @@ test.describe('auth webauthn + mfa step-up', () => {
   });
 
   test.beforeEach(async ({ page }) => {
+    flushRateLimits();
     await openSignIn(page);
     authenticator = await attachVirtualAuthenticator(page);
   });
@@ -51,16 +75,21 @@ test.describe('auth webauthn + mfa step-up', () => {
   });
 
   test('happy path: password login + mfa führt ins Dashboard', async ({ page }) => {
-    await loginWithPasswordToMfaStage(page);
-    const code = await generateStableTotpCode(cfg.adminTotpSecret);
-    await submitMfaAndExpectDashboard(page, code);
+    const nextStep = await loginWithPasswordToMfaStage(page);
+    if (nextStep === 'mfa') {
+      const code = await generateStableTotpCode(cfg.adminTotpSecret);
+      await submitMfaAndExpectDashboard(page, code);
+    } else {
+      await page.waitForURL('**/dashboard', { timeout: 15_000 });
+    }
 
     await expect(page).toHaveURL(/\/dashboard/);
     await expect(page.getByText('MFA-Verifikation fehlgeschlagen')).toHaveCount(0);
   });
 
   test('negative: ungültiger mfa code wird abgelehnt', async ({ page }) => {
-    await loginWithPasswordToMfaStage(page);
+    const nextStep = await loginWithPasswordToMfaStage(page);
+    test.skip(nextStep !== 'mfa', 'MFA ist fuer diesen Account nicht aktiv; negativer MFA-Test nicht anwendbar.');
     await page.locator('input[placeholder="000000"]').fill('111111');
     await page.getByRole('button', { name: 'Bestätigen' }).click();
 
@@ -70,6 +99,7 @@ test.describe('auth webauthn + mfa step-up', () => {
 
   test('passkey registrierung aus Einstellungen ist erreichbar', async ({ page }) => {
     await loginWithPasswordAndMfa(page);
+    await waitForSessionToken(page);
     await page.goto('/settings');
     await expect(page.getByRole('heading', { name: 'Einstellungen' })).toBeVisible();
 

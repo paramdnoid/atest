@@ -1,0 +1,252 @@
+import type { QuoteAuditEvent, QuoteRecord } from '@/lib/angebote/types';
+
+function audit(actor: string, action: string, detail: string, createdAt: string): QuoteAuditEvent {
+  return {
+    id: crypto.randomUUID(),
+    actor,
+    action,
+    detail,
+    createdAt,
+  };
+}
+
+const records: QuoteRecord[] = [
+  {
+    id: 'q-1001',
+    number: 'ANG-2026-1001',
+    customerName: 'Wohnbau Muenchen GmbH',
+    projectName: 'MFH Rosenpark 12',
+    tradeLabel: 'Maler und Tapezierer',
+    priority: 'HIGH',
+    createdAt: '2026-03-02T08:30:00.000Z',
+    updatedAt: '2026-03-11T09:15:00.000Z',
+    validUntil: '2026-03-20T00:00:00.000Z',
+    owner: 'Andre Zimmermann',
+    status: 'IN_APPROVAL',
+    positions: [
+      {
+        id: 'p-1',
+        title: 'Grundierung Innenflaechen',
+        unit: 'm2',
+        quantity: 820,
+        unitPriceNet: 4.6,
+        materialCostNet: 1800,
+        laborCostNet: 980,
+        templateKey: 'grundierung',
+      },
+      {
+        id: 'p-2',
+        title: 'Deckanstrich Premium',
+        unit: 'm2',
+        quantity: 820,
+        unitPriceNet: 8.9,
+        materialCostNet: 2500,
+        laborCostNet: 2100,
+        templateKey: 'deckanstrich',
+      },
+      {
+        id: 'p-3',
+        title: 'Schutzanstrich Treppenhaus',
+        unit: 'm2',
+        quantity: 210,
+        unitPriceNet: 12.2,
+        materialCostNet: 980,
+        laborCostNet: 620,
+        optional: true,
+        templateKey: 'schutzanstrich',
+      },
+    ],
+    options: [
+      {
+        id: 'opt-good-1',
+        tier: 'GOOD',
+        label: 'Good - Funktional',
+        description: 'Grundierung + Standardfinish',
+        includedPositionIds: ['p-1', 'p-2'],
+      },
+      {
+        id: 'opt-better-1',
+        tier: 'BETTER',
+        label: 'Better - Langlebig',
+        description: 'Inkl. Schutzanstrich fuer stark belastete Flaechen',
+        includedPositionIds: ['p-1', 'p-2', 'p-3'],
+        recommended: true,
+      },
+      {
+        id: 'opt-best-1',
+        tier: 'BEST',
+        label: 'Best - Premium',
+        description: 'Mehrlagensystem inkl. Premium-Absicherung',
+        includedPositionIds: ['p-1', 'p-2', 'p-3'],
+      },
+    ],
+    selectedOptionId: 'opt-better-1',
+    approvalSteps: [
+      { id: 'a-1', role: 'VERTRIEB', assignee: 'Sandra Mohr', approvedAt: '2026-03-10T13:40:00.000Z' },
+      { id: 'a-2', role: 'PROJEKTLEITUNG', assignee: 'Andre Zimmermann' },
+      { id: 'a-3', role: 'GESCHAEFTSFUEHRUNG', assignee: 'Hannah Lerch' },
+    ],
+    note: 'Besonders sensible Terminlage wegen Mieterwechsel.',
+    auditTrail: [
+      audit('System', 'Import', 'Angebot aus Aufmass vorgeschlagen', '2026-03-02T08:30:00.000Z'),
+      audit('Andre Zimmermann', 'Option gesetzt', 'Better als Standardoption gewaehlt', '2026-03-11T09:15:00.000Z'),
+    ],
+  },
+  {
+    id: 'q-1002',
+    number: 'ANG-2026-1002',
+    customerName: 'Schule Nordstadt',
+    projectName: 'Flur 1-3 Renovierung',
+    tradeLabel: 'Maler und Tapezierer',
+    priority: 'MEDIUM',
+    createdAt: '2026-03-01T07:10:00.000Z',
+    updatedAt: '2026-03-09T11:50:00.000Z',
+    validUntil: '2026-03-30T00:00:00.000Z',
+    owner: 'Miriam Kaiser',
+    status: 'DRAFT',
+    positions: [
+      {
+        id: 'p-4',
+        title: 'Tapezieren Glasfaser',
+        unit: 'm2',
+        quantity: 460,
+        unitPriceNet: 9.4,
+        materialCostNet: 1320,
+        laborCostNet: 960,
+      },
+      {
+        id: 'p-5',
+        title: 'Deckanstrich Klasse 1',
+        unit: 'm2',
+        quantity: 460,
+        unitPriceNet: 7.8,
+        materialCostNet: 1450,
+        laborCostNet: 990,
+        templateKey: 'deckanstrich',
+      },
+    ],
+    options: [],
+    approvalSteps: [{ id: 'a-4', role: 'VERTRIEB', assignee: 'Miriam Kaiser' }],
+    auditTrail: [audit('Miriam Kaiser', 'Erstellt', 'Neues Angebot angelegt', '2026-03-01T07:10:00.000Z')],
+  },
+  {
+    id: 'q-1003',
+    number: 'ANG-2026-1003',
+    customerName: 'Privatkunde Lenz',
+    projectName: 'Wohnzimmer + Kueche',
+    tradeLabel: 'Maler und Tapezierer',
+    priority: 'LOW',
+    createdAt: '2026-02-22T12:20:00.000Z',
+    updatedAt: '2026-03-05T10:10:00.000Z',
+    validUntil: '2026-03-18T00:00:00.000Z',
+    owner: 'Andre Zimmermann',
+    status: 'SENT',
+    positions: [
+      {
+        id: 'p-6',
+        title: 'Abkleben und Vorarbeit',
+        unit: 'pauschal',
+        quantity: 1,
+        unitPriceNet: 420,
+        materialCostNet: 80,
+        laborCostNet: 120,
+      },
+      {
+        id: 'p-7',
+        title: 'Deckanstrich Standard',
+        unit: 'm2',
+        quantity: 190,
+        unitPriceNet: 7.2,
+        materialCostNet: 560,
+        laborCostNet: 360,
+        templateKey: 'deckanstrich',
+      },
+    ],
+    options: [
+      {
+        id: 'opt-good-3',
+        tier: 'GOOD',
+        label: 'Good - Basis',
+        description: 'Standardausfuehrung',
+        includedPositionIds: ['p-6', 'p-7'],
+        recommended: true,
+      },
+    ],
+    selectedOptionId: 'opt-good-3',
+    approvalSteps: [
+      { id: 'a-5', role: 'VERTRIEB', assignee: 'Andre Zimmermann', approvedAt: '2026-03-04T09:10:00.000Z' },
+      { id: 'a-6', role: 'PROJEKTLEITUNG', assignee: 'Miriam Kaiser', approvedAt: '2026-03-04T10:00:00.000Z' },
+    ],
+    auditTrail: [
+      audit('Andre Zimmermann', 'Versendet', 'Angebot per Mail versendet', '2026-03-05T10:10:00.000Z'),
+    ],
+  },
+  {
+    id: 'q-1004',
+    number: 'ANG-2026-1004',
+    customerName: 'Bautraeger Seeblick',
+    projectName: 'Lobby Nordfluegel',
+    tradeLabel: 'Maler und Tapezierer',
+    priority: 'HIGH',
+    createdAt: '2026-02-14T09:00:00.000Z',
+    updatedAt: '2026-03-10T16:20:00.000Z',
+    validUntil: '2026-04-10T00:00:00.000Z',
+    owner: 'Hannah Lerch',
+    status: 'CONVERTED_TO_ORDER',
+    positions: [
+      {
+        id: 'p-8',
+        title: 'Spezialbeschichtung Lobby',
+        unit: 'm2',
+        quantity: 640,
+        unitPriceNet: 15.9,
+        materialCostNet: 3320,
+        laborCostNet: 2480,
+        templateKey: 'grundierung',
+      },
+      {
+        id: 'p-9',
+        title: 'Dekorative Spachteltechnik',
+        unit: 'm2',
+        quantity: 270,
+        unitPriceNet: 29.5,
+        materialCostNet: 2100,
+        laborCostNet: 1920,
+        discountPercent: 3,
+      },
+    ],
+    options: [
+      {
+        id: 'opt-best-4',
+        tier: 'BEST',
+        label: 'Best - Signature Lobby',
+        description: 'Premiumoberflaeche fuer reprasentative Flaechen',
+        includedPositionIds: ['p-8', 'p-9'],
+        recommended: true,
+      },
+    ],
+    selectedOptionId: 'opt-best-4',
+    approvalSteps: [
+      { id: 'a-7', role: 'VERTRIEB', assignee: 'Hannah Lerch', approvedAt: '2026-02-21T11:10:00.000Z' },
+      { id: 'a-8', role: 'PROJEKTLEITUNG', assignee: 'Andre Zimmermann', approvedAt: '2026-02-22T08:45:00.000Z' },
+      {
+        id: 'a-9',
+        role: 'GESCHAEFTSFUEHRUNG',
+        assignee: 'Hannah Lerch',
+        approvedAt: '2026-02-22T09:20:00.000Z',
+      },
+    ],
+    convertedOrderNumber: 'AUT-2026-042',
+    auditTrail: [
+      audit('System', 'Konvertiert', 'In Auftrag AUT-2026-042 ueberfuehrt', '2026-03-10T16:20:00.000Z'),
+    ],
+  },
+];
+
+export function getQuoteRecords(): QuoteRecord[] {
+  return structuredClone(records);
+}
+
+export function getQuoteRecordById(id: string): QuoteRecord | undefined {
+  return getQuoteRecords().find((record) => record.id === id);
+}

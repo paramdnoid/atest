@@ -8,6 +8,7 @@
     "start": "next start -p 3001",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test:unit": "tsx --test \"lib/**/*.spec.ts\"",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug"
@@ -34,6 +35,7 @@
     "eslint-config-next": "^16.1.6",
     "postcss": "^8.5.4",
     "tailwindcss": "^4.2.1",
+    "tsx": "^4.21.0",
     "typescript": "^5.8.3"
   }
 }
