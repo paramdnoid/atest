@@ -34,6 +34,21 @@ export function CookieConsent() {
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
+  const accept = useCallback((value: "all" | "necessary") => {
+    localStorage.setItem(COOKIE_CONSENT_KEY, value);
+    // Fire and forget — don't block UI.
+    // Only call backend if an explicit API URL is configured.
+    if (CONSENT_API_URL) {
+      fetch(`${CONSENT_API_URL}/v1/consent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ consent: value, visitorId: getVisitorId() }),
+      }).catch(() => {}); // Silent fail — localStorage is the source of truth
+    }
+    setVisible(false);
+    previousFocusRef.current?.focus();
+  }, []);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!getStoredConsent()) {
@@ -78,22 +93,7 @@ export function CookieConsent() {
 
     dialog.addEventListener("keydown", handleKeyDown);
     return () => dialog.removeEventListener("keydown", handleKeyDown);
-  }, [visible]);
-
-  const accept = useCallback((value: "all" | "necessary") => {
-    localStorage.setItem(COOKIE_CONSENT_KEY, value);
-    // Fire and forget — don't block UI.
-    // Only call backend if an explicit API URL is configured.
-    if (CONSENT_API_URL) {
-      fetch(`${CONSENT_API_URL}/v1/consent`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ consent: value, visitorId: getVisitorId() }),
-      }).catch(() => {}); // Silent fail — localStorage is the source of truth
-    }
-    setVisible(false);
-    previousFocusRef.current?.focus();
-  }, []);
+  }, [accept, visible]);
 
   if (!visible) return null;
 

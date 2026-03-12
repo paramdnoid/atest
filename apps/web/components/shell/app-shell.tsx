@@ -23,7 +23,10 @@ const navGroups: { label: string; ids: Array<(typeof moduleRegistry)[number]['id
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [activeProfileId, setActiveProfileId] = useState<string | undefined>(undefined);
+  const [activeProfileId] = useState<string | undefined>(() => {
+    if (typeof window === 'undefined') return undefined;
+    return localStorage.getItem(CAPABILITY_PROFILE_STORAGE_KEY) ?? undefined;
+  });
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [profile, setProfile] = useState<EffectiveProfile>(() => {
     const fallback = resolveCapabilityProfile();
@@ -37,11 +40,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       source: 'mock' as const,
     };
   });
-
-  useEffect(() => {
-    const stored = localStorage.getItem(CAPABILITY_PROFILE_STORAGE_KEY) ?? undefined;
-    setActiveProfileId(stored);
-  }, []);
 
   useEffect(() => {
     let cancelled = false;

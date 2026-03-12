@@ -9,11 +9,11 @@ export default function TermsPage() {
 
       <h2>§ 1 Geltungsbereich</h2>
       <p>
-        Diese Allgemeinen Geschäftsbedingungen (nachfolgend „AGB") gelten für
+        Diese Allgemeinen Geschäftsbedingungen (nachfolgend „AGB“) gelten für
         alle Verträge zwischen der ZunftGewerk KG, Greifswalder Straße 4, 10405
-        Berlin (nachfolgend „Anbieter") und ihren Kunden (nachfolgend „Kunde")
+        Berlin (nachfolgend „Anbieter“) und ihren Kunden (nachfolgend „Kunde“)
         über die Nutzung der ZunftGewerk-Software als Software-as-a-Service
-        (nachfolgend „SaaS" oder „Plattform").
+        (nachfolgend „SaaS“ oder „Plattform“).
       </p>
       <p>
         Abweichende, entgegenstehende oder ergänzende Geschäftsbedingungen des

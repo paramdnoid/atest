@@ -21,7 +21,6 @@ import { GradientCta } from "@/components/gradient-cta";
 import { GradientText } from "@/components/gradient-text";
 import { HeroSceneWrapper } from "@/components/hero-scene-wrapper";
 import { SectionContainer } from "@/components/section-container";
-import { partners } from "@/content/partners";
 
 export function HeroSection() {
   const prefersReduced = useReducedMotion();

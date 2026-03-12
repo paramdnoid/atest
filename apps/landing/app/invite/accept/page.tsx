@@ -26,15 +26,11 @@ type State = "loading" | "success" | "error";
 function AcceptInviteContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
-  const [state, setState] = useState<State>("loading");
-  const [message, setMessage] = useState("");
+  const [state, setState] = useState<State>(token ? "loading" : "error");
+  const [message, setMessage] = useState(token ? "" : "Ungültiger Einladungslink.");
 
   useEffect(() => {
-    if (!token) {
-      setState("error");
-      setMessage("Ungültiger Einladungslink.");
-      return;
-    }
+    if (!token) return;
 
     fetchApi("/v1/team/invites/accept", {
       method: "POST",

@@ -23,7 +23,6 @@ export default function SettingsPage() {
   const [mfa, setMfa] = useState<MfaStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [status, setStatus] = useState('');
 
   // Passkey registration state
   const [email, setEmail] = useState('');
@@ -105,13 +104,6 @@ export default function SettingsPage() {
       <PageHeader title="Einstellungen" description="Workspace-Konfiguration anpassen." />
 
       {error && <ErrorBanner message={error} />}
-      {status && (
-        <div className="billing-editorial-main mt-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          <CheckCircle2 className="h-4 w-4 shrink-0" />
-          {status}
-        </div>
-      )}
-
       <div className="premium-divider" />
 
       <DashboardCard>

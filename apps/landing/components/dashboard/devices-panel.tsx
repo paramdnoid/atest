@@ -2,7 +2,6 @@
 
 import { fetchApi } from "@/lib/api-client";
 import { Check, Copy, Monitor, RefreshCw, ShieldCheck, ShieldOff, Smartphone, Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -81,7 +80,6 @@ export function DevicesPanel({
   registrationToken: initialToken,
   isAdmin,
 }: Props) {
-  const router = useRouter();
   const [devices, setDevices] = useState(initialDevices);
   const [registrationToken, setRegistrationToken] = useState(initialToken);
   const [copied, setCopied] = useState(false);
@@ -166,7 +164,6 @@ export function DevicesPanel({
     ? `${registrationToken.slice(0, 8)}${"•".repeat(20)}${registrationToken.slice(-4)}`
     : null;
 
-  const atLimit = licenseLimit != null && licensedCount >= licenseLimit;
   const effectiveLicensedCount = Math.max(licensedCount, localLicensedCount);
   const effectiveAtLimit = licenseLimit != null && effectiveLicensedCount >= licenseLimit;
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiRequest } from '@/lib/api';
 import { getAccessToken } from '@/lib/session-token';
@@ -161,46 +161,50 @@ export default function DashboardPage() {
   });
   const [loading, setLoading] = useState(true);
 
-  const fetchData = useCallback(async () => {
-    const token = await getAccessToken();
-    if (!token) {
-      router.push('/signin');
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-
-    const [workspaceRes, billingRes, teamRes] = await Promise.allSettled([
-      apiRequest<RawWorkspace>({ path: '/v1/workspace/me', token }),
-      apiRequest<RawBillingSummary>({ path: '/v1/billing/summary', token }),
-      apiRequest<TeamMembersResponse>({ path: '/v1/team/members', token }),
-    ]);
-
-    const rawWorkspace = workspaceRes.status === 'fulfilled' ? workspaceRes.value : null;
-    const rawBilling = billingRes.status === 'fulfilled' ? billingRes.value : null;
-    const teamMembers = teamRes.status === 'fulfilled' ? (teamRes.value.members ?? []) : [];
-
-    setData({
-      workspace: normalizeWorkspace(rawWorkspace),
-      planName: rawBilling?.plan?.name ?? rawBilling?.planName ?? 'Kein Plan',
-      subscriptionStatus: rawBilling?.subscription?.status ?? rawBilling?.status ?? 'none',
-      trialLabel: getTrialLabel(rawBilling),
-      memberCount:
-        rawWorkspace?.memberCount ??
-        rawBilling?.memberCount ??
-        teamMembers.length ??
-        0,
-      recentEvents: normalizeRecentEvents(rawBilling),
-      hasPartialDataError: [workspaceRes, billingRes, teamRes].some((result) => result.status === 'rejected'),
-    });
-
-    setLoading(false);
-  }, [router]);
-
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    let cancelled = false;
+
+    const loadData = async () => {
+      const token = await getAccessToken();
+      if (!token) {
+        router.push('/signin');
+        if (!cancelled) setLoading(false);
+        return;
+      }
+
+      const [workspaceRes, billingRes, teamRes] = await Promise.allSettled([
+        apiRequest<RawWorkspace>({ path: '/v1/workspace/me', token }),
+        apiRequest<RawBillingSummary>({ path: '/v1/billing/summary', token }),
+        apiRequest<TeamMembersResponse>({ path: '/v1/team/members', token }),
+      ]);
+
+      if (cancelled) return;
+
+      const rawWorkspace = workspaceRes.status === 'fulfilled' ? workspaceRes.value : null;
+      const rawBilling = billingRes.status === 'fulfilled' ? billingRes.value : null;
+      const teamMembers = teamRes.status === 'fulfilled' ? (teamRes.value.members ?? []) : [];
+
+      setData({
+        workspace: normalizeWorkspace(rawWorkspace),
+        planName: rawBilling?.plan?.name ?? rawBilling?.planName ?? 'Kein Plan',
+        subscriptionStatus: rawBilling?.subscription?.status ?? rawBilling?.status ?? 'none',
+        trialLabel: getTrialLabel(rawBilling),
+        memberCount:
+          rawWorkspace?.memberCount ??
+          rawBilling?.memberCount ??
+          teamMembers.length ??
+          0,
+        recentEvents: normalizeRecentEvents(rawBilling),
+        hasPartialDataError: [workspaceRes, billingRes, teamRes].some((result) => result.status === 'rejected'),
+      });
+      setLoading(false);
+    };
+
+    void loadData();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   if (loading) {
     return (

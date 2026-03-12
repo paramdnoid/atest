@@ -4,7 +4,7 @@ import "@/lib/suppress-three-clock-warning";
 
 import { Canvas } from "@react-three/fiber";
 import { useReducedMotion } from "framer-motion";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useRef, useSyncExternalStore } from "react";
 
 import { SceneErrorBoundary } from "@/components/scene-error-boundary";
 import { cn } from "@/lib/utils";
@@ -27,18 +27,10 @@ const FEATURES_CONFIG = {
 
 function FeaturesScene() {
   const mouse = useRef({ x: 0, y: 0 });
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   return (
     <div
-      className={cn(
-        "pointer-events-none absolute inset-0 -z-10 hidden transition-opacity duration-1000 ease-out md:block",
-        mounted ? "opacity-100" : "opacity-0"
-      )}
+      className={cn("pointer-events-none absolute inset-0 -z-10 hidden md:block")}
       aria-hidden="true"
     >
       <Canvas
@@ -61,14 +53,16 @@ function FeaturesScene() {
 }
 
 export function FeaturesSceneWrapper() {
-  const [mounted, setMounted] = useState(false);
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
   const prefersReducedMotion = useReducedMotion();
-
-  useEffect(() => setMounted(true), []);
 
   // Render nothing until after hydration so server and client initial output match.
   // Also skip for users who prefer reduced motion.
-  if (!mounted || prefersReducedMotion) return null;
+  if (!isClient || prefersReducedMotion) return null;
 
   return (
     <SceneErrorBoundary>
