@@ -2,9 +2,22 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, RefreshCw, UserCircle2, Users } from 'lucide-react';
+import { RefreshCw, UserCircle2, Users } from 'lucide-react';
 import { apiRequest } from '@/lib/api';
+import { getAccessToken } from '@/lib/session-token';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { PageHeader } from '@/components/dashboard/page-header';
+import { DashboardCard, DashboardCardContent } from '@/components/dashboard/cards';
+import { EmptyState, ErrorBanner } from '@/components/dashboard/states';
 
 type Member = {
   userId: string;
@@ -14,10 +27,10 @@ type Member = {
   joinedAt?: string;
 };
 
-const roleBadge: Record<string, string> = {
-  owner: 'bg-violet-50 text-violet-700',
-  admin: 'bg-blue-50 text-blue-700',
-  member: 'bg-zinc-100 text-zinc-600',
+const roleVariant: Record<string, 'default' | 'secondary' | 'outline'> = {
+  owner: 'default',
+  admin: 'outline',
+  member: 'secondary',
 };
 
 export default function TeamPage() {
@@ -27,9 +40,10 @@ export default function TeamPage() {
   const [error, setError] = useState('');
 
   const fetchMembers = useCallback(async () => {
-    const token = localStorage.getItem('zg_access_token');
+    const token = await getAccessToken();
     if (!token) {
       router.push('/signin');
+      setLoading(false);
       return;
     }
 
@@ -52,9 +66,9 @@ export default function TeamPage() {
 
   if (loading) {
     return (
-      <div className="px-6 py-12">
+      <div className="space-y-3">
         <div className="h-8 w-40 animate-pulse rounded-md bg-muted" />
-        <div className="mt-8 space-y-2">
+        <div className="space-y-2">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-14 animate-pulse rounded-xl bg-muted" />
           ))}
@@ -64,70 +78,64 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="px-6 py-12">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-semibold">Team</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{members.length} Mitglieder in diesem Workspace</p>
-        </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Team & Lizenzen"
+        description="Verwalte Teammitglieder und Zugänge für deinen Workspace."
+      >
         <Button variant="outline" size="sm" onClick={fetchMembers} className="gap-2">
           <RefreshCw className="h-3.5 w-3.5" />
           Aktualisieren
         </Button>
-      </div>
+      </PageHeader>
 
-      {error && (
-        <div className="mt-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          {error}
-        </div>
-      )}
+      {error && <ErrorBanner message={error} />}
+
+      <div className="premium-divider" />
 
       {members.length > 0 ? (
-        <div className="mt-8 overflow-hidden rounded-xl border border-border">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="px-4 py-3 font-medium">Mitglied</th>
-                <th className="px-4 py-3 font-medium">Rolle</th>
-                <th className="px-4 py-3 font-medium">Mitglied seit</th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((m) => (
-                <tr key={m.userId} className="border-t border-border">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2.5">
-                      <UserCircle2 className="h-5 w-5 shrink-0 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">{m.name ?? m.email}</p>
-                        {m.name && <p className="text-xs text-muted-foreground">{m.email}</p>}
+        <DashboardCard className="overflow-hidden">
+          <DashboardCardContent className="p-0">
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="px-4 py-3">Mitglied</TableHead>
+                  <TableHead className="px-4 py-3">Rolle</TableHead>
+                  <TableHead className="px-4 py-3">Mitglied seit</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {members.map((member) => (
+                  <TableRow key={member.userId}>
+                    <TableCell className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <UserCircle2 className="h-5 w-5 shrink-0 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">{member.name ?? member.email}</p>
+                          {member.name && <p className="text-xs text-muted-foreground">{member.email}</p>}
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded px-2 py-0.5 text-xs font-medium capitalize ${roleBadge[m.role] ?? 'bg-zinc-100 text-zinc-600'}`}
-                    >
-                      {m.role}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {m.joinedAt ? new Date(m.joinedAt).toLocaleDateString('de-DE') : '–'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <Badge variant={roleVariant[member.role] ?? 'secondary'} className="capitalize">
+                        {member.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-muted-foreground">
+                      {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString('de-DE') : '–'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </DashboardCardContent>
+        </DashboardCard>
       ) : (
-        <div className="mt-8 rounded-xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center">
-          <Users className="mx-auto h-8 w-8 text-muted-foreground/50" />
-          <p className="mt-3 font-medium">Noch keine Team-Mitglieder</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Team-Mitglieder erscheinen hier nach dem Einladen.
-          </p>
-        </div>
+        <EmptyState
+          icon={<Users className="h-8 w-8" />}
+          title="Noch keine Team-Mitglieder"
+          description="Team-Mitglieder erscheinen hier nach dem Einladen."
+        />
       )}
     </div>
   );

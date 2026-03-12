@@ -2,81 +2,198 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, Building2, CreditCard, Monitor, RefreshCw } from 'lucide-react';
 import { apiRequest } from '@/lib/api';
-import { Button } from '@/components/ui/button';
+import { getAccessToken } from '@/lib/session-token';
+import { Badge } from '@/components/ui/badge';
+import {
+  CompanyInfoCard,
+  type CompanyInfoWorkspace,
+} from '@/components/dashboard/company-info-card';
+import { PageHeader } from '@/components/dashboard/page-header';
+import { QuickActions } from '@/components/dashboard/quick-actions';
+import { RecentActivity } from '@/components/dashboard/recent-activity';
+import { StatsGrid } from '@/components/dashboard/stats-grid';
+import { formatDate } from '@/lib/format';
 
-type Workspace = {
-  tenantId: string;
-  workspaceName: string;
+type RawWorkspace = {
+  tenantId?: string;
+  id?: string;
+  workspaceName?: string;
+  name?: string;
   tradeName?: string;
   email?: string;
-  role: string;
+  role?: string;
+  memberCount?: number;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
+  countryCode?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  address_line_1?: string | null;
+  address_line_2?: string | null;
+  postal_code?: string | null;
+  country_code?: string | null;
+  latitude_deg?: number | null;
+  longitude_deg?: number | null;
 };
 
-type BillingSummary = {
-  planName: string;
-  billingInterval?: string;
-  status: string;
-  trialEndsAt?: string;
-  currentPeriodEnd?: string;
+type RawBillingPlan = {
+  name?: string | null;
 };
 
-type Device = {
+type RawBillingSubscription = {
+  status?: string | null;
+  trialEndsAt?: string | null;
+  trialEnd?: string | null;
+  currentPeriodEnd?: string | null;
+};
+
+type RawBillingEvent = {
+  id?: string | number;
+  type?: string;
+  createdAt?: string;
+  occurredAt?: string;
+  timestamp?: string;
+};
+
+type RawBillingSummary = {
+  planName?: string | null;
+  status?: string | null;
+  trialEndsAt?: string | null;
+  currentPeriodEnd?: string | null;
+  memberCount?: number;
+  plan?: RawBillingPlan | null;
+  subscription?: RawBillingSubscription | null;
+  recentEvents?: RawBillingEvent[] | null;
+};
+
+type TeamMember = {
+  userId?: string;
+  tradeName?: string;
+};
+
+type TeamMembersResponse = {
+  members?: TeamMember[];
+};
+
+type NormalizedRecentEvent = {
   id: string;
-  name?: string;
-  platform: string;
-  status: string;
-  lastSeenAt?: string;
+  type: string;
+  occurredAt: string;
 };
 
 type DashboardData = {
-  workspace: Workspace | null;
-  billing: BillingSummary | null;
-  devices: Device[];
+  workspace: CompanyInfoWorkspace;
+  planName: string;
+  subscriptionStatus: string;
+  trialLabel?: string;
+  memberCount: number;
+  recentEvents: NormalizedRecentEvent[];
+  hasPartialDataError: boolean;
 };
 
-const statusClass: Record<string, string> = {
-  active: 'bg-emerald-50 text-emerald-700',
-  revoked: 'bg-zinc-100 text-zinc-600',
-  pending: 'bg-amber-50 text-amber-700',
+const defaultWorkspace: CompanyInfoWorkspace = {
+  id: 'workspace',
+  name: 'Workspace',
+  addressLine1: null,
+  addressLine2: null,
+  postalCode: null,
+  city: null,
+  countryCode: null,
+  latitude: null,
+  longitude: null,
 };
+
+function normalizeWorkspace(rawWorkspace: RawWorkspace | null): CompanyInfoWorkspace {
+  if (!rawWorkspace) return defaultWorkspace;
+  return {
+    id: rawWorkspace.tenantId ?? rawWorkspace.id ?? defaultWorkspace.id,
+    name:
+      rawWorkspace.workspaceName ??
+      rawWorkspace.name ??
+      rawWorkspace.tradeName ??
+      defaultWorkspace.name,
+    addressLine1: rawWorkspace.addressLine1 ?? rawWorkspace.address_line_1 ?? null,
+    addressLine2: rawWorkspace.addressLine2 ?? rawWorkspace.address_line_2 ?? null,
+    postalCode: rawWorkspace.postalCode ?? rawWorkspace.postal_code ?? null,
+    city: rawWorkspace.city ?? null,
+    countryCode: rawWorkspace.countryCode ?? rawWorkspace.country_code ?? null,
+    latitude: rawWorkspace.latitude ?? rawWorkspace.latitude_deg ?? null,
+    longitude: rawWorkspace.longitude ?? rawWorkspace.longitude_deg ?? null,
+  };
+}
+
+function normalizeRecentEvents(rawBilling: RawBillingSummary | null): NormalizedRecentEvent[] {
+  const events = rawBilling?.recentEvents ?? [];
+  return events
+    .map((event, index) => ({
+      id: String(event.id ?? index),
+      type: event.type ?? 'Ereignis',
+      occurredAt:
+        event.createdAt ??
+        event.occurredAt ??
+        event.timestamp ??
+        new Date().toISOString(),
+    }))
+    .slice(0, 8);
+}
+
+function getTrialLabel(rawBilling: RawBillingSummary | null): string | undefined {
+  const trialDate =
+    rawBilling?.subscription?.trialEndsAt ??
+    rawBilling?.subscription?.trialEnd ??
+    rawBilling?.trialEndsAt;
+  if (!trialDate) return undefined;
+  return `Testphase bis ${formatDate(trialDate)}`;
+}
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [data, setData] = useState<DashboardData>({ workspace: null, billing: null, devices: [] });
+  const [data, setData] = useState<DashboardData>({
+    workspace: defaultWorkspace,
+    planName: 'Kein Plan',
+    subscriptionStatus: 'none',
+    memberCount: 0,
+    recentEvents: [],
+    hasPartialDataError: false,
+  });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   const fetchData = useCallback(async () => {
-    const token = localStorage.getItem('zg_access_token');
+    const token = await getAccessToken();
     if (!token) {
       router.push('/signin');
+      setLoading(false);
       return;
     }
 
     setLoading(true);
-    setError('');
 
-    const [workspaceRes, billingRes, devicesRes] = await Promise.allSettled([
-      apiRequest<Workspace>({ path: '/v1/workspace/me', token }),
-      apiRequest<BillingSummary>({ path: '/v1/billing/summary', token }),
-      apiRequest<{ devices?: Device[] } | Device[]>({ path: '/v1/devices', token }),
+    const [workspaceRes, billingRes, teamRes] = await Promise.allSettled([
+      apiRequest<RawWorkspace>({ path: '/v1/workspace/me', token }),
+      apiRequest<RawBillingSummary>({ path: '/v1/billing/summary', token }),
+      apiRequest<TeamMembersResponse>({ path: '/v1/team/members', token }),
     ]);
 
-    const rawDevices = devicesRes.status === 'fulfilled' ? devicesRes.value : [];
-    const devices = Array.isArray(rawDevices) ? rawDevices : (rawDevices.devices ?? []);
+    const rawWorkspace = workspaceRes.status === 'fulfilled' ? workspaceRes.value : null;
+    const rawBilling = billingRes.status === 'fulfilled' ? billingRes.value : null;
+    const teamMembers = teamRes.status === 'fulfilled' ? (teamRes.value.members ?? []) : [];
 
     setData({
-      workspace: workspaceRes.status === 'fulfilled' ? workspaceRes.value : null,
-      billing: billingRes.status === 'fulfilled' ? billingRes.value : null,
-      devices,
+      workspace: normalizeWorkspace(rawWorkspace),
+      planName: rawBilling?.plan?.name ?? rawBilling?.planName ?? 'Kein Plan',
+      subscriptionStatus: rawBilling?.subscription?.status ?? rawBilling?.status ?? 'none',
+      trialLabel: getTrialLabel(rawBilling),
+      memberCount:
+        rawWorkspace?.memberCount ??
+        rawBilling?.memberCount ??
+        teamMembers.length ??
+        0,
+      recentEvents: normalizeRecentEvents(rawBilling),
+      hasPartialDataError: [workspaceRes, billingRes, teamRes].some((result) => result.status === 'rejected'),
     });
-
-    const failures = [workspaceRes, billingRes, devicesRes].filter((r) => r.status === 'rejected');
-    if (failures.length > 0) {
-      setError('Einige Daten konnten nicht geladen werden. API erreichbar?');
-    }
 
     setLoading(false);
   }, [router]);
@@ -85,129 +202,58 @@ export default function DashboardPage() {
     fetchData();
   }, [fetchData]);
 
-  const activeCount = data.devices.filter((d) => d.status === 'active').length;
-
   if (loading) {
     return (
-      <div className="px-6 py-12">
-        <div className="h-8 w-52 animate-pulse rounded-md bg-muted" />
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
+      <div className="space-y-4">
+        <div className="h-10 w-56 animate-pulse rounded-md bg-muted" />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-32 animate-pulse rounded-xl bg-muted" />
+            <div key={i} className="h-32 animate-pulse rounded-xl bg-muted/50" />
           ))}
         </div>
-        <div className="mt-8 h-64 animate-pulse rounded-xl bg-muted" />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="h-80 animate-pulse rounded-xl bg-muted/50" />
+          <div className="space-y-4">
+            <div className="h-40 animate-pulse rounded-xl bg-muted/50" />
+            <div className="h-40 animate-pulse rounded-xl bg-muted/50" />
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="px-6 py-12">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-semibold">{data.workspace?.workspaceName ?? 'Dashboard'}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {[data.workspace?.tradeName, data.workspace?.role].filter(Boolean).join(' · ')}
-          </p>
+    <div className="space-y-4">
+      <PageHeader
+        title="Übersicht"
+        description={data.workspace.name}
+        badge={
+          <Badge
+            variant="outline"
+            className="border-(--enterprise-accent)/40 bg-(--enterprise-accent-soft) font-mono text-xs text-(--enterprise-accent)"
+          >
+            {data.planName}
+          </Badge>
+        }
+      />
+      {data.hasPartialDataError && (
+        <p className="text-sm text-muted-foreground">
+          Einige Daten konnten nicht geladen werden. Es werden Fallback-Werte angezeigt.
+        </p>
+      )}
+      <StatsGrid
+        memberCount={data.memberCount}
+        planName={data.planName}
+        subscriptionStatus={data.subscriptionStatus}
+        trialLabel={data.trialLabel}
+      />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <RecentActivity events={data.recentEvents} className="h-full" />
+        <div className="flex flex-col gap-4">
+          <CompanyInfoCard workspace={data.workspace} />
+          <QuickActions />
         </div>
-        <Button variant="outline" size="sm" onClick={fetchData} className="gap-2">
-          <RefreshCw className="h-3.5 w-3.5" />
-          Aktualisieren
-        </Button>
       </div>
-
-      {error && (
-        <div className="mt-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          {error}
-        </div>
-      )}
-
-      <section className="mt-8 grid gap-4 md:grid-cols-3">
-        <article className="rounded-xl border border-border bg-card p-5">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Building2 className="h-4 w-4" />
-            <span className="text-xs font-medium uppercase tracking-wide">Workspace</span>
-          </div>
-          <p className="mt-3 truncate text-xl font-semibold">
-            {data.workspace?.workspaceName ?? '–'}
-          </p>
-          <p className="mt-1 truncate text-sm text-muted-foreground">{data.workspace?.email ?? '–'}</p>
-        </article>
-
-        <article className="rounded-xl border border-border bg-card p-5">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <CreditCard className="h-4 w-4" />
-            <span className="text-xs font-medium uppercase tracking-wide">Plan</span>
-          </div>
-          <p className="mt-3 text-xl font-semibold">{data.billing?.planName ?? '–'}</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {data.billing?.status ?? 'Unbekannt'}
-            {data.billing?.currentPeriodEnd
-              ? ` · bis ${new Date(data.billing.currentPeriodEnd).toLocaleDateString('de-DE')}`
-              : ''}
-          </p>
-        </article>
-
-        <article className="rounded-xl border border-border bg-card p-5">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Monitor className="h-4 w-4" />
-            <span className="text-xs font-medium uppercase tracking-wide">Geräte</span>
-          </div>
-          <p className="mt-3 text-3xl font-semibold">{activeCount}</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {activeCount} aktiv · {data.devices.length} gesamt
-          </p>
-        </article>
-      </section>
-
-      {data.devices.length > 0 ? (
-        <section className="mt-8">
-          <h2 className="text-lg font-semibold">Geräte</h2>
-          <div className="mt-4 overflow-hidden rounded-xl border border-border">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-4 py-3 font-medium">Plattform</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Zuletzt gesehen</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.devices.map((device) => (
-                  <tr key={device.id} className="border-t border-border">
-                    <td className="px-4 py-3 font-medium">{device.name ?? device.id.slice(0, 8)}</td>
-                    <td className="px-4 py-3 capitalize text-muted-foreground">{device.platform}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`rounded px-2 py-0.5 text-xs font-medium ${statusClass[device.status] ?? 'bg-zinc-100 text-zinc-600'}`}
-                      >
-                        {device.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {device.lastSeenAt
-                        ? new Date(device.lastSeenAt).toLocaleDateString('de-DE')
-                        : '–'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : (
-        <section className="mt-8">
-          <div className="rounded-xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center">
-            <Monitor className="mx-auto h-8 w-8 text-muted-foreground/50" />
-            <p className="mt-3 font-medium">Noch keine Geräte registriert</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Geräte verbinden sich automatisch beim ersten Sync.
-            </p>
-          </div>
-        </section>
-      )}
     </div>
   );
 }

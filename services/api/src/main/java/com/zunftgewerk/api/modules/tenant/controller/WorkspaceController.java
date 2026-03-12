@@ -2,6 +2,7 @@ package com.zunftgewerk.api.modules.tenant.controller;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zunftgewerk.api.modules.identity.repository.UserRepository;
 import com.zunftgewerk.api.modules.identity.service.RefreshTokenService;
 import com.zunftgewerk.api.modules.identity.web.AuthCookieService;
 import com.zunftgewerk.api.modules.tenant.entity.TenantEntity;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -27,17 +29,20 @@ public class WorkspaceController {
     private final RefreshTokenService refreshTokenService;
     private final TenantRepository tenantRepository;
     private final MembershipRepository membershipRepository;
+    private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
     public WorkspaceController(
         RefreshTokenService refreshTokenService,
         TenantRepository tenantRepository,
         MembershipRepository membershipRepository,
+        UserRepository userRepository,
         ObjectMapper objectMapper
     ) {
         this.refreshTokenService = refreshTokenService;
         this.tenantRepository = tenantRepository;
         this.membershipRepository = membershipRepository;
+        this.userRepository = userRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -62,6 +67,8 @@ public class WorkspaceController {
         response.put("id", tenant.getId().toString());
         response.put("name", tenant.getName());
         response.put("slug", tenant.getTradeSlug());
+        appendCurrentUserFields(response, session.userId());
+        appendEffectiveProfileFields(response, session.userId(), tenant);
         response.put("memberCount", memberCount);
         putAddressFields(response, tenant.getAddressJson());
         return ResponseEntity.ok(response);
@@ -104,6 +111,8 @@ public class WorkspaceController {
         response.put("id", tenant.getId().toString());
         response.put("name", tenant.getName());
         response.put("slug", tenant.getTradeSlug());
+        appendCurrentUserFields(response, session.userId());
+        appendEffectiveProfileFields(response, session.userId(), tenant);
         response.put("memberCount", memberCount);
         putAddressFields(response, tenant.getAddressJson());
         return ResponseEntity.ok(response);
@@ -145,6 +154,8 @@ public class WorkspaceController {
         response.put("id", tenant.getId().toString());
         response.put("name", tenant.getName());
         response.put("slug", tenant.getTradeSlug());
+        appendCurrentUserFields(response, session.userId());
+        appendEffectiveProfileFields(response, session.userId(), tenant);
         response.put("memberCount", memberCount);
         putAddressFields(response, tenant.getAddressJson());
         return ResponseEntity.ok(response);
@@ -173,6 +184,37 @@ public class WorkspaceController {
         } catch (Exception ignored) {
             // leave all fields as null
         }
+    }
+
+    private void appendEffectiveProfileFields(
+        Map<String, Object> response,
+        UUID userId,
+        TenantEntity tenant
+    ) {
+        String role = membershipRepository.findByTenantIdAndUserId(tenant.getId(), userId)
+            .stream()
+            .map(membership -> membership.getRoleKey() != null ? membership.getRoleKey().toLowerCase() : null)
+            .filter(value -> value != null && !value.isBlank())
+            .findFirst()
+            .orElse("member");
+
+        response.put("role", role);
+        response.put("tradeSlug", tenant.getTradeSlug());
+        response.put("capabilities", capabilitiesForRole(role));
+    }
+
+    private void appendCurrentUserFields(Map<String, Object> response, UUID userId) {
+        var user = userRepository.findById(userId).orElse(null);
+        response.put("email", user != null ? user.getEmail() : null);
+        response.put("fullName", user != null ? user.getFullName() : null);
+    }
+
+    private List<String> capabilitiesForRole(String role) {
+        return switch (role) {
+            case "owner" -> List.of("dashboard:view", "licenses:view", "devices:view", "team:view", "settings:view");
+            case "admin" -> List.of("dashboard:view", "devices:view", "team:view", "settings:view");
+            default -> List.of("dashboard:view", "devices:view");
+        };
     }
 
     private RefreshTokenService.PeekedSession resolveSession(String cookieHeader) {

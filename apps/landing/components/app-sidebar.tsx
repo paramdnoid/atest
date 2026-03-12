@@ -78,7 +78,7 @@ export function AppSidebar({
             <span className="font-display text-sm font-bold uppercase tracking-tight">
               Zunft<span className="text-primary">Gewerk</span>
             </span>
-            <span className="mt-0.5 truncate text-[11px] text-muted-foreground">{workspaceName}</span>
+            <span className="mt-0 truncate text-[11px] text-muted-foreground">{workspaceName}</span>
           </div>
         </div>
       </SidebarHeader>
