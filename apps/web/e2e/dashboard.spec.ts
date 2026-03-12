@@ -8,17 +8,17 @@ let cfg: E2EConfig;
 
 async function loginWithPasswordAndMfa(page: Page): Promise<void> {
   await page.goto('/signin');
-  await expect(page.getByRole('heading', { name: 'Anmeldung' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Willkommen zurück.' })).toBeVisible();
 
   await page.locator('input[type="email"]').fill(cfg.adminEmail);
   await page.locator('input[type="password"]').fill(cfg.adminPassword);
-  await page.getByRole('button', { name: 'Mit Passwort anmelden' }).click();
+  await page.getByRole('button', { name: 'Anmelden' }).click();
 
-  await expect(page.getByText('MFA erforderlich. Bitte Code eingeben.')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByLabel('Authenticator-Code')).toBeVisible({ timeout: 15_000 });
 
   const code = await generateStableTotpCode(cfg.adminTotpSecret);
-  await page.locator('input[placeholder="123456"]').fill(code);
-  await page.getByRole('button', { name: 'MFA bestätigen' }).click();
+  await page.locator('input[placeholder="000000"]').fill(code);
+  await page.getByRole('button', { name: 'Bestätigen' }).click();
 
   await page.waitForURL('**/dashboard', { timeout: 15_000 });
 }
@@ -50,11 +50,10 @@ test.describe('dashboard navigation', () => {
 
   test('sidebar navigation renders all links', async ({ page }) => {
     await expect(page.getByRole('link', { name: 'Übersicht' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Lizenzen' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Abrechnung' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Geräte' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Team' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Team & Lizenzen' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Einstellungen' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Abmelden' })).toBeVisible();
   });
 
   test('devices page loads without error', async ({ page }) => {
@@ -64,9 +63,9 @@ test.describe('dashboard navigation', () => {
   });
 
   test('team page loads without error', async ({ page }) => {
-    await page.getByRole('link', { name: 'Team' }).click();
+    await page.getByRole('link', { name: 'Team & Lizenzen' }).click();
     await page.waitForURL('**/team', { timeout: 10_000 });
-    await expect(page.getByRole('heading', { name: 'Team' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Team & Lizenzen' })).toBeVisible();
   });
 
   test('settings page loads without error', async ({ page }) => {
@@ -85,7 +84,8 @@ test.describe('dashboard navigation', () => {
   });
 
   test('sign out clears session and redirects to signin', async ({ page }) => {
-    await page.getByRole('button', { name: 'Abmelden' }).click();
+    await page.locator('button[aria-haspopup="menu"]').click();
+    await page.getByRole('menuitem', { name: 'Abmelden' }).click();
     await expect(page).toHaveURL(/\/signin/, { timeout: 10_000 });
     // After sign-out, /dashboard should redirect back to /signin
     await page.goto('/dashboard');

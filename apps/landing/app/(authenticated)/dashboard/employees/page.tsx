@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 
 import { getSession } from "@/lib/session";
+import { buildCookieHeader } from "@/lib/server-cookie";
 import { DevicesPanel, type Device } from "@/components/dashboard/devices-panel";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { TeamMembersPanel, type TeamMember } from "@/components/dashboard/team-members-panel";
@@ -128,11 +128,7 @@ export default async function EmployeesPage() {
 
   const isAdmin = session.role === "admin" || session.role === "owner";
 
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore
-    .getAll()
-    .map((c) => `${c.name}=${c.value}`)
-    .join("; ");
+  const cookieHeader = await buildCookieHeader();
 
   const [devicesResult, registrationToken, billing, teamResult, seatSummary] = await Promise.all([
     fetchDevices(cookieHeader),

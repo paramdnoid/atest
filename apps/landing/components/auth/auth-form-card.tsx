@@ -10,7 +10,7 @@ type AuthFormCardProps = {
   onSubmit: (e: FormEvent) => void;
   kickerLabel: string;
   error: string | null;
-  footerLink: { href: string; label: string; prefix: string };
+  footerLink?: { href: string; label: string; prefix?: string };
   extraFooter?: ReactNode;
 };
 
@@ -38,14 +38,16 @@ export function AuthFormCard({
 
         {children}
 
-        <div className="premium-divider" />
+        {(footerLink || extraFooter) && <div className="premium-divider" />}
 
-        <p className="text-center text-sm text-muted-foreground">
-          {footerLink.prefix}{" "}
-          <Link href={footerLink.href} className="text-primary hover:underline">
-            {footerLink.label}
-          </Link>
-        </p>
+        {footerLink && (
+          <p className="text-center text-sm text-muted-foreground">
+            {footerLink.prefix ? `${footerLink.prefix} ` : ""}
+            <Link href={footerLink.href} className="text-primary hover:underline">
+              {footerLink.label}
+            </Link>
+          </p>
+        )}
         {extraFooter}
       </div>
     </form>

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 
 import { getSession } from "@/lib/session";
+import { buildCookieHeader } from "@/lib/server-cookie";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { WorkspaceSettingsForm } from "@/components/dashboard/workspace-settings-form";
 import { MfaSection } from "@/components/dashboard/mfa-section";
@@ -34,11 +34,7 @@ export default async function SettingsPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore
-    .getAll()
-    .map((c) => `${c.name}=${c.value}`)
-    .join("; ");
+  const cookieHeader = await buildCookieHeader();
 
   const [workspace, mfaEnabled] = await Promise.all([
     fetchWorkspace(cookieHeader),

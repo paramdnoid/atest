@@ -1,24 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8080';
-
-type ApiResponse<T> = Promise<T>;
-
-async function postJson<T>(path: string, body: unknown): ApiResponse<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    credentials: 'include',
-    body: JSON.stringify(body)
-  });
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error((data as { error?: string }).error ?? `Request failed: ${path}`);
-  }
-
-  return data as T;
-}
+import { apiJson } from '@/lib/http-client';
 
 export type LoginAuthenticatedResponse = {
   state: 'AUTHENTICATED';
@@ -40,7 +20,11 @@ export type LoginMfaRequiredResponse = {
 export type LoginResponse = LoginAuthenticatedResponse | LoginMfaRequiredResponse;
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
-  return postJson<LoginResponse>('/v1/auth/login', { email, password });
+  return apiJson<LoginResponse>('/v1/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
 }
 
 export type PasskeyBeginResponse = {
@@ -51,7 +35,11 @@ export type PasskeyBeginResponse = {
 };
 
 export async function beginPasskey(email: string, mode: 'register' | 'authenticate'): Promise<PasskeyBeginResponse> {
-  return postJson<PasskeyBeginResponse>('/v1/auth/passkey/begin', { email, mode });
+  return apiJson<PasskeyBeginResponse>('/v1/auth/passkey/begin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, mode }),
+  });
 }
 
 export async function verifyPasskey(
@@ -60,18 +48,38 @@ export async function verifyPasskey(
   credentialJson: string,
   mode: 'register' | 'authenticate'
 ): Promise<LoginResponse> {
-  return postJson<LoginResponse>('/v1/auth/passkey/verify', { email, challengeId, credentialJson, mode });
+  return apiJson<LoginResponse>('/v1/auth/passkey/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, challengeId, credentialJson, mode }),
+  });
 }
 
 export async function verifyMfa(userId: string, mfaToken: string, code?: string, backupCode?: string) {
-  return postJson<{ verified: boolean; accessToken: string; expiresAt: string }>('/v1/auth/mfa/verify', {
-    userId,
-    mfaToken,
-    code: code ?? '',
-    backupCode: backupCode ?? ''
+  return apiJson<{ verified: boolean; accessToken: string; expiresAt: string }>('/v1/auth/mfa/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId,
+      mfaToken,
+      code: code ?? '',
+      backupCode: backupCode ?? '',
+    }),
   });
 }
 
 export async function refreshSession() {
-  return postJson<{ accessToken: string; expiresAt: string }>('/v1/auth/refresh', {});
+  return apiJson<{ accessToken: string; expiresAt: string }>('/v1/auth/refresh', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+}
+
+export async function logoutSession() {
+  return apiJson<{ revoked: boolean }>('/v1/auth/logout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
 }

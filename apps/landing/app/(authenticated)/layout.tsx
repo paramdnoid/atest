@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 
 import { getSession } from "@/lib/session";
+import { buildCookieHeader } from "@/lib/server-cookie";
 import { AppShell } from "@/components/app-shell";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
@@ -26,12 +26,7 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
     redirect("/login");
   }
 
-  const { cookies } = await import("next/headers");
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore
-    .getAll()
-    .map((c: { name: string; value: string }) => `${c.name}=${c.value}`)
-    .join("; ");
+  const cookieHeader = await buildCookieHeader();
 
   const workspaceName = await getWorkspaceName(session.workspaceId, cookieHeader);
 

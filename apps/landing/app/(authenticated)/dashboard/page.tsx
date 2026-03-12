@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 
 import { getSession } from "@/lib/session";
+import { buildCookieHeader } from "@/lib/server-cookie";
 import { CompanyInfoCard } from "@/components/dashboard/company-info-card";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { QuickActions } from "@/components/dashboard/quick-actions";
@@ -36,11 +36,7 @@ export default async function DashboardPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore
-    .getAll()
-    .map((c) => `${c.name}=${c.value}`)
-    .join("; ");
+  const cookieHeader = await buildCookieHeader();
 
   const [workspace, billing] = await Promise.all([
     fetchWorkspace(cookieHeader),

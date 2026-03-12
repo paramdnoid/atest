@@ -49,6 +49,53 @@ function humanizeError(payload: Record<string, unknown>, fallback: string): stri
   return typeof message === "string" && message.length > 0 ? message : fallback;
 }
 
+function parseOnboardingStatus(payload: Record<string, unknown>): OnboardingStatus {
+  const fallback = buildDefaultStatus();
+  const subscriptionRaw =
+    typeof payload.subscription === "object" && payload.subscription !== null
+      ? (payload.subscription as Record<string, unknown>)
+      : null;
+  const billingState =
+    payload.billingState === "active" ||
+    payload.billingState === "issue" ||
+    payload.billingState === "canceled" ||
+    payload.billingState === "none"
+      ? payload.billingState
+      : fallback.billingState;
+  const nextStep =
+    payload.nextStep === "plan" ||
+    payload.nextStep === "account" ||
+    payload.nextStep === "verify" ||
+    payload.nextStep === "signin" ||
+    payload.nextStep === "billing" ||
+    payload.nextStep === "complete"
+      ? payload.nextStep
+      : fallback.nextStep;
+
+  return {
+    authenticated: payload.authenticated === true,
+    userId: typeof payload.userId === "string" ? payload.userId : null,
+    email: typeof payload.email === "string" ? payload.email : null,
+    isEmailVerified: payload.isEmailVerified === true,
+    workspaceId: typeof payload.workspaceId === "string" ? payload.workspaceId : null,
+    role: typeof payload.role === "string" ? payload.role : null,
+    canManageBilling: payload.canManageBilling === true,
+    subscription: subscriptionRaw
+      ? {
+          planCode: typeof subscriptionRaw.planCode === "string" ? subscriptionRaw.planCode : "",
+          status: typeof subscriptionRaw.status === "string" ? subscriptionRaw.status : "",
+          billingInterval:
+            subscriptionRaw.billingInterval === "year" ? "year" : "month",
+          hasStripeCustomer: subscriptionRaw.hasStripeCustomer === true,
+          hasStripeSubscription: subscriptionRaw.hasStripeSubscription === true,
+        }
+      : null,
+    billingProfile: null,
+    billingState,
+    nextStep,
+  };
+}
+
 export function useOnboardingFlow(
   plans: OnboardingPlan[],
   initialPlanCode: string | null,
@@ -87,7 +134,7 @@ export function useOnboardingFlow(
           setStatus(buildDefaultStatus());
           return buildDefaultStatus();
         }
-        const next = payload as unknown as OnboardingStatus;
+        const next = parseOnboardingStatus(payload);
         setStatus(next);
         return next;
       } catch {

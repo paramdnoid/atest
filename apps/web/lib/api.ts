@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8080';
+import { apiJson } from '@/lib/http-client';
 
 export type ApiRequest = {
   path: string;
@@ -8,20 +8,12 @@ export type ApiRequest = {
 };
 
 export async function apiRequest<T>({ path, method = 'GET', body, token }: ApiRequest): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  return apiJson<T>(path, {
     method,
-    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
-    cache: 'no-store'
   });
-
-  if (!response.ok) {
-    throw new Error(`API request failed (${response.status}): ${path}`);
-  }
-
-  return (await response.json()) as T;
 }

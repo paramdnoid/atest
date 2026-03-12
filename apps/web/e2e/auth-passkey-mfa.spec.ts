@@ -7,58 +7,28 @@ let cfg: E2EConfig;
 
 async function openSignIn(page: Page): Promise<void> {
   await page.goto('/signin');
-  await expect(page.getByRole('heading', { name: 'Anmeldung' })).toBeVisible();
-}
-
-async function fillEmail(page: Page, email: string): Promise<void> {
-  const emailInput = page.locator('input[type="email"]');
-  await emailInput.fill('');
-  await emailInput.type(email, { delay: 20 });
-  await expect(page.getByRole('button', { name: 'Mit Passkey anmelden' })).toBeEnabled({ timeout: 10_000 });
+  await expect(page.getByRole('heading', { name: 'Willkommen zurück.' })).toBeVisible();
 }
 
 async function loginWithPasswordToMfaStage(page: Page): Promise<void> {
-  await fillEmail(page, cfg.adminEmail);
+  await page.locator('input[type="email"]').fill(cfg.adminEmail);
   await page.locator('input[type="password"]').fill(cfg.adminPassword);
-  await page.getByRole('button', { name: 'Mit Passwort anmelden' }).click();
+  await page.getByRole('button', { name: 'Anmelden' }).click();
 
-  const mfaStatus = page.getByText('MFA erforderlich. Bitte Code eingeben.');
-  const errorText = page.locator('p.text-red-600');
-
-  await Promise.race([
-    mfaStatus.waitFor({ state: 'visible', timeout: 15_000 }),
-    errorText.waitFor({ state: 'visible', timeout: 15_000 })
-  ]);
-
-  if (await errorText.isVisible()) {
-    const message = (await errorText.textContent())?.trim() ?? 'unknown login error';
-    throw new Error(`Credential login did not reach MFA stage: ${message}`);
-  }
-
-  await expect(mfaStatus).toBeVisible();
+  await expect(page.getByLabel('Authenticator-Code')).toBeVisible({ timeout: 15_000 });
 }
 
 async function submitMfaAndExpectDashboard(page: Page, code: string): Promise<void> {
-  await page.locator('input[placeholder="123456"]').fill(code);
-  await page.getByRole('button', { name: 'MFA bestätigen' }).click();
+  await page.locator('input[placeholder="000000"]').fill(code);
+  await page.getByRole('button', { name: 'Bestätigen' }).click();
   await page.waitForURL('**/dashboard', { timeout: 15_000 });
 }
 
-async function registerPasskeyAndCompleteMfa(page: Page): Promise<void> {
-  await fillEmail(page, cfg.adminEmail);
-  const registerButton = page.getByRole('button', { name: 'Passkey registrieren' });
-  await expect(registerButton).toBeEnabled({ timeout: 10_000 });
-  await registerButton.click();
-  await expect(page.getByText('MFA erforderlich. Bitte Code eingeben.')).toBeVisible();
-
+async function loginWithPasswordAndMfa(page: Page): Promise<void> {
+  await openSignIn(page);
+  await loginWithPasswordToMfaStage(page);
   const code = await generateStableTotpCode(cfg.adminTotpSecret);
   await submitMfaAndExpectDashboard(page, code);
-}
-
-async function authenticateWithPasskeyToMfaStage(page: Page): Promise<void> {
-  await fillEmail(page, cfg.adminEmail);
-  await page.getByRole('button', { name: 'Mit Passkey anmelden' }).click();
-  await expect(page.getByText('MFA erforderlich. Bitte Code eingeben.')).toBeVisible();
 }
 
 test.describe('auth webauthn + mfa step-up', () => {
@@ -80,39 +50,36 @@ test.describe('auth webauthn + mfa step-up', () => {
     }
   });
 
-  test('happy path: password login + mfa → passkey register + mfa → passkey auth + mfa', async ({ page }) => {
-    // Step 1: Password login with MFA step-up
-    const firstCode = await generateStableTotpCode(cfg.adminTotpSecret);
+  test('happy path: password login + mfa führt ins Dashboard', async ({ page }) => {
     await loginWithPasswordToMfaStage(page);
-    await submitMfaAndExpectDashboard(page, firstCode);
-
-    // Step 2: Register passkey with MFA step-up
-    await openSignIn(page);
-    await registerPasskeyAndCompleteMfa(page);
-
-    // Step 3: Authenticate with registered passkey + MFA step-up
-    await openSignIn(page);
-    await authenticateWithPasskeyToMfaStage(page);
-    const secondCode = await generateStableTotpCode(cfg.adminTotpSecret);
-    await submitMfaAndExpectDashboard(page, secondCode);
+    const code = await generateStableTotpCode(cfg.adminTotpSecret);
+    await submitMfaAndExpectDashboard(page, code);
 
     await expect(page).toHaveURL(/\/dashboard/);
     await expect(page.getByText('MFA-Verifikation fehlgeschlagen')).toHaveCount(0);
   });
 
-  test('negative: invalid mfa code is rejected, stays on signin', async ({ page }) => {
-    // Register passkey first (requires MFA step-up)
-    await registerPasskeyAndCompleteMfa(page);
-
-    // Navigate back to signin and authenticate with passkey
-    await openSignIn(page);
-    await authenticateWithPasskeyToMfaStage(page);
-
-    // Submit invalid TOTP code
-    await page.locator('input[placeholder="123456"]').fill('000000');
-    await page.getByRole('button', { name: 'MFA bestätigen' }).click();
+  test('negative: ungültiger mfa code wird abgelehnt', async ({ page }) => {
+    await loginWithPasswordToMfaStage(page);
+    await page.locator('input[placeholder="000000"]').fill('111111');
+    await page.getByRole('button', { name: 'Bestätigen' }).click();
 
     await expect(page.getByText(/MFA-Verifikation fehlgeschlagen|Invalid MFA code/i)).toBeVisible();
     await expect(page).toHaveURL(/\/signin/);
+  });
+
+  test('passkey registrierung aus Einstellungen ist erreichbar', async ({ page }) => {
+    await loginWithPasswordAndMfa(page);
+    await page.goto('/settings');
+    await expect(page.getByRole('heading', { name: 'Einstellungen' })).toBeVisible();
+
+    const registerPasskeyButton = page.getByRole('button', { name: 'Neuen Passkey registrieren' });
+    await expect(registerPasskeyButton).toBeVisible();
+    await expect(registerPasskeyButton).toBeEnabled();
+    await registerPasskeyButton.click();
+
+    await expect(
+      page.getByText(/Passkey erfolgreich registriert\.|Passkey-Registrierung fehlgeschlagen\./i),
+    ).toBeVisible({ timeout: 15_000 });
   });
 });

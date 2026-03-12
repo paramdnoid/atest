@@ -1,12 +1,13 @@
-function fromBase64Url(input: string): Uint8Array {
+function fromBase64Url(input: string): ArrayBuffer {
   const padded = input + '='.repeat((4 - (input.length % 4)) % 4);
   const b64 = padded.replace(/-/g, '+').replace(/_/g, '/');
   const binary = atob(b64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) {
+  const buffer = new ArrayBuffer(binary.length);
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < bytes.length; i += 1) {
     bytes[i] = binary.charCodeAt(i);
   }
-  return bytes;
+  return buffer;
 }
 
 function toBase64Url(buffer: ArrayBuffer): string {
@@ -18,42 +19,121 @@ function toBase64Url(buffer: ArrayBuffer): string {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function unwrapPublicKey(options: any): any {
-  if (options && typeof options === 'object' && options.publicKey) {
-    return options.publicKey;
+type RecordValue = Record<string, unknown>;
+
+type EncodedDescriptor = {
+  id: string;
+  type?: PublicKeyCredentialType;
+  transports?: AuthenticatorTransport[];
+};
+
+type EncodedRequestOptions = {
+  challenge: string;
+  timeout?: number;
+  rpId?: string;
+  allowCredentials?: EncodedDescriptor[];
+  userVerification?: UserVerificationRequirement;
+  extensions?: AuthenticationExtensionsClientInputs;
+};
+
+type EncodedUserEntity = {
+  id: string;
+  name: string;
+  displayName: string;
+};
+
+type EncodedCreationOptions = {
+  challenge: string;
+  rp: PublicKeyCredentialRpEntity;
+  user: EncodedUserEntity;
+  pubKeyCredParams: PublicKeyCredentialParameters[];
+  timeout?: number;
+  attestation?: AttestationConveyancePreference;
+  excludeCredentials?: EncodedDescriptor[];
+  authenticatorSelection?: AuthenticatorSelectionCriteria;
+  extensions?: AuthenticationExtensionsClientInputs;
+};
+
+function isRecord(value: unknown): value is RecordValue {
+  return typeof value === 'object' && value !== null;
+}
+
+function getString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function unwrapPublicKey(value: unknown): unknown {
+  if (!isRecord(value)) return value;
+  return 'publicKey' in value ? value.publicKey : value;
+}
+
+function mapDescriptors(raw: unknown): PublicKeyCredentialDescriptor[] {
+  if (!Array.isArray(raw)) return [];
+
+  const descriptors: PublicKeyCredentialDescriptor[] = [];
+  for (const entry of raw) {
+    if (!isRecord(entry)) continue;
+    const id = getString(entry.id);
+    if (!id) continue;
+    descriptors.push({
+      id: fromBase64Url(id),
+      type: (entry.type as PublicKeyCredentialType | undefined) ?? 'public-key',
+      transports: Array.isArray(entry.transports)
+        ? (entry.transports as AuthenticatorTransport[])
+        : undefined,
+    });
   }
-  return options;
+  return descriptors;
 }
 
-function transformPublicKeyOptions(rawOptions: any): PublicKeyCredentialRequestOptions {
-  const options = unwrapPublicKey(rawOptions);
+function transformPublicKeyOptions(rawOptions: unknown): PublicKeyCredentialRequestOptions {
+  const unwrapped = unwrapPublicKey(rawOptions);
+  if (!isRecord(unwrapped)) {
+    throw new Error('Invalid WebAuthn request options');
+  }
 
-  const transformed: PublicKeyCredentialRequestOptions = {
-    ...options,
-    challenge: fromBase64Url(options.challenge),
-    allowCredentials: (options.allowCredentials ?? []).map((cred: any) => ({
-      ...cred,
-      id: fromBase64Url(cred.id)
-    }))
-  };
-
-  return transformed;
-}
-
-function transformCreationOptions(rawOptions: any): PublicKeyCredentialCreationOptions {
-  const options = unwrapPublicKey(rawOptions);
+  const options = unwrapped as EncodedRequestOptions;
+  if (!options.challenge || typeof options.challenge !== 'string') {
+    throw new Error('Missing WebAuthn challenge');
+  }
 
   return {
-    ...options,
     challenge: fromBase64Url(options.challenge),
+    timeout: options.timeout,
+    rpId: options.rpId,
+    allowCredentials: mapDescriptors(options.allowCredentials),
+    userVerification: options.userVerification,
+    extensions: options.extensions,
+  };
+}
+
+function transformCreationOptions(rawOptions: unknown): PublicKeyCredentialCreationOptions {
+  const unwrapped = unwrapPublicKey(rawOptions);
+  if (!isRecord(unwrapped)) {
+    throw new Error('Invalid WebAuthn creation options');
+  }
+
+  const options = unwrapped as EncodedCreationOptions;
+  if (!options.challenge || typeof options.challenge !== 'string') {
+    throw new Error('Missing WebAuthn challenge');
+  }
+  if (!options.user || typeof options.user.id !== 'string') {
+    throw new Error('Missing WebAuthn user');
+  }
+
+  return {
+    challenge: fromBase64Url(options.challenge),
+    rp: options.rp,
     user: {
       ...options.user,
       id: fromBase64Url(options.user.id)
     },
-    excludeCredentials: (options.excludeCredentials ?? []).map((cred: any) => ({
-      ...cred,
-      id: fromBase64Url(cred.id)
-    }))
+    pubKeyCredParams: options.pubKeyCredParams,
+    timeout: options.timeout,
+    attestation: options.attestation,
+    authenticatorSelection: options.authenticatorSelection,
+    extensions: options.extensions,
+    excludeCredentials: mapDescriptors(options.excludeCredentials),
   };
 }
 

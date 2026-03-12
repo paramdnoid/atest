@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { fetchApi } from "@/lib/api-client";
+import { fetchApi, fetchJsonSafely } from "@/lib/api-client";
 import { AuthFormCard } from "@/components/auth/auth-form-card";
 import { GENERIC_ERROR_MESSAGE } from "@/components/auth/form-error";
 import { LoadingButton } from "@/components/ui/loading-button";
@@ -56,7 +56,7 @@ export function LoginForm() {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+      const data = (await fetchJsonSafely(res)) as Record<string, unknown> | null;
 
       if (!res.ok) {
         setError(
@@ -102,7 +102,7 @@ export function LoginForm() {
       });
 
       if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+        const data = (await fetchJsonSafely(res)) as Record<string, unknown> | null;
         setError(
           typeof data?.error === "string" ? data.error : "Code konnte nicht gesendet werden.",
         );
@@ -150,7 +150,7 @@ export function LoginForm() {
       });
 
       if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+        const data = (await fetchJsonSafely(res)) as Record<string, unknown> | null;
         setError(
           typeof data?.error === "string" ? data.error : "Code ungültig. Bitte erneut versuchen.",
         );

@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { buildCookieHeader } from "@/lib/server-cookie";
 
 export type Session = {
   userId: string;
@@ -20,11 +20,7 @@ export type Session = {
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 export async function getSession(): Promise<Session | null> {
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore
-    .getAll()
-    .map((c) => `${c.name}=${c.value}`)
-    .join("; ");
+  const cookieHeader = await buildCookieHeader();
 
   try {
     const res = await fetch(`${API_URL}/v1/onboarding/status`, {

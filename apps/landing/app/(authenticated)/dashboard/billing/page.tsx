@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 
 import { getSession } from "@/lib/session";
+import { buildCookieHeader } from "@/lib/server-cookie";
 import { BillingEventsTable } from "@/components/dashboard/billing-events-table";
 import { ManageSubscriptionButton } from "@/components/dashboard/manage-subscription-button";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -65,11 +65,7 @@ export default async function BillingPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore
-    .getAll()
-    .map((c) => `${c.name}=${c.value}`)
-    .join("; ");
+  const cookieHeader = await buildCookieHeader();
 
   const [billing, availablePlans] = await Promise.all([
     fetchBillingSummary(cookieHeader),

@@ -9,6 +9,7 @@ import { GENERIC_ERROR_MESSAGE } from '@/components/auth/form-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { fetchApi } from '@/lib/fetch-api';
+import { readJsonSafely } from '@/lib/http-client';
 
 type Step = 'credentials' | 'mfa';
 type MfaMode = 'totp' | 'backup' | 'email';
@@ -53,7 +54,7 @@ export function LoginForm() {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+      const data = (await readJsonSafely(res)) as Record<string, unknown> | null;
       if (!res.ok) {
         setError(
           typeof data?.error === 'string'
@@ -98,7 +99,7 @@ export function LoginForm() {
       });
 
       if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+        const data = (await readJsonSafely(res)) as Record<string, unknown> | null;
         setError(
           typeof data?.error === 'string' ? data.error : 'Code konnte nicht gesendet werden.',
         );
@@ -146,7 +147,7 @@ export function LoginForm() {
       });
 
       if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+        const data = (await readJsonSafely(res)) as Record<string, unknown> | null;
         setError(
           typeof data?.error === 'string' ? data.error : 'Code ungültig. Bitte erneut versuchen.',
         );

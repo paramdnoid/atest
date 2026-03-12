@@ -7,6 +7,7 @@ import {
   CAPABILITY_PROFILE_STORAGE_KEY,
   resolveCapabilityProfile,
 } from '@/lib/capability-mock';
+import { logoutSession } from '@/lib/auth-client';
 import { loadEffectiveProfile } from '@/lib/effective-profile';
 import type { EffectiveProfile } from '@/lib/effective-profile';
 import { moduleRegistry } from '@/lib/module-registry';
@@ -112,8 +113,14 @@ export function AppShell({ children }: { children: ReactNode }) {
     };
   }, [isLoadingProfile, pathname, router, visibleNavItems]);
 
-  function handleSignOut() {
+  async function handleSignOut() {
+    try {
+      await logoutSession();
+    } catch {
+      // Always clear local auth state even if remote logout fails.
+    }
     clearAccessToken();
+    localStorage.removeItem(CAPABILITY_PROFILE_STORAGE_KEY);
     router.push('/signin');
     router.refresh();
   }
