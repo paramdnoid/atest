@@ -2,6 +2,15 @@ import { resolveCapabilityProfile } from '@/lib/capability-mock';
 
 export type Capability =
   | 'dashboard:view'
+  | 'aufmass:view'
+  | 'quotes:view'
+  | 'sites:view'
+  | 'time:view'
+  | 'materials:view'
+  | 'invoices:view'
+  | 'handover:view'
+  | 'controlling:view'
+  | 'customers:view'
   | 'licenses:view'
   | 'devices:view'
   | 'team:view'
@@ -24,6 +33,15 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8
 
 const CAPABILITY_SET = new Set<Capability>([
   'dashboard:view',
+  'aufmass:view',
+  'quotes:view',
+  'sites:view',
+  'time:view',
+  'materials:view',
+  'invoices:view',
+  'handover:view',
+  'controlling:view',
+  'customers:view',
   'licenses:view',
   'devices:view',
   'team:view',
@@ -35,6 +53,61 @@ const ROLE_CAPABILITIES: Record<EffectiveRole, Capability[]> = {
   admin: ['dashboard:view', 'devices:view', 'team:view', 'settings:view'],
   member: ['dashboard:view', 'devices:view'],
 };
+
+const MALER_ROLE_CAPABILITY_EXTENSIONS: Record<EffectiveRole, Capability[]> = {
+  owner: [
+    'aufmass:view',
+    'quotes:view',
+    'sites:view',
+    'time:view',
+    'materials:view',
+    'invoices:view',
+    'handover:view',
+    'controlling:view',
+    'customers:view',
+  ],
+  admin: [
+    'aufmass:view',
+    'quotes:view',
+    'sites:view',
+    'time:view',
+    'materials:view',
+    'invoices:view',
+    'handover:view',
+    'controlling:view',
+    'customers:view',
+  ],
+  member: [
+    'aufmass:view',
+    'quotes:view',
+    'sites:view',
+    'time:view',
+    'materials:view',
+    'handover:view',
+    'customers:view',
+  ],
+};
+
+function resolveRoleCapabilities(role: EffectiveRole, trade?: EffectiveTrade): Capability[] {
+  const base = ROLE_CAPABILITIES[role];
+  if (trade !== 'MALER') {
+    return base;
+  }
+
+  return Array.from(new Set([...base, ...MALER_ROLE_CAPABILITY_EXTENSIONS[role]]));
+}
+
+function resolveEffectiveCapabilities(
+  role: EffectiveRole | undefined,
+  trade: EffectiveTrade | undefined,
+  directCapabilities: Capability[],
+): Capability[] {
+  if (!role) return directCapabilities;
+  const defaults = resolveRoleCapabilities(role, trade);
+  // Merge API-delivered capabilities with frontend defaults so new trade modules
+  // remain visible until backend capability payloads are extended.
+  return Array.from(new Set([...defaults, ...directCapabilities]));
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -95,15 +168,33 @@ function parseTrade(source: unknown): EffectiveTrade | undefined {
   const candidate = pickFirstString(source, [
     ['trade'],
     ['tradeName'],
+    ['tradeSlug'],
+    ['slug'],
     ['workspace', 'trade'],
     ['workspace', 'tradeName'],
+    ['workspace', 'tradeSlug'],
+    ['workspace', 'slug'],
     ['tenant', 'trade'],
     ['tenant', 'tradeName'],
+    ['tenant', 'tradeSlug'],
+    ['tenant', 'slug'],
   ]);
 
-  const normalized = candidate?.toUpperCase();
-  if (normalized === 'ELEKTRO' || normalized === 'SHK' || normalized === 'MALER') {
-    return normalized;
+  const normalized = candidate?.trim().toLowerCase();
+  if (!normalized) return undefined;
+
+  if (['elektro', 'electric', 'electrician'].includes(normalized)) {
+    return 'ELEKTRO';
+  }
+  if (['shk', 'sanitaer-heizung-klima', 'sanitär-heizung-klima', 'sanitaer', 'sanitär'].includes(normalized)) {
+    return 'SHK';
+  }
+  if (
+    ['maler', 'maler-und-tapezierer', 'maler-tapezierer', 'painter', 'paint'].includes(
+      normalized,
+    )
+  ) {
+    return 'MALER';
   }
   return undefined;
 }
@@ -172,7 +263,7 @@ export function normalizeEffectiveProfileResponse(
       ...parseCapabilities(candidate),
       ...parseCapabilities(payload),
     ];
-    const capabilities = directCapabilities.length > 0 ? directCapabilities : (role ? ROLE_CAPABILITIES[role] : []);
+    const capabilities = resolveEffectiveCapabilities(role, trade, directCapabilities);
 
     if (role && trade && tenantName && capabilities.length > 0) {
       return {
@@ -267,8 +358,7 @@ export async function loadEffectiveProfile(
     const trade = parseTrade(payload) ?? fallback.trade;
     const tenantName = parseTenantName(payload) ?? fallback.tenantName;
     const directCapabilities = parseCapabilities(payload);
-    const capabilities =
-      directCapabilities.length > 0 ? directCapabilities : ROLE_CAPABILITIES[role] ?? fallback.capabilities;
+    const capabilities = resolveEffectiveCapabilities(role, trade, directCapabilities);
 
     if (tenantName !== fallback.tenantName) {
       return {

@@ -34,7 +34,17 @@ export const capabilityProfiles: CapabilityProfile[] = [
     tenantName: 'Malerbetrieb Isar',
     role: 'member',
     trade: 'MALER',
-    capabilities: ['dashboard:view', 'devices:view'],
+    capabilities: [
+      'dashboard:view',
+      'devices:view',
+      'aufmass:view',
+      'quotes:view',
+      'sites:view',
+      'time:view',
+      'materials:view',
+      'handover:view',
+      'customers:view',
+    ],
   },
 ];
 

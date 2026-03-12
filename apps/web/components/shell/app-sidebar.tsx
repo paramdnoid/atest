@@ -74,7 +74,14 @@ export function AppSidebar({
     return pathname.startsWith(href);
   };
 
-  const tradeLabel = trade === 'SHK' ? 'Sanitaer, Heizung, Klima' : trade === 'MALER' ? 'Maler' : trade === 'ELEKTRO' ? 'Elektro' : tenantName;
+  const tradeLabel =
+    trade === 'SHK'
+      ? 'Sanitaer, Heizung, Klima'
+      : trade === 'MALER'
+        ? 'Maler und Tapezierer'
+        : trade === 'ELEKTRO'
+          ? 'Elektro'
+          : tenantName;
 
   const userDisplayName = userName ?? deriveNameFromEmail(userEmail) ?? 'Benutzer';
   const displaySubline = tenantName || role;

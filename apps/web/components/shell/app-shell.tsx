@@ -11,14 +11,26 @@ import { logoutSession } from '@/lib/auth-client';
 import { loadEffectiveProfile } from '@/lib/effective-profile';
 import type { EffectiveProfile } from '@/lib/effective-profile';
 import { moduleRegistry } from '@/lib/module-registry';
+import type { ModuleGroup } from '@/lib/module-registry';
 import { clearAccessToken, getAccessToken } from '@/lib/session-token';
 import { AppSidebar } from '@/components/shell/app-sidebar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 
-const navGroups: { label: string; ids: Array<(typeof moduleRegistry)[number]['id']> }[] = [
-  { label: 'Hauptmenü', ids: ['dashboard'] },
-  { label: 'Verwaltung', ids: ['licenses', 'devices', 'team', 'settings'] },
+const groupOrder: ModuleGroup[] = [
+  'hauptmenue',
+  'auftragsabwicklung',
+  'betrieb',
+  'finanzen',
+  'verwaltung',
 ];
+
+const groupLabels: Record<ModuleGroup, string> = {
+  hauptmenue: 'Hauptmenü',
+  auftragsabwicklung: 'Auftragsabwicklung',
+  betrieb: 'Betrieb',
+  finanzen: 'Finanzen',
+  verwaltung: 'Verwaltung',
+};
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -68,18 +80,22 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const visibleNavItems = useMemo(
     () =>
-      moduleRegistry.filter((item) =>
-        item.requiredCapabilities.every((capability) => profile.capabilities.includes(capability)),
-      ),
-    [profile.capabilities],
+      moduleRegistry.filter((item) => {
+        const hasRequiredCapabilities = item.requiredCapabilities.every((capability) =>
+          profile.capabilities.includes(capability),
+        );
+        const isTradeVisible = !item.trades || item.trades.includes(profile.trade);
+        return hasRequiredCapabilities && isTradeVisible;
+      }),
+    [profile.capabilities, profile.trade],
   );
 
   const visibleGroups = useMemo(
     () =>
-      navGroups
+      groupOrder
         .map((group) => ({
-          label: group.label,
-          items: visibleNavItems.filter((item) => group.ids.includes(item.id)),
+          label: groupLabels[group],
+          items: visibleNavItems.filter((item) => item.group === group),
         }))
         .filter((group) => group.items.length > 0),
     [visibleNavItems],
