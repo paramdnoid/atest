@@ -24,7 +24,7 @@ export function StatCard({
       )}
     >
       {accent && (
-        <div className="absolute inset-x-0 top-0 h-[2px] bg-linear-to-r from-primary to-amber-400" />
+        <div className="absolute inset-x-0 top-0 h-0.5 bg-linear-to-r from-primary to-amber-400" />
       )}
       {accent && (
         <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/8 via-transparent to-transparent" />

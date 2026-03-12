@@ -19,7 +19,7 @@ export function AuthPageShell({
   return (
     <section className="premium-noise auth-hero-shell relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12">
       <div aria-hidden className="enterprise-grid pointer-events-none absolute inset-0 opacity-45" />
-      <main className="relative z-10 mx-auto w-full max-w-[26rem]">
+      <main className="relative z-10 mx-auto w-full max-w-104">
         <div className="mb-6 text-center">
           <p className="font-display text-sm tracking-[0.18em] text-muted-foreground">ZUNFTGEWERK</p>
           <span className="billing-editorial-kicker mx-auto mt-3 inline-flex">

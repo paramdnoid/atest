@@ -94,7 +94,7 @@ export function RecentActivity({ events, className }: { events: SubscriptionEven
           </div>
         ) : (
           <div className="relative space-y-0">
-            <div className="absolute top-3 bottom-3 left-[15px] w-px bg-border" />
+            <div className="absolute top-3 bottom-3 left-3.75 w-px bg-border" />
             {events.map((event, idx) => {
               const config = getEventConfig(event.type);
               const Icon = config.icon;
@@ -105,7 +105,7 @@ export function RecentActivity({ events, className }: { events: SubscriptionEven
                   className={`relative flex gap-4 ${isLast ? 'pb-0' : 'pb-4'}`}
                 >
                   <div
-                    className={`relative z-10 flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full border border-border ${config.bg}`}
+                    className={`relative z-10 flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-full border border-border ${config.bg}`}
                   >
                     <Icon className={`h-3.5 w-3.5 ${config.color}`} />
                   </div>
