@@ -123,3 +123,6 @@ Planungsmodus: Fallback ohne Linear-MCP (Git/Repo-Analyse + fachliche Annahmen)
 - `docs/plans/backend-plan-aufmass-2026-03-13.md`
 - `docs/plans/backend-plan-abnahmen-2026-03-13.md`
 - `docs/plans/backend-plan-encryption-architecture-2026-03-13.md`
+- `docs/plans/sprint1-backlog-auftragsabwicklung-backend-2026-03-13.md`
+- `docs/plans/sprint2-backlog-auftragsabwicklung-backend-2026-03-13.md`
+- `docs/plans/sprint3-backlog-auftragsabwicklung-backend-2026-03-13.md`
