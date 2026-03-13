@@ -21,7 +21,7 @@ import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { EmptyState } from '@/components/dashboard/states';
 import { dashboardUiTokens } from '@/components/dashboard/ui-tokens';
 import { Button } from '@/components/ui/button';
-import { getAufmassRecordSync, listAufmassRecordsSync } from '@/lib/aufmass/data-adapter';
+import { getAufmassRecord, listAufmassRecords } from '@/lib/aufmass/data-adapter';
 import { aufmassRolloutFlags } from '@/lib/aufmass/rollout-flags';
 import { getTransitionBlockers, transitionRecordStatus } from '@/lib/aufmass/state-machine';
 import { getRecordOvermeasureIssues } from '@/lib/aufmass/selectors';
@@ -84,10 +84,10 @@ export default function AufmassDetailPage() {
   const params = useParams<{ id: string }>();
   const [activeWorkspace, setActiveWorkspace] = useState<AufmassWorkspaceTab>('capture');
   const [historyExpanded, setHistoryExpanded] = useState(false);
-  const allRecords = useMemo<AufmassRecord[]>(() => listAufmassRecordsSync(), []);
-  const initial = useMemo(() => getAufmassRecordSync(params.id), [params.id]);
-  const [record, setRecord] = useState<AufmassRecord | null>(initial);
-  const [activeRoomId, setActiveRoomId] = useState<string | undefined>(initial?.rooms[0]?.id);
+  const [allRecords, setAllRecords] = useState<AufmassRecord[]>([]);
+  const [record, setRecord] = useState<AufmassRecord | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeRoomId, setActiveRoomId] = useState<string | undefined>(undefined);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [pendingStatusAction, setPendingStatusAction] = useState<{
     to: AufmassStatus;
@@ -112,6 +112,36 @@ export default function AufmassDetailPage() {
     }, 60);
     return () => window.clearTimeout(timeout);
   }, [activeWorkspace, activeReviewIssueId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      setIsLoading(true);
+      const [list, detail] = await Promise.all([
+        listAufmassRecords(),
+        getAufmassRecord(params.id),
+      ]);
+      if (cancelled) return;
+      setAllRecords(list);
+      setRecord(detail);
+      setActiveRoomId(detail?.rooms[0]?.id);
+      setIsLoading(false);
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [params.id]);
+
+  if (isLoading) {
+    return (
+      <EmptyState
+        icon={<ClipboardList className="h-8 w-8" />}
+        title="Aufmaßdaten werden geladen"
+        description="Der Arbeitsbereich wird mit Live-Daten aufgebaut."
+      />
+    );
+  }
 
   if (!record) {
     return (

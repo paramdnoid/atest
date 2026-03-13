@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ChevronDown, ClipboardCheck, Network, ShieldCheck, SlidersHorizontal, X } from 'lucide-react';
 
@@ -15,10 +15,10 @@ import {
 import { ModulePageTemplate } from '@/components/dashboard/module-page-template';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { Button } from '@/components/ui/button';
+import { listAbnahmeRecords } from '@/lib/abnahmen/data-adapter';
 import { filterAbnahmen } from '@/lib/abnahmen/selectors';
-import { getAbnahmenRecords } from '@/lib/abnahmen/mock-data';
 import { getVerknuepfungPortfolioSnapshot } from '@/lib/auftragsabwicklung/cross-module-intelligence';
-import type { AbnahmenFilters } from '@/lib/abnahmen/types';
+import type { AbnahmeRecord, AbnahmenFilters } from '@/lib/abnahmen/types';
 import { cn } from '@/lib/utils';
 
 export default function AbnahmenPage() {
@@ -32,7 +32,24 @@ export default function AbnahmenPage() {
     .filter((entry): entry is string => Boolean(entry))
     .join(' ');
   const initialQuery = handoffFrom && handoffQuery.trim().length > 0 ? handoffQuery : '';
-  const records = useMemo(() => getAbnahmenRecords(), []);
+  const [records, setRecords] = useState<AbnahmeRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      setIsLoading(true);
+      const next = await listAbnahmeRecords();
+      if (!cancelled) {
+        setRecords(next);
+        setIsLoading(false);
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const [filters, setFilters] = useState<AbnahmenFilters>({
     query: initialQuery,
     status: 'ALL',
@@ -321,8 +338,10 @@ export default function AbnahmenPage() {
           }
           emptyState={{
             icon: <ClipboardCheck className="h-8 w-8" />,
-            title: 'Keine Abnahmen gefunden',
-            description: 'Passe deine Filter an oder erstelle eine neue Abnahme.',
+            title: isLoading ? 'Daten werden geladen' : 'Keine Abnahmen gefunden',
+            description: isLoading
+              ? 'Abnahmen werden aus der API geladen.'
+              : 'Passe deine Filter an oder erstelle eine neue Abnahme.',
           }}
         >
           <AbnahmenListTable

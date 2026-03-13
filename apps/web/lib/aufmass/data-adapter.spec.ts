@@ -3,10 +3,9 @@ import test from 'node:test';
 
 import { getAufmassRecord, listAufmassRecords } from '@/lib/aufmass/data-adapter';
 
-test('listAufmassRecords liefert records in mock mode', async () => {
+test('listAufmassRecords liefert ein Array auch ohne API', async () => {
   const records = await listAufmassRecords();
-  assert.equal(records.length > 0, true);
-  assert.equal(records[0].id.length > 0, true);
+  assert.equal(Array.isArray(records), true);
 });
 
 test('getAufmassRecord liefert null bei unbekannter id', async () => {

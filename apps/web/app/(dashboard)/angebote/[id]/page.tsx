@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Brain, ClipboardList, History, LayoutPanelTop, Network, Sparkles } from 'lucide-react';
@@ -22,7 +22,7 @@ import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { EmptyState } from '@/components/dashboard/states';
 import { Button } from '@/components/ui/button';
-import { getQuoteRecordById, getQuoteRecords } from '@/lib/angebote/mock-data';
+import { getQuoteRecord, listQuoteRecords } from '@/lib/angebote/data-adapter';
 import { getQuoteTotals } from '@/lib/angebote/pricing';
 import { angeboteRolloutFlags } from '@/lib/angebote/rollout-flags';
 import { getTransitionBlockers, transitionQuoteStatus } from '@/lib/angebote/state-machine';
@@ -68,11 +68,11 @@ function toReadableStatus(status: QuoteStatus): string {
 
 export default function AngebotDetailPage() {
   const params = useParams<{ id: string }>();
-  const allRecords = useMemo(() => getQuoteRecords(), []);
-  const initial = useMemo(() => getQuoteRecordById(params.id), [params.id]);
+  const [allRecords, setAllRecords] = useState<QuoteRecord[]>([]);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [overviewContextTab, setOverviewContextTab] = useState<'insights' | 'datennetz'>('insights');
-  const [record, setRecord] = useState<QuoteRecord | undefined>(initial);
+  const [record, setRecord] = useState<QuoteRecord | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [lastBlockers, setLastBlockers] = useState<string[]>([]);
   const detailSplitGridClassName = 'grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.85fr)]';
   const recordId = record ? record.id : '';
@@ -80,6 +80,35 @@ export default function AngebotDetailPage() {
     () => getVerknuepfungSnapshot('ANGEBOTE', recordId),
     [recordId],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      setIsLoading(true);
+      const [list, detail] = await Promise.all([
+        listQuoteRecords(),
+        getQuoteRecord(params.id),
+      ]);
+      if (cancelled) return;
+      setAllRecords(list);
+      setRecord(detail);
+      setIsLoading(false);
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [params.id]);
+
+  if (isLoading) {
+    return (
+      <EmptyState
+        icon={<ClipboardList className="h-8 w-8" />}
+        title="Angebotsdaten werden geladen"
+        description="Der Workspace wird mit Live-Daten aufgebaut."
+      />
+    );
+  }
 
   if (!record) {
     return (

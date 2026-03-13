@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Building2, ChevronDown, Network, PlusCircle, SlidersHorizontal, X } from 'lucide-react';
 
@@ -15,10 +15,10 @@ import {
 import { ModulePageTemplate } from '@/components/dashboard/module-page-template';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { Button } from '@/components/ui/button';
-import { getKundenRecords } from '@/lib/kunden/mock-data';
+import { listKundenRecords } from '@/lib/kunden/data-adapter';
 import { applyKundenSavedView, filterKunden, getKundenKpis } from '@/lib/kunden/selectors';
 import { getVerknuepfungPortfolioSnapshot } from '@/lib/auftragsabwicklung/cross-module-intelligence';
-import type { KundenFilters, KundenSavedViewId } from '@/lib/kunden/types';
+import type { KundenFilters, KundenRecord, KundenSavedViewId } from '@/lib/kunden/types';
 import { cn } from '@/lib/utils';
 
 const defaultFilters: KundenFilters = {
@@ -44,7 +44,24 @@ export default function KundenPage() {
     .filter((entry): entry is string => Boolean(entry))
     .join(' ');
   const initialQuery = handoffFrom && handoffQuery.trim().length > 0 ? handoffQuery : '';
-  const [records] = useState(() => getKundenRecords());
+  const [records, setRecords] = useState<KundenRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      setIsLoading(true);
+      const next = await listKundenRecords();
+      if (!cancelled) {
+        setRecords(next);
+        setIsLoading(false);
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const [filters, setFilters] = useState<KundenFilters>({ ...defaultFilters, query: initialQuery });
   const [activeSavedView, setActiveSavedView] = useState<KundenSavedViewId | null>(null);
   const [filtersAdvancedOpen, setFiltersAdvancedOpen] = useState(false);
@@ -453,8 +470,10 @@ export default function KundenPage() {
           }
           emptyState={{
             icon: <Building2 className="h-8 w-8" />,
-            title: 'Keine Kunden gefunden',
-            description: 'Passe die Filter an oder lege einen neuen Kunden an.',
+            title: isLoading ? 'Daten werden geladen' : 'Keine Kunden gefunden',
+            description: isLoading
+              ? 'Kunden werden aus der API geladen.'
+              : 'Passe die Filter an oder lege einen neuen Kunden an.',
           }}
         >
           <KundenListTable

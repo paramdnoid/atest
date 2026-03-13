@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ChevronDown, Columns3, FileText, Network, PlusCircle, SlidersHorizontal, Workflow, X } from 'lucide-react';
 
@@ -16,7 +16,7 @@ import {
 import { ModulePageTemplate } from '@/components/dashboard/module-page-template';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { Button } from '@/components/ui/button';
-import { getQuoteRecords } from '@/lib/angebote/mock-data';
+import { listQuoteRecords } from '@/lib/angebote/data-adapter';
 import { applyQuoteSavedView, filterQuotes, getQuoteKpis } from '@/lib/angebote/selectors';
 import { getVerknuepfungPortfolioSnapshot } from '@/lib/auftragsabwicklung/cross-module-intelligence';
 import type { QuoteFilters, QuoteRecord, QuoteSavedViewId } from '@/lib/angebote/types';
@@ -72,7 +72,24 @@ export default function AngebotePage() {
     .filter((entry): entry is string => Boolean(entry))
     .join(' ');
   const initialQuery = handoffFrom && handoffQuery.trim().length > 0 ? handoffQuery : '';
-  const [records, setRecords] = useState(() => getQuoteRecords());
+  const [records, setRecords] = useState<QuoteRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      setIsLoading(true);
+      const next = await listQuoteRecords();
+      if (!cancelled) {
+        setRecords(next);
+        setIsLoading(false);
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const [filters, setFilters] = useState<QuoteFilters>({ ...defaultFilters, query: initialQuery });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [activeSavedView, setActiveSavedView] = useState<QuoteSavedViewId | null>(null);
@@ -464,8 +481,10 @@ export default function AngebotePage() {
           }
           emptyState={{
             icon: <FileText className="h-8 w-8" />,
-            title: 'Keine Angebote gefunden',
-            description: 'Passe die Filter an oder lege ein neues Angebot an.',
+            title: isLoading ? 'Daten werden geladen' : 'Keine Angebote gefunden',
+            description: isLoading
+              ? 'Angebote werden aus der API geladen.'
+              : 'Passe die Filter an oder lege ein neues Angebot an.',
           }}
         >
           <AngeboteListTable

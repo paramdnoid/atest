@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { PlusCircle, Ruler } from 'lucide-react';
 
@@ -18,7 +18,7 @@ import {
 import { PageHeader } from '@/components/dashboard/page-header';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { Button } from '@/components/ui/button';
-import { listAufmassRecordsSync } from '@/lib/aufmass/data-adapter';
+import { listAufmassRecords } from '@/lib/aufmass/data-adapter';
 import { matchesAufmassQuery } from '@/lib/aufmass/selectors';
 import { getTransitionBlockers } from '@/lib/aufmass/state-machine';
 import type { AufmassRecord } from '@/lib/aufmass/types';
@@ -35,7 +35,24 @@ export default function AufmassPage() {
     .filter((entry): entry is string => Boolean(entry))
     .join(' ');
   const initialQuery = handoffFrom && handoffQuery.trim().length > 0 ? handoffQuery : '';
-  const records = useMemo<AufmassRecord[]>(() => listAufmassRecordsSync(), []);
+  const [records, setRecords] = useState<AufmassRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      setIsLoading(true);
+      const next = await listAufmassRecords();
+      if (!cancelled) {
+        setRecords(next);
+        setIsLoading(false);
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const [filters, setFilters] = useState<AufmassListFilterState>({
     query: initialQuery,
     status: 'ALL',
@@ -203,8 +220,10 @@ export default function AufmassPage() {
           hasData={displayRecords.length > 0}
           emptyState={{
             icon: <Ruler className="h-8 w-8" />,
-            title: 'Keine Aufmaßdaten gefunden',
-            description: 'Passe Filter an oder lege ein neues Aufmaß an.',
+            title: isLoading ? 'Daten werden geladen' : 'Keine Aufmaßdaten gefunden',
+            description: isLoading
+              ? 'Aufmaßdaten werden aus der API geladen.'
+              : 'Passe Filter an oder lege ein neues Aufmaß an.',
           }}
         >
           <AufmassListTable

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { BadgeCheck, Building2, ClipboardList, History, Network, ShieldCheck, Sparkles } from 'lucide-react';
@@ -25,7 +25,7 @@ import { PageHeader } from '@/components/dashboard/page-header';
 import { EmptyState } from '@/components/dashboard/states';
 import { Button } from '@/components/ui/button';
 import { detectDuplicateCandidates, resolveDuplicateCandidate } from '@/lib/kunden/duplicate-detection';
-import { getKundenRecords, getKundenRecordById } from '@/lib/kunden/mock-data';
+import { getKundenRecord, listKundenRecords } from '@/lib/kunden/data-adapter';
 import {
   createOfflineQueueModel,
   enqueueOfflineOperation,
@@ -73,17 +73,14 @@ function appendAudit(record: KundenRecord, title: string, payload: string): Kund
 
 export default function KundenDetailPage() {
   const params = useParams<{ id: string }>();
-  const allRecords = useMemo(() => getKundenRecords(), []);
-  const initial = useMemo(() => getKundenRecordById(params.id), [params.id]);
-
-  const [record, setRecord] = useState<KundenRecord | undefined>(initial);
+  const [allRecords, setAllRecords] = useState<KundenRecord[]>([]);
+  const [record, setRecord] = useState<KundenRecord | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>('uebersicht');
   const [overviewContextTab, setOverviewContextTab] = useState<'sla' | 'datennetz'>('sla');
   const [lastBlockers, setLastBlockers] = useState<string[]>([]);
   const [offlineQueue, setOfflineQueue] = useState(() => createOfflineQueueModel());
-  const [duplicates, setDuplicates] = useState<DuplicateCandidate[]>(() =>
-    kundenRolloutFlags.kundenDuplicateDetectionEnabled ? detectDuplicateCandidates(allRecords) : [],
-  );
+  const [duplicates, setDuplicates] = useState<DuplicateCandidate[]>([]);
   const detailSplitGridClassName = 'grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.85fr)]';
   const verknuepfungSnapshot = useMemo(
     () => getVerknuepfungSnapshot('KUNDEN', record?.id ?? ''),
@@ -93,6 +90,43 @@ export default function KundenDetailPage() {
     () => resolveViewerRole(process.env.NEXT_PUBLIC_KUNDEN_VIEWER_ROLE),
     [],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      setIsLoading(true);
+      const [list, detail] = await Promise.all([
+        listKundenRecords(),
+        getKundenRecord(params.id),
+      ]);
+      if (cancelled) return;
+      setAllRecords(list);
+      setRecord(detail);
+      setIsLoading(false);
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [params.id]);
+
+  useEffect(() => {
+    if (!kundenRolloutFlags.kundenDuplicateDetectionEnabled) {
+      setDuplicates([]);
+      return;
+    }
+    setDuplicates(detectDuplicateCandidates(allRecords));
+  }, [allRecords]);
+
+  if (isLoading) {
+    return (
+      <EmptyState
+        icon={<Building2 className="h-8 w-8" />}
+        title="Kundendaten werden geladen"
+        description="Der Workspace wird mit Live-Daten aufgebaut."
+      />
+    );
+  }
 
   if (!record) {
     return (

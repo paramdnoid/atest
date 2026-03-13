@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Brain, ClipboardList, FileText, History, LayoutPanelTop, Network, Wrench } from 'lucide-react';
@@ -25,9 +25,9 @@ import { ModuleSideTabsCard } from '@/components/dashboard/module-side-tabs-card
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { EmptyState } from '@/components/dashboard/states';
 import { Button } from '@/components/ui/button';
+import { getAbnahmeRecord } from '@/lib/abnahmen/data-adapter';
 import { getTransitionComplianceBlockers } from '@/lib/abnahmen/compliance-rules';
 import { getEvidenceBlockingMessages, getEvidencePolicyIssues } from '@/lib/abnahmen/evidence-policy';
-import { getAbnahmeRecordById } from '@/lib/abnahmen/mock-data';
 import { abnahmenRolloutFlags } from '@/lib/abnahmen/rollout-flags';
 import { getOpenDefects } from '@/lib/abnahmen/selectors';
 import { canTransition, getTransitionBlockers, transitionRecordStatus } from '@/lib/abnahmen/state-machine';
@@ -91,8 +91,8 @@ function getPrimaryTransitionTarget(status: AbnahmeStatus): AbnahmeStatus | null
 
 export default function AbnahmeDetailPage() {
   const params = useParams<{ id: string }>();
-  const initial = useMemo(() => getAbnahmeRecordById(params.id), [params.id]);
-  const [record, setRecord] = useState<AbnahmeRecord | null>(initial);
+  const [record, setRecord] = useState<AbnahmeRecord | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [activeSideContextTab, setActiveSideContextTab] = useState<'status' | 'protocol' | 'compliance' | 'datennetz'>(
     'status',
@@ -102,6 +102,32 @@ export default function AbnahmeDetailPage() {
     () => getVerknuepfungSnapshot('ABNAHMEN', record?.id ?? ''),
     [record?.id],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      setIsLoading(true);
+      const detail = await getAbnahmeRecord(params.id);
+      if (!cancelled) {
+        setRecord(detail);
+        setIsLoading(false);
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [params.id]);
+
+  if (isLoading) {
+    return (
+      <EmptyState
+        icon={<ClipboardList className="h-8 w-8" />}
+        title="Abnahmedaten werden geladen"
+        description="Die Abnahmeakte wird mit Live-Daten aufgebaut."
+      />
+    );
+  }
 
   if (!record) {
     return (
