@@ -19,6 +19,7 @@ import { RoomTreePanel } from '@/components/aufmass/room-tree-panel';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { EmptyState } from '@/components/dashboard/states';
+import { dashboardUiTokens } from '@/components/dashboard/ui-tokens';
 import { Button } from '@/components/ui/button';
 import { getAufmassRecordSync, listAufmassRecordsSync } from '@/lib/aufmass/data-adapter';
 import { aufmassRolloutFlags } from '@/lib/aufmass/rollout-flags';
@@ -71,6 +72,14 @@ type BlockerEntry = {
   roomId?: string;
 };
 
+type LocalTelemetry = {
+  tabSwitches: number;
+  blockerJumps: number;
+  statusAttempts: number;
+  statusSuccess: number;
+  quickCaptures: number;
+};
+
 export default function AufmassDetailPage() {
   const params = useParams<{ id: string }>();
   const [activeWorkspace, setActiveWorkspace] = useState<AufmassWorkspaceTab>('capture');
@@ -85,6 +94,13 @@ export default function AufmassDetailPage() {
     detail: string;
   } | null>(null);
   const [activeReviewIssueId, setActiveReviewIssueId] = useState<string | null>(null);
+  const [telemetry, setTelemetry] = useState<LocalTelemetry>({
+    tabSwitches: 0,
+    blockerJumps: 0,
+    statusAttempts: 0,
+    statusSuccess: 0,
+    quickCaptures: 0,
+  });
 
   useEffect(() => {
     if (activeWorkspace !== 'review' || !activeReviewIssueId) return;
@@ -112,7 +128,10 @@ export default function AufmassDetailPage() {
     );
   }
 
-  const activeRoom = record.rooms.find((room) => room.id === activeRoomId);
+  const resolvedActiveRoomId = record.rooms.some((room) => room.id === activeRoomId)
+    ? activeRoomId
+    : record.rooms[0]?.id;
+  const activeRoom = record.rooms.find((room) => room.id === resolvedActiveRoomId);
   const legacyMigrationIssues = (() => {
     if (!aufmassRolloutFlags.enableAssistedMigration) return [];
     const issues: AufmassReviewIssue[] = [];
@@ -239,6 +258,7 @@ export default function AufmassDetailPage() {
   const PrimaryActionIcon = primaryAction.icon;
 
   const setStatus = (to: AufmassStatus, detail: string) => {
+    setTelemetry((prev) => ({ ...prev, statusAttempts: prev.statusAttempts + 1 }));
     const result = transitionRecordStatus(record, to);
     if (!result.ok) {
       setStatusError(`${result.blockers[0] ?? 'Statuswechsel nicht möglich.'} (Ziel: ${to})`);
@@ -247,6 +267,7 @@ export default function AufmassDetailPage() {
     }
     setStatusError(null);
     setPendingStatusAction(null);
+    setTelemetry((prev) => ({ ...prev, statusSuccess: prev.statusSuccess + 1 }));
     setRecord((prev) =>
       prev
         ? {
@@ -260,6 +281,7 @@ export default function AufmassDetailPage() {
   };
 
   const jumpToWorkspaceBlocker = (blocker: BlockerEntry) => {
+    setTelemetry((prev) => ({ ...prev, blockerJumps: prev.blockerJumps + 1 }));
     if (blocker.roomId) {
       setActiveRoomId(blocker.roomId);
     }
@@ -277,6 +299,7 @@ export default function AufmassDetailPage() {
   };
 
   const onAddMeasurement = (measurement: AufmassMeasurement) => {
+    setTelemetry((prev) => ({ ...prev, quickCaptures: prev.quickCaptures + 1 }));
     setRecord((prev) =>
       prev
         ? {
@@ -342,9 +365,24 @@ export default function AufmassDetailPage() {
       triggerClassName="h-8 w-8"
     />
   );
+  const reviewBlockingCount = reviewIssues.filter((issue) => issue.severity === 'blocking').length;
+  const handleWorkspaceChange = (next: AufmassWorkspaceTab) => {
+    if (next !== activeWorkspace) {
+      setTelemetry((prev) => ({ ...prev, tabSwitches: prev.tabSwitches + 1 }));
+    }
+    setActiveWorkspace(next);
+  };
+  const workspaceTabs = (
+    <AufmassWorkspaceTabs
+      activeTab={activeWorkspace}
+      onChange={handleWorkspaceChange}
+      reviewBadge={reviewBlockingCount}
+      inline
+    />
+  );
 
   return (
-    <div className="space-y-3">
+    <div className={dashboardUiTokens.aufmassDensity.panelGap}>
       <PageHeader
         title="Aufmaß-Arbeitsbereich"
         description={
@@ -392,6 +430,8 @@ export default function AufmassDetailPage() {
         <AufmassKpiStrip record={record} />
       </div>
 
+      <div>{workspaceTabs}</div>
+
       {activeBlockers.length > 0 ? (
         <section
           className="sticky top-2 z-20 rounded-lg border border-amber-300/50 bg-amber-50/85 p-2.5 backdrop-blur"
@@ -424,7 +464,7 @@ export default function AufmassDetailPage() {
               >
                 <span className="truncate">{blocker.title}</span>
                 <span className="ml-2 shrink-0 text-[10px] uppercase tracking-[0.08em] text-amber-800/80">
-                  {blocker.workspace === 'capture' ? 'Erfassung' : blocker.workspace === 'review' ? 'Prüfung' : 'Abrechnung'}
+                  {blocker.workspace === 'capture' ? 'Erfassen' : blocker.workspace === 'review' ? 'Prüfen' : 'Abrechnen'}
                 </span>
               </button>
             ))}
@@ -463,7 +503,7 @@ export default function AufmassDetailPage() {
         </ModuleTableCard>
       ) : null}
 
-      <section className="grid items-start gap-3 grid-cols-1 xl:grid-cols-[minmax(0,2.1fr)_minmax(260px,0.75fr)] 2xl:grid-cols-[minmax(0,2.35fr)_minmax(280px,0.65fr)]">
+      <section className={dashboardUiTokens.mainGrid}>
         <div
           id={`aufmass-workspace-panel-${activeWorkspace}`}
           role="tabpanel"
@@ -474,28 +514,20 @@ export default function AufmassDetailPage() {
           {activeWorkspace === 'capture' ? (
             <ModuleTableCard
               icon={LayoutPanelTop}
-              iconNode={quickCaptureHeaderTrigger}
               label="Erfassung"
               title={activeRoom ? `Arbeitsbereich · ${activeRoom.name}` : 'Arbeitsbereich'}
-              className="relative border-border/70 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_12px_30px_-20px_rgba(15,23,42,0.22)] transition-shadow duration-200"
+              className="relative border-border/70 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_12px_30px_-20px_rgba(15,23,42,0.22)] transition-shadow duration-200 motion-reduce:transition-none"
               headerClassName="bg-white"
               headerContentClassName="items-start"
               bodyClassName="space-y-3 bg-white"
-              action={
-                <AufmassWorkspaceTabs
-                  activeTab={activeWorkspace}
-                  onChange={setActiveWorkspace}
-                  reviewBadge={reviewIssues.filter((issue) => issue.severity === 'blocking').length}
-                  inline
-                />
-              }
+              action={quickCaptureHeaderTrigger}
               hasData
             >
               <div className="space-y-3">
                 <div className="grid gap-3 grid-cols-1 lg:grid-cols-10">
                   <section className="space-y-2 lg:col-span-3">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Objektstruktur</p>
-                    <RoomTreePanel rooms={record.rooms} activeRoomId={activeRoomId} onSelectRoom={setActiveRoomId} />
+                    <RoomTreePanel rooms={record.rooms} activeRoomId={resolvedActiveRoomId} onSelectRoom={setActiveRoomId} />
                   </section>
                   <section className="space-y-2 lg:col-span-7">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Messwerte</p>
@@ -512,18 +544,10 @@ export default function AufmassDetailPage() {
               label="Prüfung"
               title="Abweichungen, Regeln und Mapping"
               tone="muted"
-              className="relative border-border/70 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_12px_30px_-20px_rgba(15,23,42,0.22)] transition-shadow duration-200"
+              className="relative border-border/70 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_12px_30px_-20px_rgba(15,23,42,0.22)] transition-shadow duration-200 motion-reduce:transition-none"
               headerClassName="bg-white"
               headerContentClassName="items-start"
               bodyClassName="space-y-3 bg-white"
-              action={
-                <AufmassWorkspaceTabs
-                  activeTab={activeWorkspace}
-                  onChange={setActiveWorkspace}
-                  reviewBadge={reviewIssues.filter((issue) => issue.severity === 'blocking').length}
-                  inline
-                />
-              }
               hasData
             >
               <div className="space-y-3">
@@ -601,18 +625,10 @@ export default function AufmassDetailPage() {
               label="Abrechnung"
               title="Ready Check und Abrechnungsvorschau"
               tone="muted"
-              className="relative border-border/70 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_12px_30px_-20px_rgba(15,23,42,0.22)] transition-shadow duration-200"
+              className="relative border-border/70 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_12px_30px_-20px_rgba(15,23,42,0.22)] transition-shadow duration-200 motion-reduce:transition-none"
               headerClassName="bg-white"
               headerContentClassName="items-start"
               bodyClassName="space-y-3 bg-white"
-              action={
-                <AufmassWorkspaceTabs
-                  activeTab={activeWorkspace}
-                  onChange={setActiveWorkspace}
-                  reviewBadge={reviewIssues.filter((issue) => issue.severity === 'blocking').length}
-                  inline
-                />
-              }
               hasData
             >
               <BillingPreviewCard
@@ -620,6 +636,13 @@ export default function AufmassDetailPage() {
                 canBill={canBill}
                 billingBlockers={billingBlockers}
                 onBill={() => setStatus('BILLED', 'Abrechnungsvorschau abgeschlossen.')}
+                onJumpToBlocker={(blocker) => {
+                  if (blocker.includes('freigegebene')) {
+                    setActiveWorkspace('review');
+                    return;
+                  }
+                  setActiveWorkspace('capture');
+                }}
                 embedded
               />
             </ModuleTableCard>
@@ -650,6 +673,27 @@ export default function AufmassDetailPage() {
           <AuditTimeline events={record.auditTrail} />
         </ModuleTableCard>
       ) : null}
+
+      <details className="rounded-lg border border-border/60 bg-sidebar/20 p-2.5">
+        <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          Telemetrie-Abschluss (lokal)
+        </summary>
+        <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
+          <p>Tab-Wechsel: {telemetry.tabSwitches}</p>
+          <p>Blocker-Sprünge: {telemetry.blockerJumps}</p>
+          <p>Statusversuche: {telemetry.statusAttempts}</p>
+          <p>Statuserfolge: {telemetry.statusSuccess}</p>
+          <p>Schnellerfassungen: {telemetry.quickCaptures}</p>
+          <p className="pt-1 text-foreground/80">
+            Empfehlung:{' '}
+            {telemetry.statusAttempts > 0 && telemetry.statusSuccess === telemetry.statusAttempts
+              ? 'Rollout voll'
+              : telemetry.statusSuccess > 0
+                ? 'Rollout teilweise'
+                : 'Nacharbeiten'}
+          </p>
+        </div>
+      </details>
     </div>
   );
 }
