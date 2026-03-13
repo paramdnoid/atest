@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { notFound, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { BadgeCheck, Building2, ClipboardList, History, Network, ShieldCheck, Sparkles } from 'lucide-react';
 
 import { AnsprechpartnerDirectory } from '@/components/kunden/ansprechpartner-directory';
@@ -95,7 +95,18 @@ export default function KundenDetailPage() {
   );
 
   if (!record) {
-    notFound();
+    return (
+      <div className="space-y-4">
+        <EmptyState
+          icon={<Building2 className="h-8 w-8" />}
+          title="Kunde nicht gefunden"
+          description="Der Datensatz wurde nicht gefunden."
+        />
+        <Button asChild variant="outline">
+          <Link href="/kunden">Zurueck zur Kundenliste</Link>
+        </Button>
+      </div>
+    );
   }
 
   if (!kundenRolloutFlags.kundenModuleEnabled) {

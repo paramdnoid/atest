@@ -41,15 +41,15 @@ test.describe('abnahmen workflow', () => {
 
     await page.getByRole('link', { name: 'ABN-26-001' }).click();
     await page.waitForURL('**/abnahmen/abn-26-001', { timeout: 10_000 });
-    await expect(page.getByRole('heading', { name: 'Abnahme Workspace' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Abnahmeakte' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Mangel erfassen' })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Mängel' }).click();
-    await expect(page.getByRole('tabpanel')).toBeVisible();
-    await expect(page.getByText('Mängelboard')).toBeVisible();
+    await page.getByRole('tab', { name: 'Mängel' }).click();
+    await expect(page.getByRole('tabpanel', { name: 'Mängel' })).toBeVisible();
+    await expect(page.getByText('Mangelkontext')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Historie' }).click();
-    await expect(page.getByRole('tabpanel')).toBeVisible();
-    await expect(page.getByText('Audit-Trail')).toBeVisible();
+    await page.getByRole('tab', { name: 'Historie' }).click();
+    await expect(page.getByRole('tabpanel', { name: 'Historie' })).toBeVisible();
+    await expect(page.getByText('Kurzüberblick')).toBeVisible();
   });
 });

@@ -36,9 +36,9 @@ export function LeafletMap({ lat, lon, className, onMapReady }: LeafletMapProps)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (L.Icon.Default.prototype as any)._getIconUrl;
       L.Icon.Default.mergeOptions({
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).toString(),
+        iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).toString(),
+        shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).toString(),
       });
 
       const map = L.map(containerRef.current, {

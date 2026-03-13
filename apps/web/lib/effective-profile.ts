@@ -30,6 +30,7 @@ export type EffectiveProfile = {
 };
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8080';
+const CAPABILITY_MOCK_ENABLED = process.env.NEXT_PUBLIC_ENABLE_CAPABILITY_MOCK === 'true';
 
 const CAPABILITY_SET = new Set<Capability>([
   'dashboard:view',
@@ -372,20 +373,27 @@ export async function loadEffectiveProfile(
       };
     }
 
-    return {
-      tenantName: fallback.tenantName,
-      role: fallback.role,
-      trade: fallback.trade,
-      capabilities: fallback.capabilities,
-      source: 'mock',
-    };
-  } catch {
-    return {
-      tenantName: fallback.tenantName,
-      role: fallback.role,
-      trade: fallback.trade,
-      capabilities: fallback.capabilities,
-      source: 'mock',
-    };
+    if (CAPABILITY_MOCK_ENABLED) {
+      return {
+        tenantName: fallback.tenantName,
+        role: fallback.role,
+        trade: fallback.trade,
+        capabilities: fallback.capabilities,
+        source: 'mock',
+      };
+    }
+
+    throw new Error('Effective profile payload is not resolvable');
+  } catch (error) {
+    if (CAPABILITY_MOCK_ENABLED) {
+      return {
+        tenantName: fallback.tenantName,
+        role: fallback.role,
+        trade: fallback.trade,
+        capabilities: fallback.capabilities,
+        source: 'mock',
+      };
+    }
+    throw error;
   }
 }

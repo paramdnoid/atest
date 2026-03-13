@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { getE2EPasswordConfig, type E2EPasswordConfig } from './helpers/env';
 import { flushRateLimits } from './helpers/flush-rate-limits';
-import { generateStableTotpCode } from './helpers/totp';
+import { loginWithPasswordAndMfa } from './helpers/workflow';
 import { attachVirtualAuthenticator, detachVirtualAuthenticator, type VirtualAuthenticator } from './helpers/webauthn';
 
 let cfg: E2EPasswordConfig;
@@ -10,35 +10,6 @@ async function getVisibleSidebarOrSkip(page: Page) {
   const sidebars = page.locator('aside');
   test.skip((await sidebars.count()) === 0, 'Sidebar ist für dieses Profil/Layout nicht sichtbar.');
   return sidebars.first();
-}
-
-async function loginWithPasswordAndMfa(page: Page): Promise<void> {
-  await page.goto('/signin');
-  await expect(page.getByRole('heading', { name: 'Willkommen zurück.' })).toBeVisible();
-
-  await page.locator('input[type="email"]').fill(cfg.adminEmail);
-  await page.locator('input[type="password"]').fill(cfg.adminPassword);
-  await page.getByRole('button', { name: 'Anmelden' }).click();
-
-  // Je nach Account-Rolle und Server-Konfiguration kann MFA optional sein.
-  const nextStep = await Promise.any([
-    page.waitForURL('**/dashboard', { timeout: 15_000 }).then(() => 'dashboard'),
-    page
-      .getByLabel('Authenticator-Code')
-      .waitFor({ state: 'visible', timeout: 15_000 })
-      .then(() => 'mfa'),
-  ]);
-
-  if (nextStep === 'mfa') {
-    if (!cfg.adminTotpSecret) {
-      throw new Error('MFA ist aktiv, aber E2E_ADMIN_TOTP_SECRET wurde nicht gesetzt.');
-    }
-    const code = await generateStableTotpCode(cfg.adminTotpSecret);
-    await page.locator('input[placeholder="000000"]').fill(code);
-    await page.getByRole('button', { name: 'Bestätigen' }).click();
-  }
-
-  await page.waitForURL('**/dashboard', { timeout: 15_000 });
 }
 
 test.describe('dashboard navigation', () => {
@@ -51,7 +22,7 @@ test.describe('dashboard navigation', () => {
   test.beforeEach(async ({ page }) => {
     flushRateLimits();
     authenticator = await attachVirtualAuthenticator(page);
-    await loginWithPasswordAndMfa(page);
+    await loginWithPasswordAndMfa(page, cfg);
   });
 
   test.afterEach(async () => {

@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/table';
 import { ModulePageTemplate } from '@/components/dashboard/module-page-template';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
-import { EmptyState, ErrorBanner } from '@/components/dashboard/states';
+import { ErrorBanner } from '@/components/dashboard/states';
 
 type Device = {
   id: string;
@@ -71,7 +71,7 @@ export default function DevicesPage() {
         <div className="h-8 w-36 animate-pulse rounded-md bg-muted" />
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-14 animate-pulse rounded-xl bg-muted" />
+            <div key={i} className="h-14 animate-pulse rounded-lg bg-muted" />
           ))}
         </div>
       </div>

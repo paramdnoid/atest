@@ -1,6 +1,10 @@
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { AppShell } from '@/components/shell/app-shell';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  return <AppShell>{children}</AppShell>;
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" aria-hidden />}>
+      <AppShell>{children}</AppShell>
+    </Suspense>
+  );
 }

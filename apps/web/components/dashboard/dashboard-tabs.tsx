@@ -59,9 +59,9 @@ export function DashboardTabs<T extends string>({
   };
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border/60 bg-background/70 p-1">
+    <div className="overflow-x-auto rounded-lg border border-border/60 bg-muted/45 p-1">
       <div className="flex min-w-max gap-1" role="tablist" aria-label={ariaLabel}>
-        {tabs.map((tab) => {
+        {tabs.map((tab, index) => {
           const Icon = tab.icon;
           return (
             <Button
@@ -71,19 +71,19 @@ export function DashboardTabs<T extends string>({
               className={cn(
                 'h-8 border border-transparent px-3 text-[11px] font-medium',
                 activeTab === tab.id
-                  ? 'border-border bg-background text-foreground shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]'
+                  ? 'border-border bg-white text-foreground shadow-[inset_0_0_0_1px_rgba(255,255,255,0.45)]'
                   : 'text-muted-foreground hover:border-border/80 hover:bg-background/70 hover:text-foreground',
               )}
               onClick={() => onChange(tab.id)}
               ref={(node) => {
-                tabRefs.current[tabs.findIndex((entry) => entry.id === tab.id)] = node;
+                tabRefs.current[index] = node;
               }}
               role="tab"
               id={getDashboardTabId(idPrefix, tab.id)}
               aria-selected={activeTab === tab.id}
               aria-controls={getDashboardTabPanelId(idPrefix, tab.id)}
               tabIndex={activeTab === tab.id ? 0 : -1}
-              onKeyDown={(event) => onKeyDown(event, tabs.findIndex((entry) => entry.id === tab.id))}
+              onKeyDown={(event) => onKeyDown(event, index)}
             >
               <Icon className={cn('h-4 w-4', activeTab === tab.id ? 'text-foreground' : 'text-muted-foreground')} />
               {tab.label}

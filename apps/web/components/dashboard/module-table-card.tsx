@@ -7,12 +7,17 @@ import { cn } from '@/lib/utils';
 
 type ModuleTableCardProps = {
   icon: React.ComponentType<{ className?: string }>;
+  iconNode?: ReactNode;
   label: string;
   title: string;
   titleClassName?: string;
   action?: ReactNode;
   headerBottomContent?: ReactNode;
+  footerContent?: ReactNode;
   className?: string;
+  headerClassName?: string;
+  headerContentClassName?: string;
+  bodyClassName?: string;
   tone?: 'default' | 'emphasis' | 'muted';
   isLoading?: boolean;
   errorMessage?: string;
@@ -23,12 +28,17 @@ type ModuleTableCardProps = {
 
 export function ModuleTableCard({
   icon,
+  iconNode,
   label,
   title,
   titleClassName,
   action,
   headerBottomContent,
+  footerContent,
   className,
+  headerClassName,
+  headerContentClassName,
+  bodyClassName,
   tone = 'default',
   isLoading = false,
   errorMessage,
@@ -53,13 +63,16 @@ export function ModuleTableCard({
     <DashboardCard className={cn(toneCardClassName, className)}>
       <DashboardCardHeader
         icon={icon}
+        iconNode={iconNode}
         label={label}
         title={title}
         titleClassName={titleClassName}
         action={action}
         bottomContent={headerBottomContent}
+        className={headerClassName}
+        contentClassName={headerContentClassName}
       />
-      <div className={cn(dashboardUiTokens.cardBody, toneBodyClassName)}>
+      <div className={cn(dashboardUiTokens.cardBody, toneBodyClassName, bodyClassName)}>
         {errorMessage && <ErrorBanner message={errorMessage} />}
         {isLoading ? (
           <div className="space-y-2">
@@ -80,6 +93,11 @@ export function ModuleTableCard({
           children
         )}
       </div>
+      {footerContent ? (
+        <div className="bg-white px-4 py-2.5">
+          {footerContent}
+        </div>
+      ) : null}
     </DashboardCard>
   );
 }

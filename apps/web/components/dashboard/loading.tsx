@@ -12,7 +12,7 @@ export function PageLoading({
       <Skeleton className={`h-8 ${titleWidth}`} />
       <div className="space-y-2">
         {Array.from({ length: rows }).map((_, idx) => (
-          <Skeleton key={idx} className="h-14 rounded-xl" />
+          <Skeleton key={idx} className="h-14 rounded-lg" />
         ))}
       </div>
     </div>

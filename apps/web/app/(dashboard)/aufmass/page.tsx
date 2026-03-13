@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { PlusCircle, Ruler } from 'lucide-react';
 
@@ -25,15 +25,6 @@ import type { AufmassRecord } from '@/lib/aufmass/types';
 
 export default function AufmassPage() {
   const searchParams = useSearchParams();
-  const records = useMemo<AufmassRecord[]>(() => listAufmassRecordsSync(), []);
-  const [filters, setFilters] = useState<AufmassListFilterState>({
-    query: '',
-    status: 'ALL',
-    blockedOnly: false,
-    dueOnly: false,
-    versionAtLeast2: false,
-  });
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const handoffFrom = searchParams.get('handoffFrom');
   const handoffSuggestionId = searchParams.get('handoffSuggestionId') ?? undefined;
   const handoffQuery = [
@@ -43,11 +34,16 @@ export default function AufmassPage() {
   ]
     .filter((entry): entry is string => Boolean(entry))
     .join(' ');
-
-  useEffect(() => {
-    if (!handoffFrom || handoffQuery.trim().length === 0) return;
-    setFilters((prev) => (prev.query === handoffQuery ? prev : { ...prev, query: handoffQuery }));
-  }, [handoffFrom, handoffQuery]);
+  const initialQuery = handoffFrom && handoffQuery.trim().length > 0 ? handoffQuery : '';
+  const records = useMemo<AufmassRecord[]>(() => listAufmassRecordsSync(), []);
+  const [filters, setFilters] = useState<AufmassListFilterState>({
+    query: initialQuery,
+    status: 'ALL',
+    blockedOnly: false,
+    dueOnly: false,
+    versionAtLeast2: false,
+  });
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const blockedRecordIds = useMemo(() => {
     const blockedIds = new Set<string>();
@@ -84,11 +80,6 @@ export default function AufmassPage() {
     () => displayRecords.find((entry) => entry.id === selectedRecordId) ?? displayRecords[0],
     [displayRecords, selectedRecordId],
   );
-
-  useEffect(() => {
-    if (selectedRecordId && displayRecords.some((entry) => entry.id === selectedRecordId)) return;
-    setSelectedRecordId(displayRecords[0]?.id);
-  }, [displayRecords, selectedRecordId]);
 
   const reviewCount = records.filter((entry) => entry.status === 'IN_REVIEW').length;
   const openDrafts = records.filter((entry) => entry.status === 'DRAFT').length;
@@ -154,7 +145,8 @@ export default function AufmassPage() {
       >
         <Button size="sm" disabled title="Wird im nächsten Ausbauschritt aktiviert.">
           <PlusCircle className="h-4 w-4" />
-          Neues Aufmaß (folgt)
+          <span className="hidden md:inline ml-2">Neues Aufmaß (folgt)</span>
+          <span className="hidden sm:inline md:hidden ml-2">Neu (folgt)</span>
         </Button>
       </PageHeader>
 

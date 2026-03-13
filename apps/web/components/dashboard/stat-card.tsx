@@ -41,6 +41,7 @@ export function StatCard({
   subtitle,
   trialLabel,
   compact = false,
+  dense = false,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -49,6 +50,7 @@ export function StatCard({
   trialLabel?: string;
   accent?: boolean;
   compact?: boolean;
+  dense?: boolean;
   tone?: 'neutral' | 'primary' | 'amber' | 'rose' | 'emerald' | 'teal' | 'blue';
 }) {
   const numericValue = toNumericValue(value);
@@ -58,40 +60,42 @@ export function StatCard({
   return (
     <div
       className={cn(
-        'flex h-30.5 flex-col rounded-xl border border-border bg-white',
-        compact ? 'px-2.5 pt-2.5 pb-3.5' : 'px-3 pt-3 pb-4',
+        'flex min-w-0 flex-col rounded-lg border border-border bg-white',
+        compact ? (dense ? 'h-24 px-2 py-2 [@media(max-width:479px)]:h-20 [@media(max-width:479px)]:px-1.5 [@media(max-width:479px)]:py-1.5' : 'h-30.5 px-2.5 pt-2.5 pb-3.5 [@media(max-width:479px)]:h-28 [@media(max-width:479px)]:px-2 [@media(max-width:479px)]:pt-2 [@media(max-width:479px)]:pb-3') : 'h-30.5 px-3 pt-3 pb-4 [@media(max-width:479px)]:h-28 [@media(max-width:479px)]:px-2.5 [@media(max-width:479px)]:pt-2.5 [@media(max-width:479px)]:pb-3.5',
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+        <p className="flex-1 truncate text-[10px] font-semibold uppercase tracking-widest text-muted-foreground [@media(max-width:479px)]:text-[9px]">
           {label}
         </p>
-        <div className={cn('p-1.5', dashboardUiTokens.iconShell)}>
-          <Icon className="h-3.5 w-3.5" />
+        <div className={cn('p-1.5 shrink-0', dashboardUiTokens.iconShell)}>
+          <Icon className="h-3.5 w-3.5 [@media(max-width:479px)]:h-3 [@media(max-width:479px)]:w-3" />
         </div>
       </div>
 
-      <div className={cn(compact ? 'mt-1.5' : 'mt-2')}>
+      <div className={cn(compact ? (dense ? 'mt-1' : 'mt-1.5') : 'mt-2')}>
         <p
           className={cn(
             'truncate font-mono text-xl font-semibold leading-tight tabular-nums',
-            !compact && 'text-2xl',
-            'text-foreground',
+            !compact && 'text-2xl [@media(max-width:479px)]:text-xl',
+            'text-foreground [@media(max-width:479px)]:text-base',
           )}
         >
           {value}
         </p>
         {subtitle && (
-          <p className="mt-1 text-[11px] text-muted-foreground">{subtitle}</p>
+          <p className="mt-1 block max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[11px] text-muted-foreground">
+            {subtitle}
+          </p>
         )}
         {trialLabel && (
-          <p className="mt-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+          <p className="mt-1 block max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[11px] font-medium text-amber-600 dark:text-amber-400">
             {trialLabel}
           </p>
         )}
       </div>
 
-      <div className="mt-auto flex items-center justify-between gap-2">
+      <div className={cn('mt-auto flex items-center justify-between gap-2', dense && compact && 'hidden')}>
         <div className="min-w-0 flex-1 pb-0.5">
           <div className="h-1.5 overflow-hidden rounded-full bg-muted/70">
             <div
@@ -99,7 +103,7 @@ export function StatCard({
               style={{ width: `${normalizedProgress}%` }}
             />
           </div>
-          <p className="mt-1 text-[10px] text-muted-foreground">Statusindikator</p>
+          <p className="mt-1 truncate text-[10px] text-muted-foreground">Statusindikator</p>
         </div>
         <svg viewBox="0 0 56 28" className="h-6 w-12 shrink-0">
           <polyline

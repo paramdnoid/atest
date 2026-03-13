@@ -69,6 +69,8 @@ export function AppSidebar({
   const pathname = usePathname();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
+  const userMenuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const signOutItemRef = useRef<HTMLButtonElement | null>(null);
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard';
@@ -109,6 +111,11 @@ export function AppSidebar({
     };
   }, []);
 
+  useEffect(() => {
+    if (!isUserMenuOpen) return;
+    signOutItemRef.current?.focus();
+  }, [isUserMenuOpen]);
+
   return (
     <Sidebar variant="inset">
       <SidebarHeader className="px-3 py-3">
@@ -131,7 +138,7 @@ export function AppSidebar({
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="[-webkit-mask-image:linear-gradient(to_bottom,transparent_0,black_18px,black_calc(100%-18px),transparent_100%)] mask-[linear-gradient(to_bottom,transparent_0,black_18px,black_calc(100%-18px),transparent_100%)]">
         {isLoadingProfile ? (
           <SidebarGroup>
             <div className="space-y-2 px-2">
@@ -165,10 +172,22 @@ export function AppSidebar({
         <div ref={userMenuRef} className="relative">
           <button
             type="button"
+            id="sidebar-user-menu-button"
             onClick={() => setIsUserMenuOpen((open) => !open)}
+            ref={userMenuButtonRef}
             className="mb-1 flex w-full items-center gap-2 rounded-md px-2 py-2 text-left transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             aria-expanded={isUserMenuOpen}
             aria-haspopup="menu"
+            aria-controls="sidebar-user-menu"
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                setIsUserMenuOpen(true);
+              }
+              if (event.key === 'Escape') {
+                setIsUserMenuOpen(false);
+              }
+            }}
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-xs font-semibold text-primary">
               {getInitials(userDisplayName)}
@@ -183,7 +202,16 @@ export function AppSidebar({
           </button>
           {isUserMenuOpen && (
             <div
+              id="sidebar-user-menu"
               role="menu"
+              aria-labelledby="sidebar-user-menu-button"
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') {
+                  event.preventDefault();
+                  setIsUserMenuOpen(false);
+                  userMenuButtonRef.current?.focus();
+                }
+              }}
               className="absolute bottom-12 left-0 z-20 w-full rounded-md border bg-background p-1 shadow-md"
             >
               <div className="flex items-center gap-2 rounded-sm px-2 py-1.5">
@@ -200,6 +228,8 @@ export function AppSidebar({
                 type="button"
                 role="menuitem"
                 onClick={onSignOut}
+                ref={signOutItemRef}
+                tabIndex={-1}
                 className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive transition-colors hover:bg-accent"
               >
                 <LogOut className="h-4 w-4 shrink-0" />

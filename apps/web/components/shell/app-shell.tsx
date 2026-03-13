@@ -3,23 +3,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import {
-  CAPABILITY_PROFILE_STORAGE_KEY,
-  resolveCapabilityProfile,
-} from '@/lib/capability-mock';
+import { CAPABILITY_PROFILE_STORAGE_KEY } from '@/lib/capability-mock';
 import { logoutSession } from '@/lib/auth-client';
 import { loadEffectiveProfile } from '@/lib/effective-profile';
 import type { EffectiveProfile } from '@/lib/effective-profile';
 import { moduleRegistry } from '@/lib/module-registry';
 import type { ModuleGroup } from '@/lib/module-registry';
 import { clearAccessToken, getAccessToken } from '@/lib/session-token';
-import {
-  applyDashboardDensity,
-  DASHBOARD_DENSITY_STORAGE_KEY,
-  resolveDashboardDensity,
-} from '@/lib/dashboard-density';
 import { AppSidebar } from '@/components/shell/app-sidebar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+const CAPABILITY_MOCK_ENABLED = process.env.NEXT_PUBLIC_ENABLE_CAPABILITY_MOCK === 'true';
 
 const groupOrder: ModuleGroup[] = [
   'hauptmenue',
@@ -37,26 +30,36 @@ const groupLabels: Record<ModuleGroup, string> = {
   verwaltung: 'Verwaltung',
 };
 
+function ShellContentSkeleton() {
+  return (
+    <div className="space-y-4 py-2">
+      <div className="h-8 w-52 animate-pulse rounded-md bg-muted/70" />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[1, 2, 3, 4].map((index) => (
+          <div key={index} className="h-24 animate-pulse rounded-lg border border-border/70 bg-muted/40" />
+        ))}
+      </div>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.85fr)]">
+        <div className="h-72 animate-pulse rounded-lg border border-border/70 bg-muted/40" />
+        <div className="space-y-4">
+          <div className="h-32 animate-pulse rounded-lg border border-border/70 bg-muted/40" />
+          <div className="h-32 animate-pulse rounded-lg border border-border/70 bg-muted/40" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [activeProfileId] = useState<string | undefined>(() => {
     if (typeof window === 'undefined') return undefined;
+    if (!CAPABILITY_MOCK_ENABLED) return undefined;
     return localStorage.getItem(CAPABILITY_PROFILE_STORAGE_KEY) ?? undefined;
   });
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  const [profile, setProfile] = useState<EffectiveProfile>(() => {
-    const fallback = resolveCapabilityProfile();
-    return {
-      userName: undefined,
-      userEmail: undefined,
-      tenantName: fallback.tenantName,
-      role: fallback.role,
-      trade: fallback.trade,
-      capabilities: fallback.capabilities,
-      source: 'mock' as const,
-    };
-  });
+  const [profile, setProfile] = useState<EffectiveProfile | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -70,9 +73,17 @@ export function AppShell({ children }: { children: ReactNode }) {
       }
 
       setIsLoadingProfile(true);
-      const effectiveProfile = await loadEffectiveProfile(token, activeProfileId);
-      if (!cancelled) {
+      try {
+        const effectiveProfile = await loadEffectiveProfile(token, activeProfileId);
+        if (cancelled) return;
         setProfile(effectiveProfile);
+      } catch {
+        if (cancelled) return;
+        clearAccessToken();
+        setProfile(null);
+        router.replace('/signin');
+      } finally {
+        if (cancelled) return;
         setIsLoadingProfile(false);
       }
     }
@@ -83,22 +94,17 @@ export function AppShell({ children }: { children: ReactNode }) {
     };
   }, [activeProfileId, router]);
 
-  useEffect(() => {
-    const stored = resolveDashboardDensity(localStorage.getItem(DASHBOARD_DENSITY_STORAGE_KEY));
-    applyDashboardDensity(stored);
-  }, []);
 
-  const visibleNavItems = useMemo(
-    () =>
-      moduleRegistry.filter((item) => {
-        const hasRequiredCapabilities = item.requiredCapabilities.every((capability) =>
-          profile.capabilities.includes(capability),
-        );
-        const isTradeVisible = !item.trades || item.trades.includes(profile.trade);
-        return hasRequiredCapabilities && isTradeVisible;
-      }),
-    [profile.capabilities, profile.trade],
-  );
+  const visibleNavItems = useMemo(() => {
+    if (!profile) return [];
+    return moduleRegistry.filter((item) => {
+      const hasRequiredCapabilities = item.requiredCapabilities.every((capability) =>
+        profile.capabilities.includes(capability),
+      );
+      const isTradeVisible = !item.trades || item.trades.includes(profile.trade);
+      return hasRequiredCapabilities && isTradeVisible;
+    });
+  }, [profile]);
 
   const visibleGroups = useMemo(
     () =>
@@ -110,34 +116,20 @@ export function AppShell({ children }: { children: ReactNode }) {
         .filter((group) => group.items.length > 0),
     [visibleNavItems],
   );
+  const hasVisibleModules = visibleNavItems.length > 0;
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function guardRoute() {
-      const token = await getAccessToken();
-      if (!token) {
-        router.push('/signin');
-        return;
-      }
-
-      if (isLoadingProfile || cancelled) {
-        return;
-      }
-
-      const activeRoute = visibleNavItems.find((item) =>
-        item.href === '/dashboard' ? pathname === item.href : pathname.startsWith(item.href),
-      );
-      if (!activeRoute && visibleNavItems.length > 0) {
-        router.replace(visibleNavItems[0].href);
-      }
+    if (isLoadingProfile || !profile) {
+      return;
     }
 
-    guardRoute();
-    return () => {
-      cancelled = true;
-    };
-  }, [isLoadingProfile, pathname, router, visibleNavItems]);
+    const activeRoute = visibleNavItems.find((item) =>
+      item.href === '/dashboard' ? pathname === item.href : pathname.startsWith(item.href),
+    );
+    if (!activeRoute && visibleNavItems.length > 0) {
+      router.replace(visibleNavItems[0].href);
+    }
+  }, [isLoadingProfile, pathname, profile, router, visibleNavItems]);
 
   async function handleSignOut() {
     try {
@@ -146,7 +138,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       // Always clear local auth state even if remote logout fails.
     }
     clearAccessToken();
-    localStorage.removeItem(CAPABILITY_PROFILE_STORAGE_KEY);
+    if (CAPABILITY_MOCK_ENABLED) {
+      localStorage.removeItem(CAPABILITY_PROFILE_STORAGE_KEY);
+    }
     router.push('/signin');
     router.refresh();
   }
@@ -155,18 +149,28 @@ export function AppShell({ children }: { children: ReactNode }) {
     <SidebarProvider>
       <AppSidebar
         isLoadingProfile={isLoadingProfile}
-        userName={profile.userName}
-        userEmail={profile.userEmail}
-        tenantName={profile.tenantName}
-        trade={profile.trade}
-        role={profile.role}
+        userName={profile?.userName}
+        userEmail={profile?.userEmail}
+        tenantName={profile?.tenantName ?? ''}
+        trade={profile?.trade ?? ''}
+        role={profile?.role ?? ''}
         groups={visibleGroups}
         onSignOut={handleSignOut}
       />
       <SidebarInset>
-        <div className="flex-1 overflow-y-auto rounded-xl border border-border/70 bg-background/70">
+        <div className="flex-1 overflow-y-auto rounded-lg border border-border/70 bg-background/70">
           <div id="main-content" className="mx-auto w-full px-4 pb-10 pt-2 sm:px-6 sm:pt-3">
-            {children}
+            {isLoadingProfile ? (
+              <ShellContentSkeleton />
+            ) : !profile ? (
+              null
+            ) : hasVisibleModules ? (
+              children
+            ) : (
+              <div className="rounded-lg border border-border/70 bg-muted/20 p-6 text-sm text-muted-foreground">
+                Keine Module für dieses Profil verfügbar. Bitte Rollen-/Berechtigungskonfiguration prüfen.
+              </div>
+            )}
           </div>
         </div>
       </SidebarInset>

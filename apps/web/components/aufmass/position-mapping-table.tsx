@@ -19,11 +19,54 @@ type PositionMappingTableProps = {
   mappings: AufmassPositionMapping[];
   positions: AufmassPosition[];
   rooms: AufmassRoom[];
+  embedded?: boolean;
 };
 
-export function PositionMappingTable({ mappings, positions, rooms }: PositionMappingTableProps) {
+function MappingTableContent({ mappings, positions, rooms }: Pick<PositionMappingTableProps, 'mappings' | 'positions' | 'rooms'>) {
   const positionsById = useMemo(() => new Map(positions.map((entry) => [entry.id, entry])), [positions]);
   const roomsById = useMemo(() => new Map(rooms.map((entry) => [entry.id, entry])), [rooms]);
+
+  if (mappings.length === 0) {
+    return <p className="text-sm text-muted-foreground">Noch keine Zuordnung. Mindestens eine Zuordnung ist für den Prüfstatus erforderlich.</p>;
+  }
+
+  return (
+    <Table>
+      <TableHeader className="bg-muted/50">
+        <TableRow className="hover:bg-transparent">
+          <TableHead className="px-4 py-3">Position</TableHead>
+          <TableHead className="px-4 py-3">Raum</TableHead>
+          <TableHead className="px-4 py-3">Zuordnung</TableHead>
+          <TableHead className="px-4 py-3">Zeit</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {mappings.map((mapping) => {
+          const position = positionsById.get(mapping.positionId);
+          const room = roomsById.get(mapping.roomId);
+          return (
+            <TableRow key={mapping.id}>
+              <TableCell className="px-4 py-3">
+                <p className="font-mono text-xs">{position?.code}</p>
+                <p className="text-sm">{position?.title ?? 'Unbekannte Position'}</p>
+              </TableCell>
+              <TableCell className="px-4 py-3">
+                {room ? `${room.level} · ${room.name}` : 'Unbekannter Raum'}
+              </TableCell>
+              <TableCell className="px-4 py-3 text-muted-foreground">{mapping.mappedBy}</TableCell>
+              <TableCell className="px-4 py-3 text-muted-foreground">{formatDate(mapping.mappedAt)}</TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
+  );
+}
+
+export function PositionMappingTable({ mappings, positions, rooms, embedded = false }: PositionMappingTableProps) {
+  if (embedded) {
+    return <MappingTableContent mappings={mappings} positions={positions} rooms={rooms} />;
+  }
 
   return (
     <ModuleTableCard
@@ -37,35 +80,7 @@ export function PositionMappingTable({ mappings, positions, rooms }: PositionMap
         description: 'Mindestens eine Zuordnung ist für den Prüfstatus erforderlich.',
       }}
     >
-      <Table>
-        <TableHeader className="bg-muted/50">
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="px-4 py-3">Position</TableHead>
-            <TableHead className="px-4 py-3">Raum</TableHead>
-            <TableHead className="px-4 py-3">Zuordnung</TableHead>
-            <TableHead className="px-4 py-3">Zeit</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {mappings.map((mapping) => {
-            const position = positionsById.get(mapping.positionId);
-            const room = roomsById.get(mapping.roomId);
-            return (
-              <TableRow key={mapping.id}>
-                <TableCell className="px-4 py-3">
-                  <p className="font-mono text-xs">{position?.code}</p>
-                  <p className="text-sm">{position?.title ?? 'Unbekannte Position'}</p>
-                </TableCell>
-                <TableCell className="px-4 py-3">
-                  {room ? `${room.level} · ${room.name}` : 'Unbekannter Raum'}
-                </TableCell>
-                <TableCell className="px-4 py-3 text-muted-foreground">{mapping.mappedBy}</TableCell>
-                <TableCell className="px-4 py-3 text-muted-foreground">{formatDate(mapping.mappedAt)}</TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+      <MappingTableContent mappings={mappings} positions={positions} rooms={rooms} />
     </ModuleTableCard>
   );
 }
