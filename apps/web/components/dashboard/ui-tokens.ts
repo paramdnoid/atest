@@ -1,8 +1,9 @@
 export const dashboardUiTokens = {
   pageStack: 'space-y-[var(--dashboard-page-gap)]',
   sectionStack: 'space-y-[var(--dashboard-section-gap)]',
+  contextRailStack: 'space-y-[var(--dashboard-section-gap)]',
   kpiGrid: 'grid gap-2 sm:grid-cols-2 xl:grid-cols-4',
-  mainGrid: 'grid items-start gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.85fr)]',
+  mainGrid: 'grid items-start gap-[var(--dashboard-main-gap)] xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.85fr)]',
   card: 'rounded-xl border border-border bg-white',
   cardHeader: 'px-4 py-3',
   cardBody: 'p-[var(--dashboard-card-padding)]',

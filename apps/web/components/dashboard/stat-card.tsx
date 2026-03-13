@@ -41,6 +41,7 @@ export function StatCard({
   subtitle,
   trialLabel,
   compact = false,
+  dense = false,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -49,6 +50,7 @@ export function StatCard({
   trialLabel?: string;
   accent?: boolean;
   compact?: boolean;
+  dense?: boolean;
   tone?: 'neutral' | 'primary' | 'amber' | 'rose' | 'emerald' | 'teal' | 'blue';
 }) {
   const numericValue = toNumericValue(value);
@@ -58,8 +60,8 @@ export function StatCard({
   return (
     <div
       className={cn(
-        'flex h-30.5 flex-col rounded-xl border border-border bg-white',
-        compact ? 'px-2.5 pt-2.5 pb-3.5' : 'px-3 pt-3 pb-4',
+        'flex flex-col rounded-xl border border-border bg-white',
+        compact ? (dense ? 'h-24 px-2 py-2' : 'h-30.5 px-2.5 pt-2.5 pb-3.5') : 'h-30.5 px-3 pt-3 pb-4',
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -71,7 +73,7 @@ export function StatCard({
         </div>
       </div>
 
-      <div className={cn(compact ? 'mt-1.5' : 'mt-2')}>
+      <div className={cn(compact ? (dense ? 'mt-1' : 'mt-1.5') : 'mt-2')}>
         <p
           className={cn(
             'truncate font-mono text-xl font-semibold leading-tight tabular-nums',
@@ -91,7 +93,7 @@ export function StatCard({
         )}
       </div>
 
-      <div className="mt-auto flex items-center justify-between gap-2">
+      <div className={cn('mt-auto flex items-center justify-between gap-2', dense && compact && 'hidden')}>
         <div className="min-w-0 flex-1 pb-0.5">
           <div className="h-1.5 overflow-hidden rounded-full bg-muted/70">
             <div

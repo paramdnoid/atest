@@ -12,7 +12,11 @@ type ModuleTableCardProps = {
   titleClassName?: string;
   action?: ReactNode;
   headerBottomContent?: ReactNode;
+  footerContent?: ReactNode;
   className?: string;
+  headerClassName?: string;
+  headerContentClassName?: string;
+  bodyClassName?: string;
   tone?: 'default' | 'emphasis' | 'muted';
   isLoading?: boolean;
   errorMessage?: string;
@@ -28,7 +32,11 @@ export function ModuleTableCard({
   titleClassName,
   action,
   headerBottomContent,
+  footerContent,
   className,
+  headerClassName,
+  headerContentClassName,
+  bodyClassName,
   tone = 'default',
   isLoading = false,
   errorMessage,
@@ -58,8 +66,10 @@ export function ModuleTableCard({
         titleClassName={titleClassName}
         action={action}
         bottomContent={headerBottomContent}
+        className={headerClassName}
+        contentClassName={headerContentClassName}
       />
-      <div className={cn(dashboardUiTokens.cardBody, toneBodyClassName)}>
+      <div className={cn(dashboardUiTokens.cardBody, toneBodyClassName, bodyClassName)}>
         {errorMessage && <ErrorBanner message={errorMessage} />}
         {isLoading ? (
           <div className="space-y-2">
@@ -80,6 +90,11 @@ export function ModuleTableCard({
           children
         )}
       </div>
+      {footerContent ? (
+        <div className="bg-white px-4 py-2.5">
+          {footerContent}
+        </div>
+      ) : null}
     </DashboardCard>
   );
 }

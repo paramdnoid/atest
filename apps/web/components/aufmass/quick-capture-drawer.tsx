@@ -33,14 +33,16 @@ import {
   type BuilderInputValues,
 } from '@/lib/aufmass/formula-builder';
 import { aufmassRolloutFlags } from '@/lib/aufmass/rollout-flags';
+import { cn } from '@/lib/utils';
 
 type QuickCaptureDrawerProps = {
   room?: AufmassRoom;
   positions: AufmassPosition[];
   onAddMeasurement: (measurement: AufmassMeasurement) => void;
+  triggerClassName?: string;
 };
 
-export function QuickCaptureDrawer({ room, positions, onAddMeasurement }: QuickCaptureDrawerProps) {
+export function QuickCaptureDrawer({ room, positions, onAddMeasurement, triggerClassName }: QuickCaptureDrawerProps) {
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState('');
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(positions[0]?.id ?? null);
@@ -109,7 +111,7 @@ export function QuickCaptureDrawer({ room, positions, onAddMeasurement }: QuickC
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button size="sm" disabled={!room}>
+        <Button size="sm" disabled={!room} className={cn(triggerClassName)}>
           <PlusCircle className="h-4 w-4" />
           Schnell erfassen
         </Button>

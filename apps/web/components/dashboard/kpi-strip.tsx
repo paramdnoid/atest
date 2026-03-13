@@ -13,7 +13,7 @@ export type KpiStripItem = {
   tone?: 'neutral' | 'primary' | 'amber' | 'rose' | 'emerald' | 'teal' | 'blue';
 };
 
-export function KpiStrip({ items }: { items: KpiStripItem[] }) {
+export function KpiStrip({ items, dense = false }: { items: KpiStripItem[]; dense?: boolean }) {
   return (
     <div className={dashboardUiTokens.kpiGrid}>
       {items.map((item) => (
@@ -27,6 +27,7 @@ export function KpiStrip({ items }: { items: KpiStripItem[] }) {
           accent={item.accent}
           tone={item.tone}
           compact
+          dense={dense}
         />
       ))}
     </div>

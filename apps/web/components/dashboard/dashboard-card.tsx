@@ -29,6 +29,8 @@ export function DashboardCardHeader({
   action,
   titleClassName,
   bottomContent,
+  className,
+  contentClassName,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -36,11 +38,13 @@ export function DashboardCardHeader({
   action?: ReactNode;
   titleClassName?: string;
   bottomContent?: ReactNode;
+  className?: string;
+  contentClassName?: string;
 }) {
   return (
-    <div className="px-4 py-2.5">
+    <div className={cn('px-4 py-2.5', className)}>
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className={cn('flex items-center gap-3', contentClassName)}>
           <div className={cn('flex h-7 w-7 shrink-0 items-center justify-center', dashboardUiTokens.iconShell)}>
             <Icon className="h-3.5 w-3.5" />
           </div>
