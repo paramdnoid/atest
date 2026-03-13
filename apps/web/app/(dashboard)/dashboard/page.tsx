@@ -240,10 +240,7 @@ export default function DashboardPage() {
       title="Übersicht"
       description={data.workspace.name}
       badge={
-        <Badge
-          variant="outline"
-          className="border-(--enterprise-accent)/40 bg-(--enterprise-accent-soft) font-mono text-xs text-(--enterprise-accent)"
-        >
+        <Badge variant="outline" className="dashboard-module-badge">
           {data.planName}
         </Badge>
       }

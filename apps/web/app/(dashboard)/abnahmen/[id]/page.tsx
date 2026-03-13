@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type KeyboardEvent } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Brain, ClipboardList, FileText, History, LayoutPanelTop, Wrench } from 'lucide-react';
@@ -13,6 +13,11 @@ import { DefectCaptureDrawer } from '@/components/abnahmen/defect-capture-drawer
 import { PrivacyBanner } from '@/components/abnahmen/privacy-banner';
 import { ReworkTracker } from '@/components/abnahmen/rework-tracker';
 import { getAbnahmenKpiItems } from '@/components/abnahmen/abnahmen-kpi-strip';
+import {
+  DashboardTabs,
+  getDashboardTabId,
+  getDashboardTabPanelId,
+} from '@/components/dashboard/dashboard-tabs';
 import { ModulePageTemplate } from '@/components/dashboard/module-page-template';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { EmptyState } from '@/components/dashboard/states';
@@ -37,14 +42,6 @@ const tabs: Array<{ id: TabKey; label: string; icon: React.ComponentType<{ class
   { id: 'history', label: 'Historie', icon: History },
   { id: 'insights', label: 'Insights', icon: Brain },
 ];
-
-function getTabId(id: TabKey): string {
-  return `abnahmen-tab-${id}`;
-}
-
-function getPanelId(id: TabKey): string {
-  return `abnahmen-tabpanel-${id}`;
-}
 
 function appendAudit(
   events: AbnahmeAuditEvent[],
@@ -94,7 +91,7 @@ export default function AbnahmeDetailPage() {
   const initial = useMemo(() => getAbnahmeRecordById(params.id), [params.id]);
   const [record, setRecord] = useState<AbnahmeRecord | null>(initial);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
-  const visibleTabs = tabs.filter((tab) => (tab.id === 'insights' ? abnahmenRolloutFlags.enableInsights : true));
+  const baseVisibleTabs = tabs.filter((tab) => (tab.id === 'insights' ? abnahmenRolloutFlags.enableInsights : true));
 
   if (!record) {
     return (
@@ -214,30 +211,49 @@ export default function AbnahmeDetailPage() {
   };
 
   const openDefects = getOpenDefects(record);
-  const onTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
-    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
-      event.preventDefault();
-      const direction = event.key === 'ArrowRight' ? 1 : -1;
-      const nextIndex = (currentIndex + direction + visibleTabs.length) % visibleTabs.length;
-      setActiveTab(visibleTabs[nextIndex].id);
-      return;
+  const inProgressReworkCount = record.rework.filter((entry) => entry.status === 'IN_PROGRESS').length;
+  const resolvedReworkCount = record.rework.filter((entry) => entry.status === 'DONE').length;
+  const tabPanelSplitClassName = 'grid gap-4 2xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,1fr)]';
+  const visibleTabs = baseVisibleTabs.map((tab) => {
+    if (tab.id === 'defects') {
+      return {
+        ...tab,
+        badge: (
+          <span className="rounded-full border border-border/70 bg-background px-1.5 py-0 text-[10px] leading-none text-muted-foreground">
+            {openDefects.length}
+          </span>
+        ),
+      };
     }
-    if (event.key === 'Home') {
-      event.preventDefault();
-      setActiveTab(visibleTabs[0].id);
-      return;
+    if (tab.id === 'rework') {
+      const inProgress = record.rework.filter((entry) => entry.status === 'IN_PROGRESS').length;
+      return {
+        ...tab,
+        badge: (
+          <span className="rounded-full border border-border/70 bg-background px-1.5 py-0 text-[10px] leading-none text-muted-foreground">
+            {inProgress}
+          </span>
+        ),
+      };
     }
-    if (event.key === 'End') {
-      event.preventDefault();
-      setActiveTab(visibleTabs[visibleTabs.length - 1].id);
+    if (tab.id === 'history') {
+      return {
+        ...tab,
+        badge: (
+          <span className="rounded-full border border-border/70 bg-background px-1.5 py-0 text-[10px] leading-none text-muted-foreground">
+            {record.auditTrail.length}
+          </span>
+        ),
+      };
     }
-  };
-
+    return tab;
+  });
   return (
     <div className="space-y-6">
       <ModulePageTemplate
-        title="Abnahme Workspace"
-        description={`${record.number} · ${record.customerName}`}
+        title="Abnahmeakte"
+        description={`${record.number} · ${record.customerName} · ${record.projectName}`}
+        mainGridClassName="grid-cols-1 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,1fr)]"
         badge={
           <Badge variant="outline" className="font-mono text-xs">
             {record.tradeLabel}
@@ -245,8 +261,132 @@ export default function AbnahmeDetailPage() {
         }
         actions={<DefectCaptureDrawer onAddDefect={onAddDefect} />}
         kpis={getAbnahmenKpiItems([record])}
+        sideContent={
+          <div className="space-y-4 xl:sticky xl:top-4 xl:self-start">
+            <ModuleTableCard icon={LayoutPanelTop} label="Statuskompass" title="Aktueller Stand" hasData>
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <div className="rounded-md border border-border/60 bg-background/50 px-2.5 py-2">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Status</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">{record.status}</p>
+                </div>
+                <div className="rounded-md border border-border/60 bg-background/50 px-2.5 py-2">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Nächster Schritt</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">{transitionTarget ?? '—'}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-md border border-border/60 bg-background/50 px-2.5 py-2">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Offen</p>
+                    <p className="mt-1 text-sm font-semibold text-foreground">{openDefects.length}</p>
+                  </div>
+                  <div
+                    className={`rounded-md border px-2.5 py-2 ${
+                      blockers.length > 0
+                        ? 'border-destructive/40 bg-destructive/10'
+                        : 'border-emerald-500/30 bg-emerald-500/10'
+                    }`}
+                  >
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Blocker</p>
+                    <p className={`mt-1 text-sm font-semibold ${blockers.length > 0 ? 'text-destructive' : 'text-emerald-700'}`}>
+                      {blockers.length}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </ModuleTableCard>
+            <ModuleTableCard icon={FileText} label="Protokoll" title="Signatur und Nachweise" hasData>
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/50 px-2.5 py-1.5">
+                  <span>Signatur</span>
+                  <span
+                    className={`font-medium ${
+                      record.protocol.signoffStatus === 'signed' ? 'text-emerald-700' : 'text-amber-700'
+                    }`}
+                  >
+                    {record.protocol.signoffStatus === 'signed' ? 'signiert' : 'ausstehend'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/50 px-2.5 py-1.5">
+                  <span>Termin</span>
+                  <span className="font-medium text-foreground">{record.protocol.appointmentDate ?? '-'}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/50 px-2.5 py-1.5">
+                  <span>Anwesend</span>
+                  <span className="font-medium text-foreground">{record.protocol.participants.length}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/50 px-2.5 py-1.5">
+                  <span>Vorbehalt</span>
+                  <span className="font-medium text-foreground">
+                    {record.protocol.reservationText ? 'hinterlegt' : 'kein Vorbehalt'}
+                  </span>
+                </div>
+              </div>
+            </ModuleTableCard>
+            <ModuleTableCard icon={ClipboardList} label="Dokumente und Datenschutz" title="Freigabe-Checks" hasData>
+              <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                <div
+                  className={`rounded-md border px-2.5 py-2 ${
+                    privacyBlockingCount > 0
+                      ? 'border-destructive/40 bg-destructive/10'
+                      : 'border-emerald-500/30 bg-emerald-500/10'
+                  }`}
+                >
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">DSGVO Blocker</p>
+                  <p
+                    className={`mt-1 text-sm font-semibold ${
+                      privacyBlockingCount > 0 ? 'text-destructive' : 'text-emerald-700'
+                    }`}
+                  >
+                    {privacyBlockingCount}
+                  </p>
+                </div>
+                <div
+                  className={`rounded-md border px-2.5 py-2 ${
+                    privacyWarningCount > 0 ? 'border-amber-500/40 bg-amber-500/10' : 'border-border/60 bg-background/50'
+                  }`}
+                >
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Hinweise</p>
+                  <p
+                    className={`mt-1 text-sm font-semibold ${
+                      privacyWarningCount > 0 ? 'text-amber-700' : 'text-foreground'
+                    }`}
+                  >
+                    {privacyWarningCount}
+                  </p>
+                </div>
+                <div
+                  className={`rounded-md border px-2.5 py-2 ${
+                    inProgressReworkCount > 0 ? 'border-amber-500/40 bg-amber-500/10' : 'border-border/60 bg-background/50'
+                  }`}
+                >
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Nacharbeit aktiv</p>
+                  <p
+                    className={`mt-1 text-sm font-semibold ${
+                      inProgressReworkCount > 0 ? 'text-amber-700' : 'text-foreground'
+                    }`}
+                  >
+                    {inProgressReworkCount}
+                  </p>
+                </div>
+                <div
+                  className={`rounded-md border px-2.5 py-2 ${
+                    resolvedReworkCount > 0 ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-border/60 bg-background/50'
+                  }`}
+                >
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Abgeschlossen</p>
+                  <p
+                    className={`mt-1 text-sm font-semibold ${
+                      resolvedReworkCount > 0 ? 'text-emerald-700' : 'text-foreground'
+                    }`}
+                  >
+                    {resolvedReworkCount}
+                  </p>
+                </div>
+              </div>
+            </ModuleTableCard>
+          </div>
+        }
         mainContent={
-          <div className="space-y-4">
+          <div className="space-y-5">
             <AbnahmeDetailHeader
               record={record}
               blockers={blockers}
@@ -319,74 +459,124 @@ export default function AbnahmeDetailPage() {
                 warningCount={privacyWarningCount}
               />
             ) : (
-              <ModuleTableCard icon={FileText} label="Datenschutz" title="Privacy Guards deaktiviert" hasData>
+              <ModuleTableCard icon={FileText} label="Datenschutz" title="Datenschutzprüfung derzeit deaktiviert" hasData>
                 <p className="text-sm text-muted-foreground">
                   `NEXT_PUBLIC_ABNAHMEN_ENABLE_PRIVACY_GUARDS` ist deaktiviert.
                 </p>
               </ModuleTableCard>
             )}
 
-            <div className="flex flex-wrap gap-2" role="tablist" aria-label="Abnahmebereiche">
-              {visibleTabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <Button
-                    key={tab.id}
-                    size="sm"
-                    variant={activeTab === tab.id ? 'default' : 'outline'}
-                    onClick={() => setActiveTab(tab.id)}
-                    role="tab"
-                    id={getTabId(tab.id)}
-                    aria-selected={activeTab === tab.id}
-                    aria-controls={getPanelId(tab.id)}
-                    tabIndex={activeTab === tab.id ? 0 : -1}
-                    onKeyDown={(event) => onTabKeyDown(event, visibleTabs.findIndex((entry) => entry.id === tab.id))}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {tab.label}
-                  </Button>
-                );
-              })}
-            </div>
+            <DashboardTabs
+              idPrefix="abnahmen"
+              tabs={visibleTabs}
+              activeTab={activeTab}
+              onChange={setActiveTab}
+              ariaLabel="Abnahmebereiche"
+            />
 
             {activeTab === 'overview' && (
               <section
                 role="tabpanel"
-                id={getPanelId('overview')}
-                aria-labelledby={getTabId('overview')}
+                id={getDashboardTabPanelId('abnahmen', 'overview')}
+                aria-labelledby={getDashboardTabId('abnahmen', 'overview')}
                 tabIndex={0}
-                className="grid gap-4 lg:grid-cols-2"
+                className="grid gap-4 2xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,1fr)]"
               >
-                <DefectBoard defects={record.defects} />
-                <AbnahmeProtocolCard protocol={record.protocol} />
+                <div className="xl:min-h-136">
+                  <DefectBoard defects={record.defects} />
+                </div>
+                <div className="space-y-4 xl:min-h-136">
+                  <AbnahmeProtocolCard protocol={record.protocol} />
+                  <ModuleTableCard icon={FileText} label="Dokumentenstatus" title="Freigabeunterlagen" hasData>
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                      <p>Abnahmeprotokoll: {record.protocol.signoffStatus === 'signed' ? 'signiert' : 'ausstehend'}</p>
+                      <p>Mängelliste: {openDefects.length} offene Positionen</p>
+                      <p>Fotodokumentation: Datenschutzprüfung vor Freigabe erforderlich</p>
+                    </div>
+                  </ModuleTableCard>
+                </div>
               </section>
             )}
             {activeTab === 'defects' && (
-              <section role="tabpanel" id={getPanelId('defects')} aria-labelledby={getTabId('defects')} tabIndex={0}>
+              <section
+                role="tabpanel"
+                id={getDashboardTabPanelId('abnahmen', 'defects')}
+                aria-labelledby={getDashboardTabId('abnahmen', 'defects')}
+                tabIndex={0}
+                className={tabPanelSplitClassName}
+              >
                 <DefectBoard defects={record.defects} />
+                <ModuleTableCard icon={ClipboardList} label="Mangelkontext" title="Priorisierung" hasData>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <p>Offene Mängel: {openDefects.length}</p>
+                    <p>Kritisch: {record.defects.filter((entry) => entry.severity === 'critical').length}</p>
+                    <p>Mit Sperrwirkung: {record.defects.filter((entry) => entry.status === 'OPEN' && entry.severity === 'critical').length}</p>
+                    <p>Top-Fokus: Kritische Mängel zuerst in Nacharbeit überführen.</p>
+                  </div>
+                </ModuleTableCard>
               </section>
             )}
             {activeTab === 'rework' && (
-              <section role="tabpanel" id={getPanelId('rework')} aria-labelledby={getTabId('rework')} tabIndex={0}>
+              <section
+                role="tabpanel"
+                id={getDashboardTabPanelId('abnahmen', 'rework')}
+                aria-labelledby={getDashboardTabId('abnahmen', 'rework')}
+                tabIndex={0}
+                className={tabPanelSplitClassName}
+              >
                 <ReworkTracker rework={record.rework} defects={record.defects} />
+                <ModuleTableCard icon={Wrench} label="Nacharbeitslage" title="Abarbeitung" hasData>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <p>In Bearbeitung: {inProgressReworkCount}</p>
+                    <p>Abgeschlossen: {resolvedReworkCount}</p>
+                    <p>Bereit zur Schlussprüfung: {canMarkReadyForReview ? 'ja' : 'nein'}</p>
+                  </div>
+                </ModuleTableCard>
               </section>
             )}
             {activeTab === 'protocol' && (
-              <section role="tabpanel" id={getPanelId('protocol')} aria-labelledby={getTabId('protocol')} tabIndex={0}>
+              <section
+                role="tabpanel"
+                id={getDashboardTabPanelId('abnahmen', 'protocol')}
+                aria-labelledby={getDashboardTabId('abnahmen', 'protocol')}
+                tabIndex={0}
+                className={tabPanelSplitClassName}
+              >
                 <AbnahmeProtocolCard protocol={record.protocol} />
+                <ModuleTableCard icon={FileText} label="Protokollhilfe" title="Freigabestatus" hasData>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <p>Signaturstatus: {record.protocol.signoffStatus}</p>
+                    <p>Signiert am: {record.protocol.signedAt ? new Date(record.protocol.signedAt).toLocaleDateString('de-DE') : '-'}</p>
+                    <p>Ort: {record.protocol.place ?? '-'}</p>
+                  </div>
+                </ModuleTableCard>
               </section>
             )}
             {activeTab === 'history' && (
-              <section role="tabpanel" id={getPanelId('history')} aria-labelledby={getTabId('history')} tabIndex={0}>
+              <section
+                role="tabpanel"
+                id={getDashboardTabPanelId('abnahmen', 'history')}
+                aria-labelledby={getDashboardTabId('abnahmen', 'history')}
+                tabIndex={0}
+                className={tabPanelSplitClassName}
+              >
                 <AuditTimeline events={record.auditTrail} />
+                <ModuleTableCard icon={History} label="Historie" title="Kurzüberblick" hasData>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <p>Einträge gesamt: {record.auditTrail.length}</p>
+                    <p>Letzte Änderung: {new Date(record.updatedAt).toLocaleString('de-DE')}</p>
+                    <p>Erstellt: {new Date(record.createdAt).toLocaleDateString('de-DE')}</p>
+                  </div>
+                </ModuleTableCard>
               </section>
             )}
             {activeTab === 'documents' && (
               <section
                 role="tabpanel"
-                id={getPanelId('documents')}
-                aria-labelledby={getTabId('documents')}
+                id={getDashboardTabPanelId('abnahmen', 'documents')}
+                aria-labelledby={getDashboardTabId('abnahmen', 'documents')}
                 tabIndex={0}
+                className={tabPanelSplitClassName}
               >
                 <ModuleTableCard icon={FileText} label="Dokumente" title="Protokolle und Belege" hasData>
                   <div className="space-y-2 text-sm text-muted-foreground">
@@ -395,10 +585,22 @@ export default function AbnahmeDetailPage() {
                     <p>Fotodokumentation.zip · {openDefects.length} offene Mängel</p>
                   </div>
                 </ModuleTableCard>
+                <ModuleTableCard icon={FileText} label="Freigabehinweise" title="Compliance-Status" hasData>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <p>Blocker für Abschluss: {closeBlockers.length + closeComplianceBlockers.length}</p>
+                    <p>Blocker für Abnahme: {acceptBlockers.length + acceptComplianceBlockers.length}</p>
+                    <p>Datenschutz-Blocker: {privacyBlockingCount}</p>
+                  </div>
+                </ModuleTableCard>
               </section>
             )}
             {activeTab === 'insights' && (
-              <section role="tabpanel" id={getPanelId('insights')} aria-labelledby={getTabId('insights')} tabIndex={0}>
+              <section
+                role="tabpanel"
+                id={getDashboardTabPanelId('abnahmen', 'insights')}
+                aria-labelledby={getDashboardTabId('abnahmen', 'insights')}
+                tabIndex={0}
+              >
                 <ModuleTableCard icon={Brain} label="Insights" title="Qualitätskennzahlen" hasData>
                   <div className="space-y-2 text-sm text-muted-foreground">
                     <p>Offene Mängel: {openDefects.length}</p>

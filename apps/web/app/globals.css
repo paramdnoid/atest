@@ -202,6 +202,30 @@ body {
   background: color-mix(in hsl, hsl(var(--primary)) 7%, transparent);
 }
 
+.dashboard-module-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in hsl, hsl(var(--foreground)) 22%, hsl(var(--border)));
+  padding: 0.25rem 0.75rem;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in hsl, hsl(var(--foreground)) 86%, hsl(var(--primary)) 14%);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in hsl, hsl(var(--background)) 96%, white 4%),
+      color-mix(in hsl, hsl(var(--muted)) 34%, hsl(var(--background)))
+    );
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 6px 16px -12px rgba(15, 23, 42, 0.4);
+}
+
 .premium-divider {
   height: 1px;
   width: 100%;

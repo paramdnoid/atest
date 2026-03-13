@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowDownAZ, ArrowUpAZ, FilePenLine } from 'lucide-react';
 
+import { getSemanticBadgeClass } from '@/components/dashboard/semantic-badge';
 import { FormCheckbox } from '@/components/angebote/form-controls';
 import { AngeboteStatusBadge } from '@/components/angebote/angebote-status-badge';
 import { Button } from '@/components/ui/button';
@@ -28,9 +29,13 @@ function formatCurrency(value: number): string {
 }
 
 function getLevelBadgeClass(level: 'HIGH' | 'MEDIUM' | 'LOW'): string {
-  if (level === 'HIGH') return 'bg-red-100 text-red-700';
-  if (level === 'MEDIUM') return 'bg-amber-100 text-amber-700';
-  return 'bg-emerald-100 text-emerald-700';
+  if (level === 'HIGH') {
+    return getSemanticBadgeClass('danger');
+  }
+  if (level === 'MEDIUM') {
+    return getSemanticBadgeClass('warning');
+  }
+  return getSemanticBadgeClass('success');
 }
 
 export function AngeboteListTable({
@@ -48,7 +53,7 @@ export function AngeboteListTable({
       <Table>
         <TableHeader className="sticky top-0 z-10 bg-muted/85 backdrop-blur supports-backdrop-filter:bg-muted/75">
           <TableRow className="hover:bg-transparent">
-            <TableHead className="w-8 px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground">
+            <TableHead className="w-12 px-3 py-3 text-xs font-semibold tracking-wide text-muted-foreground">
               <FormCheckbox
                 checked={allVisibleSelected}
                 onChange={onToggleAllVisible}
@@ -91,14 +96,14 @@ export function AngeboteListTable({
                 data-state={selectedIds.includes(record.id) ? 'selected' : undefined}
                 className="align-middle odd:bg-muted/20"
               >
-                <TableCell className="px-4 py-2.5">
+                <TableCell className="px-3 py-2">
                   <FormCheckbox
                     checked={selectedIds.includes(record.id)}
                     onChange={() => onToggleSelected(record.id)}
                     ariaLabel={`Angebot ${record.number} auswaehlen`}
                   />
                 </TableCell>
-                <TableCell className="px-4 py-2.5 font-mono text-[11px] font-semibold">
+                <TableCell className="px-4 py-2 font-mono text-[11px] font-semibold">
                   <Link
                     href={`/angebote/${record.id}`}
                     className="text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
@@ -107,13 +112,13 @@ export function AngeboteListTable({
                   </Link>
                 </TableCell>
                 {visibleColumns.includes('customer') && (
-                  <TableCell className="px-4 py-2.5 font-medium text-foreground">{record.customerName}</TableCell>
+                  <TableCell className="px-4 py-2 font-medium text-foreground">{record.customerName}</TableCell>
                 )}
                 {visibleColumns.includes('project') && (
-                  <TableCell className="px-4 py-2.5 text-sm text-muted-foreground">{record.projectName}</TableCell>
+                  <TableCell className="px-4 py-2 text-sm text-muted-foreground">{record.projectName}</TableCell>
                 )}
                 {visibleColumns.includes('priority') && (
-                  <TableCell className="px-4 py-2.5">
+                  <TableCell className="px-4 py-2">
                     <span
                       className={[
                         'rounded-full px-2 py-0.5 text-[10px] font-medium',
@@ -125,9 +130,9 @@ export function AngeboteListTable({
                   </TableCell>
                 )}
                 {visibleColumns.includes('owner') && (
-                  <TableCell className="px-4 py-2.5 text-sm text-muted-foreground">{record.owner}</TableCell>
+                  <TableCell className="px-4 py-2 text-sm text-muted-foreground">{record.owner}</TableCell>
                 )}
-                <TableCell className="px-4 py-2.5">
+                <TableCell className="px-4 py-2">
                   <div className="flex items-center gap-2">
                     <AngeboteStatusBadge status={record.status} />
                     <span
@@ -141,19 +146,19 @@ export function AngeboteListTable({
                   </div>
                 </TableCell>
                 {visibleColumns.includes('validUntil') && (
-                  <TableCell className="px-4 py-2.5 text-sm text-muted-foreground">{formatDate(record.validUntil)}</TableCell>
+                  <TableCell className="px-4 py-2 text-sm text-muted-foreground">{formatDate(record.validUntil)}</TableCell>
                 )}
                 {visibleColumns.includes('margin') && (
-                  <TableCell className="px-4 py-2.5">
+                  <TableCell className="px-4 py-2">
                     <span className={totals.marginPercent < 18 ? 'text-amber-700' : 'text-emerald-700'}>
                       {totals.marginPercent.toFixed(1)}%
                     </span>
                   </TableCell>
                 )}
                 {visibleColumns.includes('totalNet') && (
-                  <TableCell className="px-4 py-2.5 text-sm font-medium">{formatCurrency(totals.totalNet)}</TableCell>
+                  <TableCell className="px-4 py-2 text-sm font-medium">{formatCurrency(totals.totalNet)}</TableCell>
                 )}
-                <TableCell className="px-4 py-2.5">
+                <TableCell className="px-4 py-2">
                   <Button asChild size="sm" variant="outline">
                     <Link href={`/angebote/${record.id}`}>
                       <FilePenLine className="h-4 w-4" />

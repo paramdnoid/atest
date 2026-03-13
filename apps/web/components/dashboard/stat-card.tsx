@@ -8,6 +8,7 @@ export function StatCard({
   subtitle,
   trialLabel,
   accent = false,
+  compact = false,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -15,11 +16,13 @@ export function StatCard({
   subtitle?: string;
   trialLabel?: string;
   accent?: boolean;
+  compact?: boolean;
 }) {
   return (
     <div
       className={cn(
-        'group relative flex flex-col justify-between overflow-hidden rounded-xl border bg-sidebar/40 p-4 transition-all duration-200',
+        'group relative flex flex-col justify-between overflow-hidden rounded-xl border bg-sidebar/40 transition-all duration-200',
+        compact ? 'p-3.5' : 'p-4',
         'hover:-translate-y-px',
         accent ? 'border-primary/30' : 'border-border',
       )}
@@ -37,28 +40,30 @@ export function StatCard({
         </p>
         <div
           className={cn(
-            'flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-transform duration-200 group-hover:scale-105',
+            'flex shrink-0 items-center justify-center rounded-md transition-transform duration-200 group-hover:scale-105',
+            compact ? 'h-6 w-6' : 'h-7 w-7',
             'bg-primary text-primary-foreground shadow-[0_2px_8px_color-mix(in_oklch,var(--color-primary)_40%,transparent)]',
           )}
         >
-          <Icon className="h-3.5 w-3.5" />
+          <Icon className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
         </div>
       </div>
 
-      <div className="relative mt-3">
+      <div className={cn('relative', compact ? 'mt-2' : 'mt-3')}>
         <p
           className={cn(
             dashboardUiTokens.kpiValue,
+            compact && 'text-xl',
             accent ? 'text-primary' : 'text-foreground',
           )}
         >
           {value}
         </p>
         {subtitle && (
-          <p className="mt-1.5 text-xs text-muted-foreground">{subtitle}</p>
+          <p className={cn('text-xs text-muted-foreground', compact ? 'mt-1' : 'mt-1.5')}>{subtitle}</p>
         )}
         {trialLabel && (
-          <p className="mt-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+          <p className={cn('text-xs font-medium text-amber-600 dark:text-amber-400', compact ? 'mt-1' : 'mt-1.5')}>
             {trialLabel}
           </p>
         )}

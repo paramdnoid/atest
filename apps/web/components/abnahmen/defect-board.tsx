@@ -11,6 +11,21 @@ function severityVariant(severity: DefectEntry['severity']): 'destructive' | 'de
   return 'outline';
 }
 
+function severityLabel(severity: DefectEntry['severity']): string {
+  if (severity === 'critical') return 'Kritisch';
+  if (severity === 'major') return 'Relevant';
+  return 'Hinweis';
+}
+
+function statusLabel(status: DefectEntry['status']): string {
+  if (status === 'OPEN') return 'Offen';
+  if (status === 'IN_PROGRESS') return 'In Nacharbeit';
+  if (status === 'READY_FOR_REVIEW') return 'Zur Prüfung';
+  if (status === 'RESOLVED') return 'Behoben';
+  if (status === 'REJECTED') return 'Abgewiesen';
+  return status;
+}
+
 export function DefectBoard({ defects }: { defects: DefectEntry[] }) {
   return (
     <ModuleTableCard
@@ -26,12 +41,15 @@ export function DefectBoard({ defects }: { defects: DefectEntry[] }) {
     >
       <div className="space-y-2">
         {defects.map((defect) => (
-          <div key={defect.id} className="rounded-lg border border-border bg-sidebar/30 p-3">
+          <div
+            key={defect.id}
+            className="rounded-xl border border-border/70 bg-background/65 p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:bg-background/85"
+          >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="font-mono text-xs text-muted-foreground">{defect.ref}</p>
               <div className="flex items-center gap-2">
-                <Badge variant={severityVariant(defect.severity)}>{defect.severity}</Badge>
-                <Badge variant="outline">{defect.status}</Badge>
+                <Badge variant={severityVariant(defect.severity)}>{severityLabel(defect.severity)}</Badge>
+                <Badge variant="outline">{statusLabel(defect.status)}</Badge>
               </div>
             </div>
             <p className="mt-1 text-sm font-semibold">{defect.title}</p>

@@ -156,10 +156,7 @@ export default function AngebotePage() {
       description="Angebote, Auftraege und Positionen fuer Maler- und Tapezierarbeiten verwalten."
       mainGridClassName="lg:grid-cols-3"
       badge={
-        <Badge
-          variant="outline"
-          className="border-(--enterprise-accent)/40 bg-(--enterprise-accent-soft) text-(--enterprise-accent) font-mono text-xs"
-        >
+        <Badge variant="outline" className="dashboard-module-badge">
           MALER · KI-Angebotsassistenz
         </Badge>
       }
@@ -233,7 +230,7 @@ export default function AngebotePage() {
       }
       sideContent={
         <div className="space-y-4 lg:col-span-1">
-          <ModuleTableCard icon={ListFilter} label="Filter" title="Gespeicherte Ansichten" hasData>
+          <ModuleTableCard icon={ListFilter} label="Filter" title="Gespeicherte Ansichten" hasData tone="emphasis">
             <AngeboteFilterPanel
               filters={filters}
               owners={owners}
@@ -251,6 +248,7 @@ export default function AngebotePage() {
             label="Spalten"
             title="Tabellenansicht"
             hasData
+            tone="default"
             className="relative z-30 overflow-visible"
           >
             <div ref={columnPickerRef} className="relative">
@@ -307,7 +305,7 @@ export default function AngebotePage() {
             </div>
           </ModuleTableCard>
 
-          <ModuleTableCard icon={Workflow} label="Leitfaden" title="Nutzungsfluss">
+          <ModuleTableCard icon={Workflow} label="Leitfaden" title="Nutzungsfluss" tone="muted">
             <div className="space-y-3 text-sm">
               <div className="rounded-md border border-border/70 bg-background/60 px-3 py-2">
                 <p className="font-medium">1) Filtern & priorisieren</p>

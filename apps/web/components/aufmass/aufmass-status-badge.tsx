@@ -1,22 +1,22 @@
-import { Badge } from '@/components/ui/badge';
+import { SemanticBadge, type SemanticBadgeTone } from '@/components/dashboard/semantic-badge';
 import { getStatusLabel } from '@/lib/aufmass/state-machine';
 import type { AufmassStatus } from '@/lib/aufmass/types';
 
-function variantForStatus(status: AufmassStatus): 'default' | 'secondary' | 'outline' {
+function toneForStatus(status: AufmassStatus): SemanticBadgeTone {
   switch (status) {
     case 'DRAFT':
-      return 'secondary';
+      return 'neutral';
     case 'IN_REVIEW':
-      return 'outline';
+      return 'info';
     case 'APPROVED':
-      return 'default';
+      return 'success';
     case 'BILLED':
-      return 'secondary';
+      return 'accent';
     default:
-      return 'outline';
+      return 'neutral';
   }
 }
 
 export function AufmassStatusBadge({ status }: { status: AufmassStatus }) {
-  return <Badge variant={variantForStatus(status)}>{getStatusLabel(status)}</Badge>;
+  return <SemanticBadge label={getStatusLabel(status)} tone={toneForStatus(status)} />;
 }

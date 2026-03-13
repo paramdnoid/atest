@@ -10,6 +10,15 @@ type ReworkTrackerProps = {
   defects: DefectEntry[];
 };
 
+function reworkStatusLabel(status: ReworkEntry['status']): string {
+  if (status === 'OPEN') return 'Offen';
+  if (status === 'IN_PROGRESS') return 'In Bearbeitung';
+  if (status === 'DONE') return 'Fertig';
+  if (status === 'APPROVED') return 'Freigegeben';
+  if (status === 'REOPENED') return 'Wieder geöffnet';
+  return status;
+}
+
 export function ReworkTracker({ rework, defects }: ReworkTrackerProps) {
   return (
     <ModuleTableCard
@@ -27,11 +36,14 @@ export function ReworkTracker({ rework, defects }: ReworkTrackerProps) {
         {rework.map((entry) => {
           const defect = defects.find((item) => item.id === entry.defectId);
           return (
-            <div key={entry.id} className="rounded-lg border border-border bg-sidebar/30 p-3">
+            <div
+              key={entry.id}
+              className="rounded-xl border border-border/70 bg-background/65 p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:bg-background/85"
+            >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-semibold">{defect?.title ?? 'Unbekannter Mangel'}</p>
                 <Badge variant={entry.status === 'REOPENED' ? 'destructive' : 'outline'}>
-                  {entry.status}
+                  {reworkStatusLabel(entry.status)}
                 </Badge>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">Verantwortlich: {entry.owner}</p>

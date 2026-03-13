@@ -44,7 +44,7 @@ export default function KundenPage() {
 
   const activeFilterChips = [
     filters.status !== 'ALL' ? `Status: ${filters.status}` : null,
-    filters.owner !== 'ALL' ? `Owner: ${filters.owner}` : null,
+    filters.owner !== 'ALL' ? `Verantwortlich: ${filters.owner}` : null,
     filters.region !== 'ALL' ? `Region: ${filters.region}` : null,
     filters.onlySlaRisk ? 'SLA Risiko' : null,
     filters.onlyConsentMissing ? 'Consent offen' : null,
@@ -54,12 +54,10 @@ export default function KundenPage() {
     <ModulePageTemplate
       title="Kunden & Objekte"
       description="Kundenstammdaten, Objekte und Ansprechpartner fuer Folgeauftraege organisieren."
-      mainGridClassName="lg:grid-cols-3"
+      mainGridClassName="lg:grid-cols-1 xl:grid-cols-[minmax(0,2.2fr)_minmax(320px,1fr)]"
+      compact
       badge={
-        <Badge
-          variant="outline"
-          className="border-(--enterprise-accent)/40 bg-(--enterprise-accent-soft) text-(--enterprise-accent) font-mono text-xs"
-        >
+        <Badge variant="outline" className="dashboard-module-badge">
           MALER · CRM-LIGHT ELITE
         </Badge>
       }
@@ -72,7 +70,7 @@ export default function KundenPage() {
       kpis={[]}
       topMessage={<KundenKpiStrip kpis={kpis} />}
       mainContent={
-        <div className="lg:col-span-2">
+        <div className="space-y-3">
           <ModuleTableCard
             icon={Building2}
             label="Kundenportfolio"
@@ -110,11 +108,25 @@ export default function KundenPage() {
             ) : null}
             <KundenListTable records={filteredRecords} />
           </ModuleTableCard>
+
+          <ModuleTableCard icon={Search} label="Empfehlung" title="Arbeitsweise" hasData tone="muted">
+            <div className="space-y-2 text-sm">
+              <p className="rounded-md border border-border/70 bg-background/60 px-3 py-2">
+                1) SLA-Risiko priorisieren und ueberfaellige Follow-ups zuerst abarbeiten.
+              </p>
+              <p className="rounded-md border border-border/70 bg-background/60 px-3 py-2">
+                2) Duplikatverdacht pruefen und Stammdaten vereinheitlichen.
+              </p>
+              <p className="rounded-md border border-border/70 bg-background/60 px-3 py-2">
+                3) Pro Kunde primaeren Ansprechpartner mit Consent sicherstellen.
+              </p>
+            </div>
+          </ModuleTableCard>
         </div>
       }
       sideContent={
-        <div className="space-y-4 lg:col-span-1">
-          <ModuleTableCard icon={ListFilter} label="Filter" title="Saved Views und Facets" hasData>
+        <div className="space-y-3">
+          <ModuleTableCard icon={ListFilter} label="Filter" title="Saved Views und Facets" hasData tone="emphasis">
             <KundenFilterPanel
               filters={filters}
               owners={owners}
@@ -129,20 +141,6 @@ export default function KundenPage() {
                 setFilters(next);
               }}
             />
-          </ModuleTableCard>
-
-          <ModuleTableCard icon={Search} label="Empfehlung" title="Arbeitsweise" hasData>
-            <div className="space-y-2 text-sm">
-              <p className="rounded-md border border-border/70 bg-background/60 px-3 py-2">
-                1) SLA-Risiko priorisieren und ueberfaellige Follow-ups zuerst abarbeiten.
-              </p>
-              <p className="rounded-md border border-border/70 bg-background/60 px-3 py-2">
-                2) Duplikatverdacht pruefen und Stammdaten vereinheitlichen.
-              </p>
-              <p className="rounded-md border border-border/70 bg-background/60 px-3 py-2">
-                3) Pro Kunde primaeren Ansprechpartner mit Consent sicherstellen.
-              </p>
-            </div>
           </ModuleTableCard>
         </div>
       }

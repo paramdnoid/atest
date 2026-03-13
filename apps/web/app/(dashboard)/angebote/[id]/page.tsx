@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type KeyboardEvent } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { notFound, useParams } from 'next/navigation';
 import { Brain, ClipboardList, History, LayoutPanelTop, Sparkles } from 'lucide-react';
@@ -11,6 +11,11 @@ import { AngeboteDetailHeader } from '@/components/angebote/angebote-detail-head
 import { AngeboteIntelligencePanel } from '@/components/angebote/angebote-intelligence-panel';
 import { AngeboteOptionBuilder } from '@/components/angebote/angebote-option-builder';
 import { AngebotePositionTable } from '@/components/angebote/angebote-position-table';
+import {
+  DashboardTabs,
+  getDashboardTabId,
+  getDashboardTabPanelId,
+} from '@/components/dashboard/dashboard-tabs';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -31,14 +36,6 @@ const tabs: Array<{ id: TabKey; label: string; icon: React.ComponentType<{ class
   { id: 'insights', label: 'Insights', icon: Brain },
   { id: 'history', label: 'Historie', icon: History },
 ];
-
-function getTabId(id: TabKey): string {
-  return `angebote-tab-${id}`;
-}
-
-function getPanelId(id: TabKey): string {
-  return `angebote-tabpanel-${id}`;
-}
 
 function appendAudit(events: QuoteAuditEvent[], action: string, detail: string): QuoteAuditEvent[] {
   return [
@@ -73,6 +70,7 @@ export default function AngebotDetailPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [record, setRecord] = useState<QuoteRecord | undefined>(initial);
   const [lastBlockers, setLastBlockers] = useState<string[]>([]);
+  const detailSplitGridClassName = 'grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,1fr)]';
 
   if (!record) {
     notFound();
@@ -174,25 +172,6 @@ export default function AngebotDetailPage() {
     });
   };
 
-  const onTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
-    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
-      event.preventDefault();
-      const direction = event.key === 'ArrowRight' ? 1 : -1;
-      const nextIndex = (currentIndex + direction + tabs.length) % tabs.length;
-      setActiveTab(tabs[nextIndex].id);
-      return;
-    }
-    if (event.key === 'Home') {
-      event.preventDefault();
-      setActiveTab(tabs[0].id);
-      return;
-    }
-    if (event.key === 'End') {
-      event.preventDefault();
-      setActiveTab(tabs[tabs.length - 1].id);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -233,36 +212,21 @@ export default function AngebotDetailPage() {
         </ModuleTableCard>
       </div>
 
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Angebotsbereiche">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <Button
-              key={tab.id}
-              size="sm"
-              variant={activeTab === tab.id ? 'default' : 'outline'}
-              onClick={() => setActiveTab(tab.id)}
-              role="tab"
-              id={getTabId(tab.id)}
-              aria-selected={activeTab === tab.id}
-              aria-controls={getPanelId(tab.id)}
-              tabIndex={activeTab === tab.id ? 0 : -1}
-              onKeyDown={(event) => onTabKeyDown(event, tabs.findIndex((entry) => entry.id === tab.id))}
-            >
-              <Icon className="h-4 w-4" />
-              {tab.label}
-            </Button>
-          );
-        })}
-      </div>
+      <DashboardTabs
+        idPrefix="angebote"
+        tabs={tabs}
+        activeTab={activeTab}
+        onChange={setActiveTab}
+        ariaLabel="Angebotsbereiche"
+      />
 
       {activeTab === 'overview' && (
         <section
           role="tabpanel"
-          id={getPanelId('overview')}
-          aria-labelledby={getTabId('overview')}
+          id={getDashboardTabPanelId('angebote', 'overview')}
+          aria-labelledby={getDashboardTabId('angebote', 'overview')}
           tabIndex={0}
-          className="grid gap-4 lg:grid-cols-2"
+          className={detailSplitGridClassName}
         >
           <ModuleTableCard icon={ClipboardList} label="Kontext" title="Projektzusammenfassung" hasData>
             <div className="space-y-2 text-sm">
@@ -294,7 +258,12 @@ export default function AngebotDetailPage() {
       )}
 
       {activeTab === 'positions' && (
-        <section role="tabpanel" id={getPanelId('positions')} aria-labelledby={getTabId('positions')} tabIndex={0}>
+        <section
+          role="tabpanel"
+          id={getDashboardTabPanelId('angebote', 'positions')}
+          aria-labelledby={getDashboardTabId('angebote', 'positions')}
+          tabIndex={0}
+        >
           <ModuleTableCard icon={ClipboardList} label="Leistung" title="Positionsverwaltung" hasData>
             <AngebotePositionTable
               positions={record.positions}
@@ -316,7 +285,12 @@ export default function AngebotDetailPage() {
       )}
 
       {activeTab === 'options' && (
-        <section role="tabpanel" id={getPanelId('options')} aria-labelledby={getTabId('options')} tabIndex={0}>
+        <section
+          role="tabpanel"
+          id={getDashboardTabPanelId('angebote', 'options')}
+          aria-labelledby={getDashboardTabId('angebote', 'options')}
+          tabIndex={0}
+        >
           <ModuleTableCard icon={Sparkles} label="Good Better Best" title="Option Builder" hasData={record.options.length > 0}>
             {angeboteRolloutFlags.enableOptionBuilder ? (
               <AngeboteOptionBuilder
@@ -335,10 +309,10 @@ export default function AngebotDetailPage() {
       {activeTab === 'approval' && (
         <section
           role="tabpanel"
-          id={getPanelId('approval')}
-          aria-labelledby={getTabId('approval')}
+          id={getDashboardTabPanelId('angebote', 'approval')}
+          aria-labelledby={getDashboardTabId('angebote', 'approval')}
           tabIndex={0}
-          className="grid gap-4 lg:grid-cols-2"
+          className={detailSplitGridClassName}
         >
           <AngeboteApprovalDialog onApprove={onApprove} onReturnToDraft={onReturnToDraft} />
           <ModuleTableCard icon={ClipboardList} label="Status-Guards" title="Freigaberegeln" hasData>
@@ -360,10 +334,10 @@ export default function AngebotDetailPage() {
       {activeTab === 'insights' && (
         <section
           role="tabpanel"
-          id={getPanelId('insights')}
-          aria-labelledby={getTabId('insights')}
+          id={getDashboardTabPanelId('angebote', 'insights')}
+          aria-labelledby={getDashboardTabId('angebote', 'insights')}
           tabIndex={0}
-          className="grid gap-4 lg:grid-cols-2"
+          className={detailSplitGridClassName}
         >
           {angeboteRolloutFlags.enableIntelligence ? (
             <AngeboteIntelligencePanel record={record} allRecords={allRecords} />
@@ -385,7 +359,12 @@ export default function AngebotDetailPage() {
       )}
 
       {activeTab === 'history' && (
-        <section role="tabpanel" id={getPanelId('history')} aria-labelledby={getTabId('history')} tabIndex={0}>
+        <section
+          role="tabpanel"
+          id={getDashboardTabPanelId('angebote', 'history')}
+          aria-labelledby={getDashboardTabId('angebote', 'history')}
+          tabIndex={0}
+        >
           <ModuleTableCard icon={History} label="Audit" title="Nachvollziehbarkeit" hasData={record.auditTrail.length > 0}>
             <AngeboteAuditTimeline events={record.auditTrail} />
           </ModuleTableCard>

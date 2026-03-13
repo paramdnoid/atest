@@ -49,6 +49,7 @@ export function KundenKpiStrip({ kpis }: { kpis: KundenKpis }) {
           value={item.value}
           subtitle={item.subtitle}
           accent={item.accent}
+          compact
         />
       ))}
     </div>

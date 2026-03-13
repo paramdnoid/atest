@@ -35,7 +35,7 @@ export function AngeboteFilterPanel({
         </p>
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={filters.query}
               onChange={(event) => onChange({ ...filters, query: event.target.value })}
@@ -63,11 +63,11 @@ export function AngeboteFilterPanel({
         </div>
       </div>
 
-      <div className="space-y-2 border-t border-border/60 pt-3">
+      <div className="space-y-2 border-t border-border/60 pt-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           Filter
         </p>
-        <div className="grid gap-2.5 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           <FormSelect
             value={filters.sortBy}
             onChange={(event) => onChange({ ...filters, sortBy: event.target.value as QuoteFilters['sortBy'] })}
@@ -124,7 +124,7 @@ export function AngeboteFilterPanel({
         </div>
       </div>
 
-      <div className="space-y-2 border-t border-border/60 pt-3">
+      <div className="space-y-2 border-t border-border/60 pt-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           Gespeicherte Ansichten
         </p>
@@ -134,7 +134,7 @@ export function AngeboteFilterPanel({
               <Button
                 key={view.id}
                 size="sm"
-                className="h-8"
+                  className="h-8 px-3 text-xs"
                 variant={activeSavedView === view.id ? 'default' : 'outline'}
                 onClick={() => onApplySavedView(view.id)}
               >

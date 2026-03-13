@@ -1,28 +1,28 @@
-import { Badge } from '@/components/ui/badge';
+import { SemanticBadge, type SemanticBadgeTone } from '@/components/dashboard/semantic-badge';
 import { getStatusLabel } from '@/lib/abnahmen/selectors';
 import type { AbnahmeStatus } from '@/lib/abnahmen/types';
 
-function variantForStatus(status: AbnahmeStatus): 'default' | 'secondary' | 'outline' | 'destructive' {
+function toneForStatus(status: AbnahmeStatus): SemanticBadgeTone {
   switch (status) {
     case 'PREPARATION':
     case 'INSPECTION_SCHEDULED':
-      return 'secondary';
+      return 'neutral';
     case 'INSPECTION_DONE':
     case 'REWORK_READY_FOR_REVIEW':
-      return 'outline';
+      return 'info';
     case 'DEFECTS_OPEN':
-      return 'destructive';
+      return 'danger';
     case 'REWORK_IN_PROGRESS':
     case 'ACCEPTED_WITH_RESERVATION':
-      return 'default';
+      return 'warning';
     case 'ACCEPTED':
     case 'CLOSED':
-      return 'secondary';
+      return 'success';
     default:
-      return 'outline';
+      return 'neutral';
   }
 }
 
 export function AbnahmenStatusBadge({ status }: { status: AbnahmeStatus }) {
-  return <Badge variant={variantForStatus(status)}>{getStatusLabel(status)}</Badge>;
+  return <SemanticBadge label={getStatusLabel(status)} tone={toneForStatus(status)} />;
 }

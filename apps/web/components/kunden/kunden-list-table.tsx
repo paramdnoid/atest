@@ -20,7 +20,7 @@ export function KundenListTable({ records }: KundenListTableProps) {
             <TableHead className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground">Nummer</TableHead>
             <TableHead className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground">Kunde</TableHead>
             <TableHead className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground">Region</TableHead>
-            <TableHead className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground">Owner</TableHead>
+            <TableHead className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground">Verantwortlich</TableHead>
             <TableHead className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground">Objekte</TableHead>
             <TableHead className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground">Score</TableHead>
             <TableHead className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground">Status</TableHead>
@@ -33,23 +33,26 @@ export function KundenListTable({ records }: KundenListTableProps) {
         <TableBody>
           {records.map((record) => (
             <TableRow key={record.id} className="align-middle odd:bg-muted/20">
-              <TableCell className="px-4 py-2.5 font-mono text-[11px] font-semibold">
-                <Link href={`/kunden/${record.id}`} className="text-primary hover:underline">
+              <TableCell className="px-4 py-2 font-mono text-[11px] font-semibold">
+                <Link
+                  href={`/kunden/${record.id}`}
+                  className="text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                >
                   {record.number}
                 </Link>
               </TableCell>
-              <TableCell className="px-4 py-2.5 font-medium">{record.name}</TableCell>
-              <TableCell className="px-4 py-2.5 text-muted-foreground">{record.region}</TableCell>
-              <TableCell className="px-4 py-2.5 text-muted-foreground">{record.owner}</TableCell>
-              <TableCell className="px-4 py-2.5">{record.objekte.length}</TableCell>
-              <TableCell className="px-4 py-2.5">{record.score}</TableCell>
-              <TableCell className="px-4 py-2.5">
+              <TableCell className="px-4 py-2 font-medium">{record.name}</TableCell>
+              <TableCell className="px-4 py-2 text-muted-foreground">{record.region}</TableCell>
+              <TableCell className="px-4 py-2 text-muted-foreground">{record.owner}</TableCell>
+              <TableCell className="px-4 py-2">{record.objekte.length}</TableCell>
+              <TableCell className="px-4 py-2">{record.score}</TableCell>
+              <TableCell className="px-4 py-2">
                 <KundenStatusBadge status={record.status} />
               </TableCell>
-              <TableCell className="px-4 py-2.5 text-sm text-muted-foreground">
+              <TableCell className="px-4 py-2 text-sm text-muted-foreground">
                 {record.nextFollowUpAt ? formatDate(record.nextFollowUpAt) : '—'}
               </TableCell>
-              <TableCell className="px-4 py-2.5">
+              <TableCell className="px-4 py-2">
                 <Button asChild size="sm" variant="outline">
                   <Link href={`/kunden/${record.id}`}>
                     <FilePenLine className="h-4 w-4" />

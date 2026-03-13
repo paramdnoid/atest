@@ -16,6 +16,7 @@ type ModulePageTemplateProps = {
   sideContent?: ReactNode;
   topMessage?: ReactNode;
   mainGridClassName?: string;
+  compact?: boolean;
 };
 
 export function ModulePageTemplate({
@@ -28,15 +29,16 @@ export function ModulePageTemplate({
   sideContent,
   topMessage,
   mainGridClassName,
+  compact = false,
 }: ModulePageTemplateProps) {
   return (
-    <div className={dashboardUiTokens.pageStack}>
+    <div className={cn(dashboardUiTokens.pageStack, compact && 'space-y-4')}>
       <PageHeader title={title} description={description} badge={badge}>
         {actions}
       </PageHeader>
       {topMessage}
-      <KpiStrip items={kpis} />
-      <div className={cn(dashboardUiTokens.mainGrid, mainGridClassName)}>
+      {kpis.length > 0 ? <KpiStrip items={kpis} /> : null}
+      <div className={cn(dashboardUiTokens.mainGrid, compact && 'gap-3', mainGridClassName)}>
         {mainContent}
         {sideContent}
       </div>

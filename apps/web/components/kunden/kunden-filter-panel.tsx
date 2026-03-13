@@ -1,3 +1,4 @@
+import { FormCheckbox, FormSelect } from '@/components/angebote/form-controls';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { KundenFilters, KundenSavedViewId, KundenStatus } from '@/lib/kunden/types';
@@ -35,7 +36,7 @@ export function KundenFilterPanel({
   onChange,
 }: KundenFilterPanelProps) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Saved Views</p>
         <div className="flex flex-wrap gap-2">
@@ -43,6 +44,7 @@ export function KundenFilterPanel({
             <Button
               key={view.id}
               size="sm"
+              className="h-8 px-3 text-xs"
               variant={activeSavedView === view.id ? 'default' : 'outline'}
               onClick={() => onApplySavedView(view.id)}
             >
@@ -65,6 +67,7 @@ export function KundenFilterPanel({
             <Button
               key={status.id}
               size="sm"
+              className="h-8 px-3 text-xs"
               variant={filters.status === status.id ? 'default' : 'outline'}
               onClick={() => onChange({ ...filters, status: status.id })}
             >
@@ -75,8 +78,7 @@ export function KundenFilterPanel({
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2">
-        <select
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+        <FormSelect
           value={filters.owner}
           onChange={(event) => onChange({ ...filters, owner: event.target.value })}
         >
@@ -86,9 +88,8 @@ export function KundenFilterPanel({
               {owner}
             </option>
           ))}
-        </select>
-        <select
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+        </FormSelect>
+        <FormSelect
           value={filters.region}
           onChange={(event) => onChange({ ...filters, region: event.target.value })}
         >
@@ -98,23 +99,23 @@ export function KundenFilterPanel({
               {region}
             </option>
           ))}
-        </select>
+        </FormSelect>
       </div>
 
       <div className="space-y-2">
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
+        <label className="flex h-9 items-center gap-2 rounded-md border border-input px-3 text-sm leading-none">
+          <FormCheckbox
             checked={filters.onlySlaRisk}
-            onChange={(event) => onChange({ ...filters, onlySlaRisk: event.target.checked })}
+            onChange={(checked) => onChange({ ...filters, onlySlaRisk: checked })}
+            ariaLabel="Nur SLA-Risiko anzeigen"
           />
           Nur SLA-Risiko
         </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
+        <label className="flex h-9 items-center gap-2 rounded-md border border-input px-3 text-sm leading-none">
+          <FormCheckbox
             checked={filters.onlyConsentMissing}
-            onChange={(event) => onChange({ ...filters, onlyConsentMissing: event.target.checked })}
+            onChange={(checked) => onChange({ ...filters, onlyConsentMissing: checked })}
+            ariaLabel="Nur Consent offen anzeigen"
           />
           Nur Consent offen
         </label>

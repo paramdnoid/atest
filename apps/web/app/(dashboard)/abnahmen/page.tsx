@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ClipboardCheck, Filter, ShieldCheck } from 'lucide-react';
+import { ClipboardCheck, Filter, ShieldCheck, X } from 'lucide-react';
 
 import { getAbnahmenKpiItems } from '@/components/abnahmen/abnahmen-kpi-strip';
 import { AbnahmenListTable } from '@/components/abnahmen/abnahmen-list-table';
@@ -25,16 +25,19 @@ export default function AbnahmenPage() {
   });
 
   const filteredRecords = useMemo(() => filterAbnahmen(records, filters), [records, filters]);
+  const activeFilterChips = [
+    filters.query ? `Suche: ${filters.query}` : null,
+    filters.status !== 'ALL' ? `Status: ${filters.status}` : null,
+    filters.onlyCritical ? 'Nur kritisch' : null,
+    filters.onlyOverdue ? 'Nur überfällig' : null,
+  ].filter(Boolean) as string[];
 
   return (
     <ModulePageTemplate
       title="Abnahmen & Mängel"
       description="Abnahmen dokumentieren, Mängel erfassen und Nacharbeit transparent verfolgen."
       badge={
-        <Badge
-          variant="outline"
-          className="border-(--enterprise-accent)/40 bg-(--enterprise-accent-soft) text-(--enterprise-accent) font-mono text-xs"
-        >
+        <Badge variant="outline" className="dashboard-module-badge">
           MALER · VOB/B + DSGVO
         </Badge>
       }
@@ -57,12 +60,37 @@ export default function AbnahmenPage() {
             description: 'Passe deine Filter an oder erstelle eine neue Abnahme.',
           }}
         >
+          {activeFilterChips.length > 0 ? (
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              {activeFilterChips.map((chip) => (
+                <Badge key={chip} variant="secondary" className="text-xs font-medium">
+                  {chip}
+                </Badge>
+              ))}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs"
+                onClick={() =>
+                  setFilters({
+                    query: '',
+                    status: 'ALL',
+                    onlyCritical: false,
+                    onlyOverdue: false,
+                  })
+                }
+              >
+                <X className="h-3.5 w-3.5" />
+                Alle Filter löschen
+              </Button>
+            </div>
+          ) : null}
           <AbnahmenListTable records={filteredRecords} />
         </ModuleTableCard>
       }
       sideContent={
         <div className="space-y-4">
-          <ModuleTableCard icon={Filter} label="Filter" title="Schnellzugriff" hasData>
+          <ModuleTableCard icon={Filter} label="Filter" title="Schnellzugriff" hasData tone="emphasis">
             <div className="space-y-3">
               <Input
                 value={filters.query}
@@ -118,7 +146,7 @@ export default function AbnahmenPage() {
             </div>
           </ModuleTableCard>
 
-          <ModuleTableCard icon={ShieldCheck} label="Statuslegende" title="Workflow" hasData>
+          <ModuleTableCard icon={ShieldCheck} label="Statuslegende" title="Workflow" hasData tone="muted">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm">Vorbereitung</span>

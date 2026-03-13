@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type KeyboardEvent } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { notFound, useParams } from 'next/navigation';
 import { BadgeCheck, Building2, ClipboardList, History, ShieldCheck, Sparkles } from 'lucide-react';
@@ -13,6 +13,11 @@ import { KundenIntelligencePanel } from '@/components/kunden/kunden-intelligence
 import { ObjektPortfolioCard } from '@/components/kunden/objekt-portfolio-card';
 import { OfflineSyncIndicator } from '@/components/kunden/offline-sync-indicator';
 import { ReminderSlaPanel } from '@/components/kunden/reminder-sla-panel';
+import {
+  DashboardTabs,
+  getDashboardTabId,
+  getDashboardTabPanelId,
+} from '@/components/dashboard/dashboard-tabs';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { EmptyState } from '@/components/dashboard/states';
@@ -42,14 +47,6 @@ const tabs: Array<{ id: TabKey; label: string; icon: React.ComponentType<{ class
   { id: 'compliance', label: 'Compliance', icon: ShieldCheck },
   { id: 'duplikate', label: 'Duplikate', icon: Sparkles },
 ];
-
-function getTabId(id: TabKey): string {
-  return `kunden-tab-${id}`;
-}
-
-function getPanelId(id: TabKey): string {
-  return `kunden-tabpanel-${id}`;
-}
 
 function appendAudit(record: KundenRecord, title: string, payload: string): KundenRecord {
   return {
@@ -84,6 +81,7 @@ export default function KundenDetailPage() {
   const [duplicates, setDuplicates] = useState<DuplicateCandidate[]>(() =>
     kundenRolloutFlags.kundenDuplicateDetectionEnabled ? detectDuplicateCandidates(allRecords) : [],
   );
+  const detailSplitGridClassName = 'grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,1fr)]';
   const viewerRole = useMemo(
     () => resolveViewerRole(process.env.NEXT_PUBLIC_KUNDEN_VIEWER_ROLE),
     [],
@@ -148,25 +146,6 @@ export default function KundenDetailPage() {
 
   const consentBlockers = getConsentBlockers(record);
   const retentionDeadline = getRetentionDeadline(record);
-  const onTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
-    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
-      event.preventDefault();
-      const direction = event.key === 'ArrowRight' ? 1 : -1;
-      const nextIndex = (currentIndex + direction + visibleTabs.length) % visibleTabs.length;
-      setActiveTab(visibleTabs[nextIndex].id);
-      return;
-    }
-    if (event.key === 'Home') {
-      event.preventDefault();
-      setActiveTab(visibleTabs[0].id);
-      return;
-    }
-    if (event.key === 'End') {
-      event.preventDefault();
-      setActiveTab(visibleTabs[visibleTabs.length - 1].id);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -201,36 +180,21 @@ export default function KundenDetailPage() {
 
       <KundenDetailHeader record={record} blockers={lastBlockers} onSetStatus={setStatus} />
 
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Kundenbereiche">
-        {visibleTabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <Button
-              key={tab.id}
-              size="sm"
-              variant={activeTab === tab.id ? 'default' : 'outline'}
-              onClick={() => setActiveTab(tab.id)}
-              role="tab"
-              id={getTabId(tab.id)}
-              aria-selected={activeTab === tab.id}
-              aria-controls={getPanelId(tab.id)}
-              tabIndex={activeTab === tab.id ? 0 : -1}
-              onKeyDown={(event) => onTabKeyDown(event, visibleTabs.findIndex((entry) => entry.id === tab.id))}
-            >
-              <Icon className="h-4 w-4" />
-              {tab.label}
-            </Button>
-          );
-        })}
-      </div>
+      <DashboardTabs
+        idPrefix="kunden"
+        tabs={visibleTabs}
+        activeTab={activeTab}
+        onChange={setActiveTab}
+        ariaLabel="Kundenbereiche"
+      />
 
       {activeTab === 'uebersicht' && (
         <section
           role="tabpanel"
-          id={getPanelId('uebersicht')}
-          aria-labelledby={getTabId('uebersicht')}
+          id={getDashboardTabPanelId('kunden', 'uebersicht')}
+          aria-labelledby={getDashboardTabId('kunden', 'uebersicht')}
           tabIndex={0}
-          className="grid gap-4 lg:grid-cols-2"
+          className={detailSplitGridClassName}
         >
           {kundenRolloutFlags.kundenEliteFeaturesEnabled ? (
             <KundenIntelligencePanel record={record} allRecords={allRecords} />
@@ -254,7 +218,12 @@ export default function KundenDetailPage() {
       )}
 
       {activeTab === 'objekte' && (
-        <section role="tabpanel" id={getPanelId('objekte')} aria-labelledby={getTabId('objekte')} tabIndex={0}>
+        <section
+          role="tabpanel"
+          id={getDashboardTabPanelId('kunden', 'objekte')}
+          aria-labelledby={getDashboardTabId('kunden', 'objekte')}
+          tabIndex={0}
+        >
           <ObjektPortfolioCard objekte={record.objekte} />
         </section>
       )}
@@ -262,8 +231,8 @@ export default function KundenDetailPage() {
       {activeTab === 'ansprechpartner' && (
         <section
           role="tabpanel"
-          id={getPanelId('ansprechpartner')}
-          aria-labelledby={getTabId('ansprechpartner')}
+          id={getDashboardTabPanelId('kunden', 'ansprechpartner')}
+          aria-labelledby={getDashboardTabId('kunden', 'ansprechpartner')}
           tabIndex={0}
         >
           <AnsprechpartnerDirectory contacts={record.ansprechpartner} viewerRole={viewerRole} />
@@ -271,13 +240,23 @@ export default function KundenDetailPage() {
       )}
 
       {activeTab === 'timeline' && (
-        <section role="tabpanel" id={getPanelId('timeline')} aria-labelledby={getTabId('timeline')} tabIndex={0}>
+        <section
+          role="tabpanel"
+          id={getDashboardTabPanelId('kunden', 'timeline')}
+          aria-labelledby={getDashboardTabId('kunden', 'timeline')}
+          tabIndex={0}
+        >
           <KundenAuditTimeline events={record.activities} />
         </section>
       )}
 
       {activeTab === 'compliance' && (
-        <section role="tabpanel" id={getPanelId('compliance')} aria-labelledby={getTabId('compliance')} tabIndex={0}>
+        <section
+          role="tabpanel"
+          id={getDashboardTabPanelId('kunden', 'compliance')}
+          aria-labelledby={getDashboardTabId('kunden', 'compliance')}
+          tabIndex={0}
+        >
           <ModuleTableCard icon={ShieldCheck} label="Datenschutz" title="DSGVO und Retention" hasData>
             <div className="space-y-3 text-sm">
               <p>
@@ -305,7 +284,12 @@ export default function KundenDetailPage() {
       )}
 
       {activeTab === 'duplikate' && (
-        <section role="tabpanel" id={getPanelId('duplikate')} aria-labelledby={getTabId('duplikate')} tabIndex={0}>
+        <section
+          role="tabpanel"
+          id={getDashboardTabPanelId('kunden', 'duplikate')}
+          aria-labelledby={getDashboardTabId('kunden', 'duplikate')}
+          tabIndex={0}
+        >
           <DuplicateReviewDrawer
             duplicates={duplicates.filter(
               (candidate) =>

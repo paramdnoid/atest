@@ -68,16 +68,16 @@ export function AngebotePositionTable({ positions, onUpdatePositions }: Angebote
         <TableBody>
           {positions.map((position) => (
             <TableRow key={position.id}>
-              <TableCell className="px-4 py-3">
+            <TableCell className="px-4 py-2">
                 <div>
                   <p className="font-medium">{position.title}</p>
                   <p className="text-xs text-muted-foreground">{position.unit}</p>
                 </div>
               </TableCell>
-              <TableCell className="px-4 py-3">{position.quantity}</TableCell>
-              <TableCell className="px-4 py-3">{formatCurrency(position.unitPriceNet)}</TableCell>
-              <TableCell className="px-4 py-3">{formatCurrency(getPositionRevenueNet(position))}</TableCell>
-              <TableCell className="px-4 py-3">
+              <TableCell className="px-4 py-2">{position.quantity}</TableCell>
+              <TableCell className="px-4 py-2">{formatCurrency(position.unitPriceNet)}</TableCell>
+              <TableCell className="px-4 py-2">{formatCurrency(getPositionRevenueNet(position))}</TableCell>
+              <TableCell className="px-4 py-2">
                 <Button size="sm" variant="outline" onClick={() => openEditor(position)}>
                   <PencilLine className="h-4 w-4" />
                   Bearbeiten
@@ -92,7 +92,7 @@ export function AngebotePositionTable({ positions, onUpdatePositions }: Angebote
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="mb-3 text-sm font-medium">Side-Panel Bearbeitung: {editingPosition.title}</p>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1">
+            <div className="space-y-2">
               <label htmlFor={quantityFieldId} className="text-xs text-muted-foreground">
                 Menge
               </label>
@@ -103,7 +103,7 @@ export function AngebotePositionTable({ positions, onUpdatePositions }: Angebote
                 onChange={(event) => setDraftQuantity(event.target.value)}
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
               <label htmlFor={priceFieldId} className="text-xs text-muted-foreground">
                 EP netto
               </label>

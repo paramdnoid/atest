@@ -154,7 +154,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         onSignOut={handleSignOut}
       />
       <SidebarInset>
-        <div className="flex-1 overflow-y-auto rounded-xl border border-black/20">
+        <div className="flex-1 overflow-y-auto rounded-xl border border-black/10">
           <div id="main-content" className="mx-auto w-full px-4 pb-10 pt-2 sm:px-6 sm:pt-3">
             {children}
           </div>
