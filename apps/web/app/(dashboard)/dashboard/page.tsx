@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { CreditCard, ShieldCheck, Users } from 'lucide-react';
 import { apiRequest } from '@/lib/api';
 import { getAccessToken } from '@/lib/session-token';
+import { expectRecord, optionalArray, optionalNumber, optionalString } from '@/lib/validation';
 import { Badge } from '@/components/ui/badge';
 import {
   CompanyInfoCard,
@@ -94,6 +95,83 @@ type DashboardData = {
   hasPartialDataError: boolean;
 };
 
+function parseWorkspacePayload(payload: unknown): RawWorkspace {
+  const record = expectRecord(payload, 'Workspace-Profil');
+  return {
+    tenantId: optionalString(record.tenantId),
+    id: optionalString(record.id),
+    workspaceName: optionalString(record.workspaceName),
+    name: optionalString(record.name),
+    tradeName: optionalString(record.tradeName),
+    email: optionalString(record.email),
+    role: optionalString(record.role),
+    memberCount: optionalNumber(record.memberCount),
+    addressLine1: optionalString(record.addressLine1) ?? null,
+    addressLine2: optionalString(record.addressLine2) ?? null,
+    postalCode: optionalString(record.postalCode) ?? null,
+    city: optionalString(record.city) ?? null,
+    countryCode: optionalString(record.countryCode) ?? null,
+    latitude: optionalNumber(record.latitude) ?? null,
+    longitude: optionalNumber(record.longitude) ?? null,
+    address_line_1: optionalString(record.address_line_1) ?? null,
+    address_line_2: optionalString(record.address_line_2) ?? null,
+    postal_code: optionalString(record.postal_code) ?? null,
+    country_code: optionalString(record.country_code) ?? null,
+    latitude_deg: optionalNumber(record.latitude_deg) ?? null,
+    longitude_deg: optionalNumber(record.longitude_deg) ?? null,
+  };
+}
+
+function parseBillingSummary(payload: unknown): RawBillingSummary {
+  const record = expectRecord(payload, 'Billing-Zusammenfassung');
+  const plan = typeof record.plan === 'object' && record.plan !== null
+    ? { name: optionalString((record.plan as Record<string, unknown>).name) ?? null }
+    : null;
+  const subscription = typeof record.subscription === 'object' && record.subscription !== null
+    ? {
+        status: optionalString((record.subscription as Record<string, unknown>).status) ?? null,
+        trialEndsAt: optionalString((record.subscription as Record<string, unknown>).trialEndsAt) ?? null,
+        trialEnd: optionalString((record.subscription as Record<string, unknown>).trialEnd) ?? null,
+        currentPeriodEnd: optionalString((record.subscription as Record<string, unknown>).currentPeriodEnd) ?? null,
+      }
+    : null;
+
+  return {
+    planName: optionalString(record.planName) ?? null,
+    status: optionalString(record.status) ?? null,
+    trialEndsAt: optionalString(record.trialEndsAt) ?? null,
+    currentPeriodEnd: optionalString(record.currentPeriodEnd) ?? null,
+    memberCount: optionalNumber(record.memberCount),
+    plan,
+    subscription,
+    recentEvents: optionalArray(record.recentEvents, (entry, index) => {
+      const event = typeof entry === 'object' && entry !== null ? (entry as Record<string, unknown>) : null;
+      if (!event) return null;
+      return {
+        id: optionalString(event.id) ?? String(index),
+        type: optionalString(event.type),
+        createdAt: optionalString(event.createdAt),
+        occurredAt: optionalString(event.occurredAt),
+        timestamp: optionalString(event.timestamp),
+      };
+    }),
+  };
+}
+
+function parseTeamMembers(payload: unknown): TeamMembersResponse {
+  const record = expectRecord(payload, 'Team-Mitglieder');
+  return {
+    members: optionalArray(record.members, (entry) => {
+      const member = typeof entry === 'object' && entry !== null ? (entry as Record<string, unknown>) : null;
+      if (!member) return null;
+      return {
+        userId: optionalString(member.userId),
+        tradeName: optionalString(member.tradeName),
+      };
+    }),
+  };
+}
+
 const defaultWorkspace: CompanyInfoWorkspace = {
   id: 'workspace',
   name: 'Workspace',
@@ -173,9 +251,9 @@ export default function DashboardPage() {
       }
 
       const [workspaceRes, billingRes, teamRes] = await Promise.allSettled([
-        apiRequest<RawWorkspace>({ path: '/v1/workspace/me', token }),
-        apiRequest<RawBillingSummary>({ path: '/v1/billing/summary', token }),
-        apiRequest<TeamMembersResponse>({ path: '/v1/team/members', token }),
+        apiRequest<RawWorkspace>({ path: '/v1/workspace/me', token, validate: parseWorkspacePayload }),
+        apiRequest<RawBillingSummary>({ path: '/v1/billing/summary', token, validate: parseBillingSummary }),
+        apiRequest<TeamMembersResponse>({ path: '/v1/team/members', token, validate: parseTeamMembers }),
       ]);
 
       if (cancelled) return;

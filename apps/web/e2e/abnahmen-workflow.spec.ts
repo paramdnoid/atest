@@ -44,11 +44,11 @@ test.describe('abnahmen workflow', () => {
     await expect(page.getByRole('heading', { name: 'Abnahmeakte' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Mangel erfassen' })).toBeVisible();
 
-    await page.getByRole('tab', { name: 'Mängel' }).click();
+    await page.getByTestId('abnahmen-tab-defects').click();
     await expect(page.getByRole('tabpanel', { name: 'Mängel' })).toBeVisible();
     await expect(page.getByText('Mangelkontext')).toBeVisible();
 
-    await page.getByRole('tab', { name: 'Historie' }).click();
+    await page.getByTestId('abnahmen-tab-history').click();
     await expect(page.getByRole('tabpanel', { name: 'Historie' })).toBeVisible();
     await expect(page.getByText('Kurzüberblick')).toBeVisible();
   });

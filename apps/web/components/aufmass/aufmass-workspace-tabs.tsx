@@ -120,6 +120,7 @@ export function AufmassWorkspaceTabs({
               <Button
                 key={tab.id}
                 id={tabId}
+                data-testid={`aufmass-workspace-tab-${tab.id}`}
                 size="sm"
                 variant="ghost"
                 role="tab"

@@ -14,6 +14,13 @@ import { AppSidebar } from '@/components/shell/app-sidebar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 const CAPABILITY_MOCK_ENABLED = process.env.NEXT_PUBLIC_ENABLE_CAPABILITY_MOCK === 'true';
 
+type ShellPhase = 'loading' | 'ready' | 'unauthenticated' | 'error';
+
+type ShellState = {
+  phase: ShellPhase;
+  profile: EffectiveProfile | null;
+};
+
 const groupOrder: ModuleGroup[] = [
   'hauptmenue',
   'auftragsabwicklung',
@@ -58,42 +65,45 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (!CAPABILITY_MOCK_ENABLED) return undefined;
     return localStorage.getItem(CAPABILITY_PROFILE_STORAGE_KEY) ?? undefined;
   });
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  const [profile, setProfile] = useState<EffectiveProfile | null>(null);
+  const [state, setState] = useState<ShellState>({ phase: 'loading', profile: null });
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadProfile() {
+    async function resolveShellState() {
+      setState((prev) => ({ ...prev, phase: 'loading' }));
       const token = await getAccessToken();
       if (!token) {
-        router.push('/signin');
-        setIsLoadingProfile(false);
+        if (cancelled) return;
+        setState({ phase: 'unauthenticated', profile: null });
         return;
       }
 
-      setIsLoadingProfile(true);
       try {
         const effectiveProfile = await loadEffectiveProfile(token, activeProfileId);
         if (cancelled) return;
-        setProfile(effectiveProfile);
+        setState({ phase: 'ready', profile: effectiveProfile });
       } catch {
         if (cancelled) return;
         clearAccessToken();
-        setProfile(null);
-        router.replace('/signin');
-      } finally {
-        if (cancelled) return;
-        setIsLoadingProfile(false);
+        setState({ phase: 'error', profile: null });
       }
     }
 
-    loadProfile();
+    resolveShellState();
     return () => {
       cancelled = true;
     };
-  }, [activeProfileId, router]);
+  }, [activeProfileId]);
 
+  useEffect(() => {
+    if (state.phase === 'unauthenticated' || state.phase === 'error') {
+      router.replace('/signin');
+    }
+  }, [router, state.phase]);
+
+  const isLoadingProfile = state.phase === 'loading';
+  const profile = state.profile;
 
   const visibleNavItems = useMemo(() => {
     if (!profile) return [];
@@ -119,7 +129,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const hasVisibleModules = visibleNavItems.length > 0;
 
   useEffect(() => {
-    if (isLoadingProfile || !profile) {
+    if (state.phase !== 'ready' || !profile) {
       return;
     }
 
@@ -129,7 +139,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (!activeRoute && visibleNavItems.length > 0) {
       router.replace(visibleNavItems[0].href);
     }
-  }, [isLoadingProfile, pathname, profile, router, visibleNavItems]);
+  }, [pathname, profile, router, state.phase, visibleNavItems]);
 
   async function handleSignOut() {
     try {

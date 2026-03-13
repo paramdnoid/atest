@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
 import { ChevronsUpDown, LogOut } from 'lucide-react';
 
 import type { ModuleRegistryItem } from '@/lib/module-registry';
@@ -18,6 +17,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type VisibleGroup = {
   label: string;
@@ -67,10 +74,6 @@ export function AppSidebar({
   onSignOut,
 }: AppSidebarProps) {
   const pathname = usePathname();
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement | null>(null);
-  const userMenuButtonRef = useRef<HTMLButtonElement | null>(null);
-  const signOutItemRef = useRef<HTMLButtonElement | null>(null);
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard';
@@ -88,33 +91,6 @@ export function AppSidebar({
 
   const userDisplayName = userName ?? deriveNameFromEmail(userEmail) ?? 'Benutzer';
   const displaySubline = tenantName || role;
-
-  useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
-      if (!userMenuRef.current) return;
-      if (!userMenuRef.current.contains(event.target as Node)) {
-        setIsUserMenuOpen(false);
-      }
-    }
-
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setIsUserMenuOpen(false);
-      }
-    }
-
-    window.addEventListener('mousedown', handlePointerDown);
-    window.addEventListener('keydown', handleEscape);
-    return () => {
-      window.removeEventListener('mousedown', handlePointerDown);
-      window.removeEventListener('keydown', handleEscape);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isUserMenuOpen) return;
-    signOutItemRef.current?.focus();
-  }, [isUserMenuOpen]);
 
   return (
     <Sidebar variant="inset">
@@ -169,52 +145,26 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter>
-        <div ref={userMenuRef} className="relative">
-          <button
-            type="button"
-            id="sidebar-user-menu-button"
-            onClick={() => setIsUserMenuOpen((open) => !open)}
-            ref={userMenuButtonRef}
-            className="mb-1 flex w-full items-center gap-2 rounded-md px-2 py-2 text-left transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            aria-expanded={isUserMenuOpen}
-            aria-haspopup="menu"
-            aria-controls="sidebar-user-menu"
-            onKeyDown={(event) => {
-              if (event.key === 'ArrowDown') {
-                event.preventDefault();
-                setIsUserMenuOpen(true);
-              }
-              if (event.key === 'Escape') {
-                setIsUserMenuOpen(false);
-              }
-            }}
-          >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-xs font-semibold text-primary">
-              {getInitials(userDisplayName)}
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{userDisplayName}</p>
-              <p className="truncate text-xs text-muted-foreground">{displaySubline}</p>
-            </div>
-            <ChevronsUpDown
-              className={`ml-auto h-4 w-4 text-muted-foreground transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`}
-            />
-          </button>
-          {isUserMenuOpen && (
-            <div
-              id="sidebar-user-menu"
-              role="menu"
-              aria-labelledby="sidebar-user-menu-button"
-              onKeyDown={(event) => {
-                if (event.key === 'Escape') {
-                  event.preventDefault();
-                  setIsUserMenuOpen(false);
-                  userMenuButtonRef.current?.focus();
-                }
-              }}
-              className="absolute bottom-12 left-0 z-20 w-full rounded-md border bg-background p-1 shadow-md"
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="mb-1 flex w-full items-center gap-2 rounded-md px-2 py-2 text-left transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              aria-label="Benutzermenü öffnen"
             >
-              <div className="flex items-center gap-2 rounded-sm px-2 py-1.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-xs font-semibold text-primary">
+                {getInitials(userDisplayName)}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">{userDisplayName}</p>
+                <p className="truncate text-xs text-muted-foreground">{displaySubline}</p>
+              </div>
+              <ChevronsUpDown className="ml-auto h-4 w-4 text-muted-foreground" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" side="top" className="w-[var(--radix-dropdown-menu-trigger-width)]">
+            <DropdownMenuLabel>
+              <div className="flex items-center gap-2">
                 <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-[10px] font-semibold text-primary">
                   {getInitials(userDisplayName)}
                 </div>
@@ -223,21 +173,14 @@ export function AppSidebar({
                   <p className="truncate text-xs text-muted-foreground">{displaySubline}</p>
                 </div>
               </div>
-              <div className="my-1 h-px bg-border" />
-              <button
-                type="button"
-                role="menuitem"
-                onClick={onSignOut}
-                ref={signOutItemRef}
-                tabIndex={-1}
-                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive transition-colors hover:bg-accent"
-              >
-                <LogOut className="h-4 w-4 shrink-0" />
-                Abmelden
-              </button>
-            </div>
-          )}
-        </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={onSignOut} className="text-destructive focus:text-destructive">
+              <LogOut className="h-4 w-4 shrink-0" />
+              Abmelden
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </SidebarFooter>
     </Sidebar>
   );

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Activity, Monitor, RefreshCw } from 'lucide-react';
 import { apiRequest } from '@/lib/api';
 import { getAccessToken } from '@/lib/session-token';
+import { expectRecord, optionalArray, optionalString } from '@/lib/validation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -27,6 +28,33 @@ type Device = {
   lastSeenAt?: string;
   registeredAt?: string;
 };
+
+function parseDevice(entry: unknown): Device | null {
+  const record = typeof entry === 'object' && entry !== null ? (entry as Record<string, unknown>) : null;
+  if (!record) return null;
+  const id = optionalString(record.id);
+  const platform = optionalString(record.platform);
+  const status = optionalString(record.status);
+  if (!id || !platform || !status) return null;
+  return {
+    id,
+    platform,
+    status,
+    name: optionalString(record.name),
+    lastSeenAt: optionalString(record.lastSeenAt),
+    registeredAt: optionalString(record.registeredAt),
+  };
+}
+
+function parseDevicesResponse(payload: unknown): { devices?: Device[] } | Device[] {
+  if (Array.isArray(payload)) {
+    return optionalArray(payload, (entry) => parseDevice(entry));
+  }
+  const record = expectRecord(payload, 'Geraete');
+  return {
+    devices: optionalArray(record.devices, (entry) => parseDevice(entry)),
+  };
+}
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'outline'> = {
   active: 'default',
@@ -52,7 +80,11 @@ export default function DevicesPage() {
     setError('');
 
     try {
-      const data = await apiRequest<{ devices?: Device[] } | Device[]>({ path: '/v1/devices', token });
+      const data = await apiRequest<{ devices?: Device[] } | Device[]>({
+        path: '/v1/devices',
+        token,
+        validate: parseDevicesResponse,
+      });
       setDevices(Array.isArray(data) ? data : (data.devices ?? []));
     } catch {
       setError('Geräte konnten nicht geladen werden.');

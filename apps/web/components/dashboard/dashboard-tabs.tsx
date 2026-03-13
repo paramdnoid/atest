@@ -60,7 +60,7 @@ export function DashboardTabs<T extends string>({
 
   return (
     <div className="overflow-x-auto rounded-lg border border-border/60 bg-muted/45 p-1">
-      <div className="flex min-w-max gap-1" role="tablist" aria-label={ariaLabel}>
+      <div className="flex min-w-max gap-1" role="tablist" aria-label={ariaLabel} data-testid={`${idPrefix}-tablist`}>
         {tabs.map((tab, index) => {
           const Icon = tab.icon;
           return (
@@ -80,6 +80,7 @@ export function DashboardTabs<T extends string>({
               }}
               role="tab"
               id={getDashboardTabId(idPrefix, tab.id)}
+              data-testid={`${idPrefix}-tab-${tab.id}`}
               aria-selected={activeTab === tab.id}
               aria-controls={getDashboardTabPanelId(idPrefix, tab.id)}
               tabIndex={activeTab === tab.id ? 0 : -1}

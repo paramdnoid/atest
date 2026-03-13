@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { RefreshCw, ShieldCheck, UserCircle2, Users } from 'lucide-react';
 import { apiRequest } from '@/lib/api';
 import { getAccessToken } from '@/lib/session-token';
+import { expectRecord, optionalArray, optionalString } from '@/lib/validation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -25,6 +26,26 @@ type Member = {
   role: string;
   joinedAt?: string;
 };
+
+function parseTeamMembersResponse(payload: unknown): { members: Member[] } {
+  const record = expectRecord(payload, 'Team-Mitglieder');
+  const members = optionalArray(record.members, (entry) => {
+    const member = typeof entry === 'object' && entry !== null ? (entry as Record<string, unknown>) : null;
+    if (!member) return null;
+    const userId = optionalString(member.userId);
+    const email = optionalString(member.email);
+    const role = optionalString(member.role);
+    if (!userId || !email || !role) return null;
+    return {
+      userId,
+      email,
+      role,
+      name: optionalString(member.name),
+      joinedAt: optionalString(member.joinedAt),
+    };
+  });
+  return { members };
+}
 
 const roleVariant: Record<string, 'default' | 'secondary' | 'outline'> = {
   owner: 'default',
@@ -50,7 +71,11 @@ export default function TeamPage() {
     setError('');
 
     try {
-      const data = await apiRequest<{ members: Member[] }>({ path: '/v1/team/members', token });
+      const data = await apiRequest<{ members: Member[] }>({
+        path: '/v1/team/members',
+        token,
+        validate: parseTeamMembersResponse,
+      });
       setMembers(data.members ?? []);
     } catch {
       setError('Team-Mitglieder konnten nicht geladen werden.');
