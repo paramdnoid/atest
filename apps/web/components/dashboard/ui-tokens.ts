@@ -11,8 +11,8 @@ export const dashboardUiTokens = {
   body: 'text-sm',
   meta: 'text-[11px] text-muted-foreground',
   kicker: 'text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground',
-  kickerAccent: 'text-[10px] font-semibold uppercase tracking-[0.12em] text-primary/85',
-  iconShell: 'rounded-md border border-primary/25 bg-primary/10 text-primary',
+  kickerAccent: 'text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground/70',
+  iconShell: 'rounded-md border border-border/70 bg-muted/45 text-foreground/70',
   interactiveRing: 'focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2',
   kpiValue: 'font-mono text-2xl font-bold tabular-nums leading-none tracking-tight',
 } as const;

@@ -299,8 +299,8 @@ export default function AbnahmeDetailPage() {
                         <div
                           className={`rounded-md border px-2.5 py-2 ${
                             blockers.length > 0
-                              ? 'border-destructive/40 bg-destructive/10'
-                              : 'border-emerald-500/30 bg-emerald-500/10'
+                              ? 'border-destructive/30 bg-destructive/6'
+                              : 'border-emerald-500/25 bg-emerald-500/6'
                           }`}
                         >
                           <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Blocker</p>
@@ -354,8 +354,8 @@ export default function AbnahmeDetailPage() {
                       <div
                         className={`rounded-md border px-2.5 py-2 ${
                           privacyBlockingCount > 0
-                            ? 'border-destructive/40 bg-destructive/10'
-                            : 'border-emerald-500/30 bg-emerald-500/10'
+                            ? 'border-destructive/30 bg-destructive/6'
+                            : 'border-emerald-500/25 bg-emerald-500/6'
                         }`}
                       >
                         <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">DSGVO Blocker</p>
@@ -370,7 +370,7 @@ export default function AbnahmeDetailPage() {
                       <div
                         className={`rounded-md border px-2.5 py-2 ${
                           privacyWarningCount > 0
-                            ? 'border-amber-500/40 bg-amber-500/10'
+                            ? 'border-amber-500/30 bg-amber-500/6'
                             : 'border-border/60 bg-background/50'
                         }`}
                       >
@@ -386,7 +386,7 @@ export default function AbnahmeDetailPage() {
                       <div
                         className={`rounded-md border px-2.5 py-2 ${
                           inProgressReworkCount > 0
-                            ? 'border-amber-500/40 bg-amber-500/10'
+                            ? 'border-amber-500/30 bg-amber-500/6'
                             : 'border-border/60 bg-background/50'
                         }`}
                       >
@@ -402,7 +402,7 @@ export default function AbnahmeDetailPage() {
                       <div
                         className={`rounded-md border px-2.5 py-2 ${
                           resolvedReworkCount > 0
-                            ? 'border-emerald-500/30 bg-emerald-500/10'
+                            ? 'border-emerald-500/25 bg-emerald-500/6'
                             : 'border-border/60 bg-background/50'
                         }`}
                       >

@@ -105,13 +105,13 @@ export default function DevicesPage() {
           }}
         >
           <Table>
-            <TableHeader className="bg-muted/50">
+            <TableHeader className="bg-slate-100/95 backdrop-blur supports-backdrop-filter:bg-slate-100/95 dark:bg-slate-900/95">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="px-4 py-3">Gerät</TableHead>
-                <TableHead className="px-4 py-3">Plattform</TableHead>
-                <TableHead className="px-4 py-3">Status</TableHead>
-                <TableHead className="px-4 py-3">Zuletzt gesehen</TableHead>
-                <TableHead className="px-4 py-3">Registriert</TableHead>
+                <TableHead className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">Gerät</TableHead>
+                <TableHead className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">Plattform</TableHead>
+                <TableHead className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">Status</TableHead>
+                <TableHead className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">Zuletzt gesehen</TableHead>
+                <TableHead className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">Registriert</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

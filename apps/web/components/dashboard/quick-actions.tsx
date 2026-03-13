@@ -53,22 +53,22 @@ export function QuickActions() {
                 'group relative flex flex-col gap-2 overflow-hidden rounded-lg border p-3 transition-all duration-200',
                 'hover:-translate-y-px',
                 action.accent
-                  ? ['border-primary/30 bg-primary/8', 'hover:border-primary/50 hover:bg-primary/12']
-                  : ['border-border bg-sidebar/40', 'hover:border-primary/20 hover:bg-sidebar/40'],
+                  ? ['border-border bg-background/90', 'hover:border-border/90 hover:bg-background']
+                  : ['border-border bg-sidebar/35', 'hover:border-border/90 hover:bg-sidebar/50'],
               )}
             >
               <div
                 className={cn(
                   'flex h-8 w-8 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105',
                   action.accent
-                    ? 'bg-primary text-primary-foreground shadow-[0_2px_8px_color-mix(in_oklch,var(--color-primary)_40%,transparent)]'
-                    : 'bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary',
+                    ? 'bg-muted text-primary'
+                    : 'bg-muted text-muted-foreground group-hover:bg-muted/80 group-hover:text-foreground',
                 )}
               >
                 <Icon className="h-4 w-4" />
               </div>
               <div>
-                <p className={cn('text-sm font-semibold leading-none', action.accent && 'text-primary')}>
+                <p className={cn('text-sm font-semibold leading-none', action.accent && 'text-foreground')}>
                   {action.title}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">{action.description}</p>
@@ -77,7 +77,7 @@ export function QuickActions() {
                 className={cn(
                   'absolute top-3 right-3 h-3.5 w-3.5 transition-all duration-200 group-hover:translate-x-0.5',
                   action.accent
-                    ? 'text-primary/40 group-hover:text-primary/70'
+                    ? 'text-muted-foreground/40 group-hover:text-muted-foreground/70'
                     : 'text-muted-foreground/30 group-hover:text-muted-foreground/60',
                 )}
               />

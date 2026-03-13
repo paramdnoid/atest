@@ -101,11 +101,11 @@ export default function TeamPage() {
           }}
         >
           <Table>
-            <TableHeader className="bg-muted/50">
+            <TableHeader className="bg-slate-100/95 backdrop-blur supports-backdrop-filter:bg-slate-100/95 dark:bg-slate-900/95">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="px-4 py-3">Mitglied</TableHead>
-                <TableHead className="px-4 py-3">Rolle</TableHead>
-                <TableHead className="px-4 py-3">Mitglied seit</TableHead>
+                <TableHead className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">Mitglied</TableHead>
+                <TableHead className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">Rolle</TableHead>
+                <TableHead className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">Mitglied seit</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

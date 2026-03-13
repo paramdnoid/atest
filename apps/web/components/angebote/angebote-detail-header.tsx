@@ -79,7 +79,7 @@ export function AngeboteDetailHeader({
           </div>
         </div>
         {blockers.length > 0 && (
-          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <div className="rounded-md border border-amber-300/45 bg-amber-50/55 px-3 py-2 text-sm text-amber-800">
             <p className="font-medium">Aktion blockiert:</p>
             <ul className="mt-1 space-y-1">
               {blockers.map((blocker) => (

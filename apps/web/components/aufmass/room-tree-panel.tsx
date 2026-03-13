@@ -25,7 +25,7 @@ export function RoomTreePanel({ rooms, activeRoomId, onSelectRoom }: RoomTreePan
             className={cn(
               'w-full rounded-lg border px-3 py-3 text-left transition-colors',
               room.id === activeRoomId
-                ? 'border-primary/40 bg-primary/10'
+                ? 'border-border/80 bg-muted/50'
                 : 'border-border bg-sidebar/30 hover:bg-sidebar/50',
             )}
           >

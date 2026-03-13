@@ -132,19 +132,19 @@ export function AbnahmeDetailHeader({
         </div>
 
         {blockers.length > 0 ? (
-          <div className="rounded-xl border border-amber-300/60 bg-amber-50/80 p-3.5 text-sm dark:bg-amber-950/30">
+          <div className="rounded-xl border border-amber-300/45 bg-amber-50/60 p-3.5 text-sm dark:bg-amber-950/22">
             <p className="flex items-center gap-1.5 font-medium text-amber-700 dark:text-amber-300">
               <AlertTriangle className="h-4 w-4" />
               Offene Voraussetzungen für {getStatusLabel(record.status)}
             </p>
-            <ul className="mt-2 space-y-1 text-amber-800/90 dark:text-amber-200/90">
+            <ul className="mt-2 space-y-1 text-amber-800/85 dark:text-amber-200/85">
               {blockers.map((blocker) => (
                 <li key={blocker}>- {blocker}</li>
               ))}
             </ul>
           </div>
         ) : (
-          <p className="flex items-center gap-1.5 text-sm text-emerald-700 dark:text-emerald-300">
+          <p className="flex items-center gap-1.5 text-sm text-emerald-700/90 dark:text-emerald-300/90">
             <CheckCircle2 className="h-4 w-4" />
             Alle Voraussetzungen erfüllt.
           </p>

@@ -31,8 +31,8 @@ function withSuggestion(href: string, suggestionId?: string): string {
 }
 
 function confidenceClass(confidence: number): string {
-  if (confidence >= 70) return 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700';
-  if (confidence >= 45) return 'border-amber-500/40 bg-amber-500/10 text-amber-700';
+  if (confidence >= 70) return 'border-emerald-500/35 bg-emerald-500/7 text-emerald-700';
+  if (confidence >= 45) return 'border-amber-500/30 bg-amber-500/6 text-amber-700';
   return 'border-border/60 bg-background/60 text-muted-foreground';
 }
 

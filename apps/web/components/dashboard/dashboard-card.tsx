@@ -42,7 +42,7 @@ export function DashboardCardHeader({
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className={cn('flex h-7 w-7 shrink-0 items-center justify-center', dashboardUiTokens.iconShell)}>
-            <Icon className="h-3.5 w-3.5 text-primary/90" />
+            <Icon className="h-3.5 w-3.5" />
           </div>
           <div>
             <p className={dashboardUiTokens.kickerAccent}>

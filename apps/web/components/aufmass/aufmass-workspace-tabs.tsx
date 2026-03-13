@@ -24,7 +24,7 @@ const tabs: Array<{
 
 export function AufmassWorkspaceTabs({ activeTab, onChange, reviewBadge = 0 }: AufmassWorkspaceTabsProps) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-border/60 bg-sidebar/25 p-1">
+    <div className="overflow-x-auto rounded-xl border border-border/60 bg-background/70 p-1">
       <div className="flex min-w-max gap-1">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -37,12 +37,12 @@ export function AufmassWorkspaceTabs({ activeTab, onChange, reviewBadge = 0 }: A
               className={cn(
                 'h-8 rounded-lg border border-transparent px-3 text-xs',
                 isActive
-                  ? 'border-primary/30 bg-background text-foreground ring-1 ring-primary/20'
-                  : 'text-muted-foreground hover:border-primary/20 hover:bg-background/75',
+                  ? 'border-border bg-background text-foreground shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]'
+                  : 'text-muted-foreground hover:border-border/80 hover:bg-background/75',
               )}
               onClick={() => onChange(tab.id)}
             >
-              <Icon className={cn('h-4 w-4', isActive ? 'text-primary' : 'text-muted-foreground')} />
+              <Icon className={cn('h-4 w-4', isActive ? 'text-foreground' : 'text-muted-foreground')} />
               {tab.label}
               {tab.id === 'review' && reviewBadge > 0 ? (
                 <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 font-mono text-[10px] text-amber-600 dark:text-amber-300">

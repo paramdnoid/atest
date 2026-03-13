@@ -82,7 +82,7 @@ export function StatCard({
           {value}
         </p>
         {subtitle && (
-          <p className="mt-1 text-[11px] text-primary/90">{subtitle}</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">{subtitle}</p>
         )}
         {trialLabel && (
           <p className="mt-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
@@ -95,7 +95,7 @@ export function StatCard({
         <div className="min-w-0 flex-1 pb-0.5">
           <div className="h-1.5 overflow-hidden rounded-full bg-muted/70">
             <div
-              className="h-full rounded-full bg-primary/70"
+              className="h-full rounded-full bg-primary/55"
               style={{ width: `${normalizedProgress}%` }}
             />
           </div>
@@ -107,7 +107,7 @@ export function StatCard({
             stroke="currentColor"
             strokeWidth="2"
             points={buildSparklinePoints(sparklineSeed)}
-            className="text-primary/75"
+            className="text-foreground/65"
           />
         </svg>
       </div>

@@ -50,7 +50,7 @@ export function ModuleListHeaderControls({
     <div className="space-y-2">
       {showSearch ? (
         <div className={searchContainerClassName}>
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-primary/80" />
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
@@ -66,8 +66,8 @@ export function ModuleListHeaderControls({
                   variant="ghost"
                   className={cn(
                     dropdownTriggerClassName,
-                    'text-primary/85 hover:text-primary',
-                    dropdownOpen && 'bg-primary/10 text-primary hover:bg-primary/15',
+                    'text-muted-foreground hover:text-foreground',
+                    dropdownOpen && 'bg-muted text-foreground hover:bg-muted/90',
                   )}
                   aria-haspopup="dialog"
                   aria-expanded={dropdownOpen}

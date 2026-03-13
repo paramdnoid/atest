@@ -64,7 +64,7 @@ export function ModuleTableCard({
         {isLoading ? (
           <div className="space-y-2">
             {[1, 2, 3].map((row) => (
-              <div key={row} className="h-11 animate-pulse rounded-lg bg-primary/10" />
+              <div key={row} className="h-11 animate-pulse rounded-lg bg-muted/55" />
             ))}
           </div>
         ) : hasData ? (

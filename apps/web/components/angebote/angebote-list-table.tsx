@@ -159,7 +159,7 @@ export function AngeboteListTable({
     <div className="space-y-2">
       <div className="max-h-128 overflow-auto rounded-xl border border-border/60 bg-background/80">
         <Table className="min-w-305 table-auto">
-          <TableHeader className="sticky top-0 z-10 bg-linear-to-r from-slate-100/95 via-slate-50/95 to-orange-50/65 backdrop-blur supports-backdrop-filter:bg-linear-to-r dark:from-slate-900/95 dark:via-slate-900/95 dark:to-slate-800/90">
+          <TableHeader className="sticky top-0 z-10 bg-slate-100/95 backdrop-blur supports-backdrop-filter:bg-slate-100/95 dark:bg-slate-900/95">
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-12 px-3 py-2.5 text-xs font-semibold tracking-wide text-muted-foreground">
                 <FormCheckbox
@@ -222,9 +222,9 @@ export function AngeboteListTable({
                   data-state={selectedIds.includes(record.id) ? 'selected' : undefined}
                   className={
                     selectedIds.includes(record.id)
-                      ? 'cursor-pointer align-middle bg-primary/8 ring-1 ring-primary/25'
+                      ? 'cursor-pointer align-middle bg-muted/55 ring-1 ring-border/80'
                       : isHighlighted
-                        ? 'cursor-pointer align-middle bg-primary/5 ring-1 ring-primary/15'
+                        ? 'cursor-pointer align-middle bg-muted/40 ring-1 ring-border/60'
                         : 'cursor-pointer align-middle odd:bg-slate-50/40 hover:bg-slate-100/60 dark:odd:bg-slate-900/30 dark:hover:bg-slate-800/45'
                   }
                 >

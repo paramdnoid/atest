@@ -21,8 +21,8 @@ export function PageHeader({
   return (
     <div className="flex items-center justify-between gap-4">
       <div className="flex items-center gap-3">
-        <SidebarTrigger className="shrink-0 text-primary/85 hover:text-primary focus-visible:ring-primary/30" />
-        <div className="h-6 w-px bg-primary/25" />
+        <SidebarTrigger className="shrink-0 text-foreground/70 hover:text-foreground focus-visible:ring-primary/30" />
+        <div className="h-6 w-px bg-border" />
         <div>
           <h1 className={cn(dashboardUiTokens.heading, titleClassName)}>{title}</h1>
           {description && (

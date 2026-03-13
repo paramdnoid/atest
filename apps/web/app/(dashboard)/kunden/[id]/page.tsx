@@ -305,13 +305,13 @@ export default function KundenDetailPage() {
                 {new Date(retentionDeadline).toLocaleDateString('de-DE')}
               </p>
               {consentBlockers.length > 0 ? (
-                <div className="rounded-md border border-amber-300/50 bg-amber-50/80 p-3 text-amber-800">
+                <div className="rounded-md border border-amber-300/40 bg-amber-50/55 p-3 text-amber-800">
                   {consentBlockers.map((blocker) => (
                     <p key={blocker}>- {blocker}</p>
                   ))}
                 </div>
               ) : (
-                <p className="text-emerald-700">Keine Consent-Blocker vorhanden.</p>
+                <p className="text-emerald-700/90">Keine Consent-Blocker vorhanden.</p>
               )}
             </div>
           </ModuleTableCard>

@@ -398,11 +398,11 @@ export default function KundenPage() {
                           </div>
                         ))}
                         {recommendedViewId ? (
-                          <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-primary">
+                          <div className="rounded-md border border-border/70 bg-muted/35 px-3 py-2 text-xs text-foreground/85">
                             Empfehlung aus Facets: Fokus auf{' '}
                             <button
                               type="button"
-                              className="font-semibold underline underline-offset-2"
+                              className="font-semibold underline underline-offset-2 text-foreground"
                               onClick={() => applySavedView(recommendedViewId)}
                             >
                               {recommendedViewId.replaceAll('_', ' ')}
