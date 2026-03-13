@@ -1,4 +1,4 @@
-import { AlertCircle, Building2, Calculator, ClipboardList, Ruler } from 'lucide-react';
+import { AlertCircle, Building2, Calculator, Ruler } from 'lucide-react';
 
 import { KpiStrip, type KpiStripItem } from '@/components/dashboard/kpi-strip';
 import { getMeasurementTotalsByUnit, getOpenBlockersCount } from '@/lib/aufmass/selectors';
@@ -20,7 +20,7 @@ export function AufmassKpiStrip({ record }: { record: AufmassRecord }) {
       icon: Ruler,
       label: 'Summen m²',
       value: totals.m2.toFixed(2),
-      subtitle: `${totals.m.toFixed(2)} m · ${totals.stk.toFixed(0)} Stk`,
+      subtitle: `${totals.m.toFixed(2)} m · ${totals.stk.toFixed(0)} Stk · ${record.measurements.length} Messwerte`,
       tone: 'primary',
     },
     {
@@ -29,13 +29,6 @@ export function AufmassKpiStrip({ record }: { record: AufmassRecord }) {
       value: record.rooms.length,
       subtitle: `${record.positions.length} Positionen`,
       tone: 'neutral',
-    },
-    {
-      icon: ClipboardList,
-      label: 'Messwerte',
-      value: record.measurements.length,
-      subtitle: 'Einträge im aktuellen Aufmaß',
-      tone: 'blue',
     },
   ];
 
