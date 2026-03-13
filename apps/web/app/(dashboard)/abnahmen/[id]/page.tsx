@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Brain, ClipboardList, FileText, History, LayoutPanelTop, Wrench } from 'lucide-react';
+import { Brain, ClipboardList, FileText, History, LayoutPanelTop, Network, Wrench } from 'lucide-react';
 
 import { AbnahmeDetailHeader } from '@/components/abnahmen/abnahme-detail-header';
 import { AbnahmeProtocolCard } from '@/components/abnahmen/abnahme-protocol-card';
@@ -18,10 +18,11 @@ import {
   getDashboardTabId,
   getDashboardTabPanelId,
 } from '@/components/dashboard/dashboard-tabs';
+import { CrossModuleLinksContent } from '@/components/dashboard/cross-module-links-card';
 import { ModulePageTemplate } from '@/components/dashboard/module-page-template';
+import { ModuleSideTabsCard } from '@/components/dashboard/module-side-tabs-card';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { EmptyState } from '@/components/dashboard/states';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getTransitionComplianceBlockers } from '@/lib/abnahmen/compliance-rules';
 import { getEvidenceBlockingMessages, getEvidencePolicyIssues } from '@/lib/abnahmen/evidence-policy';
@@ -29,6 +30,7 @@ import { getAbnahmeRecordById } from '@/lib/abnahmen/mock-data';
 import { abnahmenRolloutFlags } from '@/lib/abnahmen/rollout-flags';
 import { getOpenDefects } from '@/lib/abnahmen/selectors';
 import { canTransition, getTransitionBlockers, transitionRecordStatus } from '@/lib/abnahmen/state-machine';
+import { getVerknuepfungSnapshot } from '@/lib/auftragsabwicklung/cross-module-intelligence';
 import type { AbnahmeAuditEvent, AbnahmeRecord, AbnahmeStatus, DefectEntry } from '@/lib/abnahmen/types';
 
 type TabKey = 'overview' | 'defects' | 'rework' | 'protocol' | 'documents' | 'history' | 'insights';
@@ -91,7 +93,14 @@ export default function AbnahmeDetailPage() {
   const initial = useMemo(() => getAbnahmeRecordById(params.id), [params.id]);
   const [record, setRecord] = useState<AbnahmeRecord | null>(initial);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [activeSideContextTab, setActiveSideContextTab] = useState<'protocol' | 'compliance' | 'datennetz'>(
+    'protocol',
+  );
   const baseVisibleTabs = tabs.filter((tab) => (tab.id === 'insights' ? abnahmenRolloutFlags.enableInsights : true));
+  const verknuepfungSnapshot = useMemo(
+    () => getVerknuepfungSnapshot('ABNAHMEN', record?.id ?? ''),
+    [record?.id],
+  );
 
   if (!record) {
     return (
@@ -254,11 +263,6 @@ export default function AbnahmeDetailPage() {
         title="Abnahmeakte"
         description={`${record.number} · ${record.customerName} · ${record.projectName}`}
         mainGridClassName="grid-cols-1 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,1fr)]"
-        badge={
-          <Badge variant="outline" className="font-mono text-xs">
-            {record.tradeLabel}
-          </Badge>
-        }
         actions={<DefectCaptureDrawer onAddDefect={onAddDefect} />}
         kpis={getAbnahmenKpiItems([record])}
         sideContent={
@@ -293,96 +297,140 @@ export default function AbnahmeDetailPage() {
                 </div>
               </div>
             </ModuleTableCard>
-            <ModuleTableCard icon={FileText} label="Protokoll" title="Signatur und Nachweise" hasData>
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/50 px-2.5 py-1.5">
-                  <span>Signatur</span>
-                  <span
-                    className={`font-medium ${
-                      record.protocol.signoffStatus === 'signed' ? 'text-emerald-700' : 'text-amber-700'
-                    }`}
-                  >
-                    {record.protocol.signoffStatus === 'signed' ? 'signiert' : 'ausstehend'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/50 px-2.5 py-1.5">
-                  <span>Termin</span>
-                  <span className="font-medium text-foreground">{record.protocol.appointmentDate ?? '-'}</span>
-                </div>
-                <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/50 px-2.5 py-1.5">
-                  <span>Anwesend</span>
-                  <span className="font-medium text-foreground">{record.protocol.participants.length}</span>
-                </div>
-                <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/50 px-2.5 py-1.5">
-                  <span>Vorbehalt</span>
-                  <span className="font-medium text-foreground">
-                    {record.protocol.reservationText ? 'hinterlegt' : 'kein Vorbehalt'}
-                  </span>
-                </div>
-              </div>
-            </ModuleTableCard>
-            <ModuleTableCard icon={ClipboardList} label="Dokumente und Datenschutz" title="Freigabe-Checks" hasData>
-              <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                <div
-                  className={`rounded-md border px-2.5 py-2 ${
-                    privacyBlockingCount > 0
-                      ? 'border-destructive/40 bg-destructive/10'
-                      : 'border-emerald-500/30 bg-emerald-500/10'
-                  }`}
-                >
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">DSGVO Blocker</p>
-                  <p
-                    className={`mt-1 text-sm font-semibold ${
-                      privacyBlockingCount > 0 ? 'text-destructive' : 'text-emerald-700'
-                    }`}
-                  >
-                    {privacyBlockingCount}
-                  </p>
-                </div>
-                <div
-                  className={`rounded-md border px-2.5 py-2 ${
-                    privacyWarningCount > 0 ? 'border-amber-500/40 bg-amber-500/10' : 'border-border/60 bg-background/50'
-                  }`}
-                >
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Hinweise</p>
-                  <p
-                    className={`mt-1 text-sm font-semibold ${
-                      privacyWarningCount > 0 ? 'text-amber-700' : 'text-foreground'
-                    }`}
-                  >
-                    {privacyWarningCount}
-                  </p>
-                </div>
-                <div
-                  className={`rounded-md border px-2.5 py-2 ${
-                    inProgressReworkCount > 0 ? 'border-amber-500/40 bg-amber-500/10' : 'border-border/60 bg-background/50'
-                  }`}
-                >
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Nacharbeit aktiv</p>
-                  <p
-                    className={`mt-1 text-sm font-semibold ${
-                      inProgressReworkCount > 0 ? 'text-amber-700' : 'text-foreground'
-                    }`}
-                  >
-                    {inProgressReworkCount}
-                  </p>
-                </div>
-                <div
-                  className={`rounded-md border px-2.5 py-2 ${
-                    resolvedReworkCount > 0 ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-border/60 bg-background/50'
-                  }`}
-                >
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Abgeschlossen</p>
-                  <p
-                    className={`mt-1 text-sm font-semibold ${
-                      resolvedReworkCount > 0 ? 'text-emerald-700' : 'text-foreground'
-                    }`}
-                  >
-                    {resolvedReworkCount}
-                  </p>
-                </div>
-              </div>
-            </ModuleTableCard>
+            <ModuleSideTabsCard
+              idPrefix="abnahmen-detail-side-context"
+              icon={FileText}
+              label="Kontext"
+              title="Protokoll, Compliance und Datennetz"
+              activeTab={activeSideContextTab}
+              onTabChange={setActiveSideContextTab}
+              ariaLabel="Abnahmen Detailkontext"
+              tabs={[
+                {
+                  id: 'protocol',
+                  label: 'Protokoll',
+                  icon: FileText,
+                  content: (
+                    <div className="space-y-2 text-xs text-muted-foreground">
+                      <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/50 px-2.5 py-1.5">
+                        <span>Signatur</span>
+                        <span
+                          className={`font-medium ${
+                            record.protocol.signoffStatus === 'signed' ? 'text-emerald-700' : 'text-amber-700'
+                          }`}
+                        >
+                          {record.protocol.signoffStatus === 'signed' ? 'signiert' : 'ausstehend'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/50 px-2.5 py-1.5">
+                        <span>Termin</span>
+                        <span className="font-medium text-foreground">{record.protocol.appointmentDate ?? '-'}</span>
+                      </div>
+                      <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/50 px-2.5 py-1.5">
+                        <span>Anwesend</span>
+                        <span className="font-medium text-foreground">{record.protocol.participants.length}</span>
+                      </div>
+                      <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/50 px-2.5 py-1.5">
+                        <span>Vorbehalt</span>
+                        <span className="font-medium text-foreground">
+                          {record.protocol.reservationText ? 'hinterlegt' : 'kein Vorbehalt'}
+                        </span>
+                      </div>
+                    </div>
+                  ),
+                },
+                {
+                  id: 'compliance',
+                  label: 'Compliance',
+                  icon: ClipboardList,
+                  content: (
+                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                      <div
+                        className={`rounded-md border px-2.5 py-2 ${
+                          privacyBlockingCount > 0
+                            ? 'border-destructive/40 bg-destructive/10'
+                            : 'border-emerald-500/30 bg-emerald-500/10'
+                        }`}
+                      >
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">DSGVO Blocker</p>
+                        <p
+                          className={`mt-1 text-sm font-semibold ${
+                            privacyBlockingCount > 0 ? 'text-destructive' : 'text-emerald-700'
+                          }`}
+                        >
+                          {privacyBlockingCount}
+                        </p>
+                      </div>
+                      <div
+                        className={`rounded-md border px-2.5 py-2 ${
+                          privacyWarningCount > 0
+                            ? 'border-amber-500/40 bg-amber-500/10'
+                            : 'border-border/60 bg-background/50'
+                        }`}
+                      >
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Hinweise</p>
+                        <p
+                          className={`mt-1 text-sm font-semibold ${
+                            privacyWarningCount > 0 ? 'text-amber-700' : 'text-foreground'
+                          }`}
+                        >
+                          {privacyWarningCount}
+                        </p>
+                      </div>
+                      <div
+                        className={`rounded-md border px-2.5 py-2 ${
+                          inProgressReworkCount > 0
+                            ? 'border-amber-500/40 bg-amber-500/10'
+                            : 'border-border/60 bg-background/50'
+                        }`}
+                      >
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Nacharbeit aktiv</p>
+                        <p
+                          className={`mt-1 text-sm font-semibold ${
+                            inProgressReworkCount > 0 ? 'text-amber-700' : 'text-foreground'
+                          }`}
+                        >
+                          {inProgressReworkCount}
+                        </p>
+                      </div>
+                      <div
+                        className={`rounded-md border px-2.5 py-2 ${
+                          resolvedReworkCount > 0
+                            ? 'border-emerald-500/30 bg-emerald-500/10'
+                            : 'border-border/60 bg-background/50'
+                        }`}
+                      >
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Abgeschlossen</p>
+                        <p
+                          className={`mt-1 text-sm font-semibold ${
+                            resolvedReworkCount > 0 ? 'text-emerald-700' : 'text-foreground'
+                          }`}
+                        >
+                          {resolvedReworkCount}
+                        </p>
+                      </div>
+                    </div>
+                  ),
+                },
+                {
+                  id: 'datennetz',
+                  label: 'Datennetz',
+                  icon: Network,
+                  content: (
+                    <CrossModuleLinksContent
+                      snapshot={verknuepfungSnapshot}
+                      context={{
+                        module: 'ABNAHMEN',
+                        id: record.id,
+                        customerName: record.customerName,
+                        projectName: record.projectName,
+                        siteName: record.siteName,
+                      }}
+                    />
+                  ),
+                },
+              ]}
+            />
           </div>
         }
         mainContent={

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import { dashboardUiTokens } from '@/components/dashboard/ui-tokens';
 import { cn } from '@/lib/utils';
 
 export function DashboardCard({
@@ -33,16 +34,16 @@ export function DashboardCardHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 px-4 py-3">
+    <div className="flex items-center justify-between gap-3 px-4 py-2.5">
       <div className="flex items-center gap-3">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-[0_2px_8px_color-mix(in_oklch,var(--color-primary)_40%,transparent)]">
-          <Icon className="h-3.5 w-3.5" />
+        <div className={cn('flex h-7 w-7 shrink-0 items-center justify-center', dashboardUiTokens.iconShell)}>
+          <Icon className="h-3.5 w-3.5 text-primary/90" />
         </div>
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <p className={dashboardUiTokens.kickerAccent}>
             {label}
           </p>
-          <p className="text-sm font-semibold leading-tight">{title}</p>
+          <p className="text-sm font-medium leading-tight">{title}</p>
         </div>
       </div>
       {action}

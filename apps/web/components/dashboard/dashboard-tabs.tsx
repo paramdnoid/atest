@@ -59,7 +59,7 @@ export function DashboardTabs<T extends string>({
   };
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border/70 bg-muted/35 p-1">
+    <div className="overflow-x-auto rounded-xl border border-border/60 bg-sidebar/25 p-1">
       <div className="flex min-w-max gap-1" role="tablist" aria-label={ariaLabel}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -69,10 +69,10 @@ export function DashboardTabs<T extends string>({
               size="sm"
               variant="ghost"
               className={cn(
-                'h-8 border border-transparent px-3 text-xs',
+                'h-8 border border-transparent px-3 text-[11px] font-medium',
                 activeTab === tab.id
-                  ? 'border-border/70 bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:bg-background/70 hover:text-foreground',
+                  ? 'border-primary/35 bg-background text-foreground ring-1 ring-primary/20'
+                  : 'text-muted-foreground hover:border-primary/20 hover:bg-background/65 hover:text-primary/90',
               )}
               onClick={() => onChange(tab.id)}
               ref={(node) => {
@@ -85,7 +85,7 @@ export function DashboardTabs<T extends string>({
               tabIndex={activeTab === tab.id ? 0 : -1}
               onKeyDown={(event) => onKeyDown(event, tabs.findIndex((entry) => entry.id === tab.id))}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className={cn('h-4 w-4', activeTab === tab.id ? 'text-primary' : 'text-muted-foreground')} />
               {tab.label}
               {tab.badge}
             </Button>

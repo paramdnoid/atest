@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Brain, ClipboardList, FileSpreadsheet, History, LayoutPanelTop } from 'lucide-react';
+import { Brain, ClipboardList, FileSpreadsheet, History, LayoutPanelTop, Network } from 'lucide-react';
 
 import { ApprovalDialog } from '@/components/aufmass/approval-dialog';
 import { AufmassDetailHeader } from '@/components/aufmass/aufmass-detail-header';
@@ -23,8 +23,9 @@ import {
   getDashboardTabPanelId,
 } from '@/components/dashboard/dashboard-tabs';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
+import { CrossModuleLinksContent } from '@/components/dashboard/cross-module-links-card';
+import { ModuleSideTabsCard } from '@/components/dashboard/module-side-tabs-card';
 import { EmptyState } from '@/components/dashboard/states';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getAufmassRecordSync, listAufmassRecordsSync } from '@/lib/aufmass/data-adapter';
 import { aufmassRolloutFlags } from '@/lib/aufmass/rollout-flags';
@@ -32,6 +33,7 @@ import { getTransitionBlockers, transitionRecordStatus } from '@/lib/aufmass/sta
 import { getRecordOvermeasureIssues } from '@/lib/aufmass/selectors';
 import { migrateLegacyFormula } from '@/lib/aufmass/formula-builder';
 import { getIntelligenceSnapshot } from '@/lib/aufmass/intelligence';
+import { getVerknuepfungSnapshot } from '@/lib/auftragsabwicklung/cross-module-intelligence';
 import type {
   AufmassAuditEvent,
   AufmassMeasurement,
@@ -73,6 +75,7 @@ function appendAudit(
 export default function AufmassDetailPage() {
   const params = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [overviewContextTab, setOverviewContextTab] = useState<'capture' | 'insights' | 'datennetz'>('capture');
   const allRecords = useMemo<AufmassRecord[]>(() => listAufmassRecordsSync(), []);
   const initial = useMemo(() => getAufmassRecordSync(params.id), [params.id]);
   const [record, setRecord] = useState<AufmassRecord | null>(initial);
@@ -132,6 +135,10 @@ export default function AufmassDetailPage() {
   const intelligenceSnapshot = useMemo(
     () => getIntelligenceSnapshot(record, allRecords),
     [record, allRecords],
+  );
+  const verknuepfungSnapshot = useMemo(
+    () => getVerknuepfungSnapshot('AUFMASS', record.id),
+    [record.id],
   );
   const scoreGateBlockers =
     aufmassRolloutFlags.enforceBuilderScoreGate && intelligenceSnapshot.readinessScore < 75
@@ -265,11 +272,6 @@ export default function AufmassDetailPage() {
       <PageHeader
         title="Aufmaß Workspace"
         description={`${record.number} · ${record.customerName}`}
-        badge={
-          <Badge variant="outline" className="font-mono text-xs">
-            v{record.version}
-          </Badge>
-        }
       >
         <ApprovalDialog
           currentStatus={record.status}
@@ -333,17 +335,67 @@ export default function AufmassDetailPage() {
           tabIndex={0}
           className="grid gap-4 lg:grid-cols-2"
         >
-          <RoomTreePanel rooms={record.rooms} activeRoomId={activeRoomId} onSelectRoom={setActiveRoomId} />
-          <ModuleTableCard icon={LayoutPanelTop} label="Baustelle" title="Quick-Capture">
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Schnellerfassung für Baustelle mit reduzierter Eingabe und optionalen Fotos.
-              </p>
-              <QuickCaptureDrawer room={activeRoom} positions={record.positions} onAddMeasurement={onAddMeasurement} />
-            </div>
-          </ModuleTableCard>
-          <MeasurementGrid room={activeRoom} measurements={record.measurements} positions={record.positions} />
-          <AufmassIntelligencePanel record={record} allRecords={allRecords} snapshot={intelligenceSnapshot} />
+          <div className="space-y-4">
+            <RoomTreePanel rooms={record.rooms} activeRoomId={activeRoomId} onSelectRoom={setActiveRoomId} />
+            <MeasurementGrid room={activeRoom} measurements={record.measurements} positions={record.positions} />
+          </div>
+          <ModuleSideTabsCard
+            idPrefix="aufmass-detail-overview-context"
+            icon={LayoutPanelTop}
+            label="Kontext"
+            title="Erfassung, Insights und Datennetz"
+            activeTab={overviewContextTab}
+            onTabChange={setOverviewContextTab}
+            ariaLabel="Aufmaß Detailkontext"
+            tabs={[
+              {
+                id: 'capture',
+                label: 'Erfassung',
+                icon: LayoutPanelTop,
+                content: (
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      Schnellerfassung für Baustelle mit reduzierter Eingabe und optionalen Fotos.
+                    </p>
+                    <QuickCaptureDrawer
+                      room={activeRoom}
+                      positions={record.positions}
+                      onAddMeasurement={onAddMeasurement}
+                    />
+                  </div>
+                ),
+              },
+              {
+                id: 'insights',
+                label: 'Insights',
+                icon: Brain,
+                content: (
+                  <AufmassIntelligencePanel
+                    record={record}
+                    allRecords={allRecords}
+                    snapshot={intelligenceSnapshot}
+                  />
+                ),
+              },
+              {
+                id: 'datennetz',
+                label: 'Datennetz',
+                icon: Network,
+                content: (
+                  <CrossModuleLinksContent
+                    snapshot={verknuepfungSnapshot}
+                    context={{
+                      module: 'AUFMASS',
+                      id: record.id,
+                      customerName: record.customerName,
+                      projectName: record.projectName,
+                      siteName: record.siteName,
+                    }}
+                  />
+                ),
+              },
+            ]}
+          />
         </section>
       )}
 

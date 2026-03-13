@@ -1,21 +1,25 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { ClipboardCheck, Filter, ShieldCheck, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { ClipboardCheck, Filter, Network, ShieldCheck, X } from 'lucide-react';
 
 import { getAbnahmenKpiItems } from '@/components/abnahmen/abnahmen-kpi-strip';
 import { AbnahmenListTable } from '@/components/abnahmen/abnahmen-list-table';
 import { AbnahmenStatusBadge } from '@/components/abnahmen/abnahmen-status-badge';
+import { CrossModulePortfolioContent } from '@/components/dashboard/cross-module-portfolio-card';
 import { ModulePageTemplate } from '@/components/dashboard/module-page-template';
+import { ModuleSideTabsCard } from '@/components/dashboard/module-side-tabs-card';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { filterAbnahmen } from '@/lib/abnahmen/selectors';
 import { getAbnahmenRecords } from '@/lib/abnahmen/mock-data';
+import { getVerknuepfungPortfolioSnapshot } from '@/lib/auftragsabwicklung/cross-module-intelligence';
 import type { AbnahmenFilters } from '@/lib/abnahmen/types';
 
 export default function AbnahmenPage() {
+  const searchParams = useSearchParams();
   const records = useMemo(() => getAbnahmenRecords(), []);
   const [filters, setFilters] = useState<AbnahmenFilters>({
     query: '',
@@ -23,8 +27,35 @@ export default function AbnahmenPage() {
     onlyCritical: false,
     onlyOverdue: false,
   });
+  const [activeContextTab, setActiveContextTab] = useState<'workflow' | 'datennetz'>('workflow');
 
   const filteredRecords = useMemo(() => filterAbnahmen(records, filters), [records, filters]);
+  const handoffSuggestionId = searchParams.get('handoffSuggestionId') ?? undefined;
+  const displayRecords = useMemo(() => {
+    if (!handoffSuggestionId) return filteredRecords;
+    return [...filteredRecords].sort((left, right) => {
+      if (left.id === handoffSuggestionId) return -1;
+      if (right.id === handoffSuggestionId) return 1;
+      return 0;
+    });
+  }, [filteredRecords, handoffSuggestionId]);
+  const handoffFrom = searchParams.get('handoffFrom');
+  const handoffQuery = [
+    searchParams.get('handoffCustomer'),
+    searchParams.get('handoffProject'),
+    searchParams.get('handoffSite'),
+  ]
+    .filter((entry): entry is string => Boolean(entry))
+    .join(' ');
+
+  useEffect(() => {
+    if (!handoffFrom || handoffQuery.trim().length === 0) return;
+    setFilters((prev) => (prev.query === handoffQuery ? prev : { ...prev, query: handoffQuery }));
+  }, [handoffFrom, handoffQuery]);
+  const portfolioSnapshot = useMemo(
+    () => getVerknuepfungPortfolioSnapshot('ABNAHMEN', displayRecords.map((entry) => entry.id)),
+    [displayRecords],
+  );
   const activeFilterChips = [
     filters.query ? `Suche: ${filters.query}` : null,
     filters.status !== 'ALL' ? `Status: ${filters.status}` : null,
@@ -36,11 +67,6 @@ export default function AbnahmenPage() {
     <ModulePageTemplate
       title="Abnahmen & Mängel"
       description="Abnahmen dokumentieren, Mängel erfassen und Nacharbeit transparent verfolgen."
-      badge={
-        <Badge variant="outline" className="dashboard-module-badge">
-          MALER · VOB/B + DSGVO
-        </Badge>
-      }
       actions={
         <Button size="sm">
           <ClipboardCheck className="h-4 w-4" />
@@ -48,12 +74,19 @@ export default function AbnahmenPage() {
         </Button>
       }
       kpis={getAbnahmenKpiItems(records)}
+      topMessage={
+        handoffFrom ? (
+          <p className="text-sm text-muted-foreground">
+            Kontext aus {handoffFrom} übernommen. Suchfilter wurde automatisch vorbelegt.
+          </p>
+        ) : undefined
+      }
       mainContent={
         <ModuleTableCard
           icon={ClipboardCheck}
           label="Abnahmen"
           title="Vorgänge, Fristen und Mängelstände"
-          hasData={filteredRecords.length > 0}
+          hasData={displayRecords.length > 0}
           emptyState={{
             icon: <ClipboardCheck className="h-8 w-8" />,
             title: 'Keine Abnahmen gefunden',
@@ -85,7 +118,7 @@ export default function AbnahmenPage() {
               </Button>
             </div>
           ) : null}
-          <AbnahmenListTable records={filteredRecords} />
+          <AbnahmenListTable records={displayRecords} highlightedId={handoffSuggestionId} />
         </ModuleTableCard>
       }
       sideContent={
@@ -145,31 +178,52 @@ export default function AbnahmenPage() {
               </div>
             </div>
           </ModuleTableCard>
-
-          <ModuleTableCard icon={ShieldCheck} label="Statuslegende" title="Workflow" hasData tone="muted">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Vorbereitung</span>
-                <AbnahmenStatusBadge status="PREPARATION" />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Mängel offen</span>
-                <AbnahmenStatusBadge status="DEFECTS_OPEN" />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Nacharbeit läuft</span>
-                <AbnahmenStatusBadge status="REWORK_IN_PROGRESS" />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Abnahme vorbehalten</span>
-                <AbnahmenStatusBadge status="ACCEPTED_WITH_RESERVATION" />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Abgenommen</span>
-                <AbnahmenStatusBadge status="ACCEPTED" />
-              </div>
-            </div>
-          </ModuleTableCard>
+          <ModuleSideTabsCard
+            idPrefix="abnahmen-context"
+            icon={ShieldCheck}
+            label="Kontext"
+            title="Workflow und Datennetz"
+            activeTab={activeContextTab}
+            onTabChange={setActiveContextTab}
+            ariaLabel="Abnahmen Kontextansicht"
+            tabs={[
+              {
+                id: 'workflow',
+                label: 'Workflow',
+                icon: ShieldCheck,
+                content: (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Vorbereitung</span>
+                      <AbnahmenStatusBadge status="PREPARATION" />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Mängel offen</span>
+                      <AbnahmenStatusBadge status="DEFECTS_OPEN" />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Nacharbeit läuft</span>
+                      <AbnahmenStatusBadge status="REWORK_IN_PROGRESS" />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Abnahme vorbehalten</span>
+                      <AbnahmenStatusBadge status="ACCEPTED_WITH_RESERVATION" />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Abgenommen</span>
+                      <AbnahmenStatusBadge status="ACCEPTED" />
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                id: 'datennetz',
+                label: 'Datennetz',
+                icon: Network,
+                content: <CrossModulePortfolioContent snapshot={portfolioSnapshot} />,
+              },
+            ]}
+          />
         </div>
       }
     />

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ChevronsUpDown, LogOut } from 'lucide-react';
 
 import type { ModuleRegistryItem } from '@/lib/module-registry';
+import { cn } from '@/lib/utils';
 import {
   Sidebar,
   SidebarContent,
@@ -111,21 +112,21 @@ export function AppSidebar({
   return (
     <Sidebar variant="inset">
       <SidebarHeader className="px-3 py-3">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-start content-center gap-2.5">
           <div
             aria-hidden="true"
-            className="h-8 w-8 shrink-0 rounded-sm bg-no-repeat"
+            className="mb-2 h-10 w-10 shrink-0 rounded-sm bg-no-repeat self-center"
             style={{
               backgroundImage: "url('/logo.png')",
-              backgroundSize: 'auto 100%',
-              backgroundPosition: 'left center',
+              backgroundSize: 'contain',
+              backgroundPosition: 'top',
             }}
           />
-          <div className="min-w-0 leading-none">
-            <p className="font-display text-sm font-bold uppercase tracking-tight">
+          <div className="min-w-0 leading-none mt-1">
+            <p className="font-display text-lg font-extrabold leading-none">
               Zunft<span className="text-primary">Gewerk</span>
             </p>
-            <p className="mt-0 truncate text-[11px] text-muted-foreground">{isLoadingProfile ? 'Gewerk' : tradeLabel}</p>
+            <p className="mt-0 truncate text-sm text-muted-foreground">{isLoadingProfile ? 'Gewerk' : tradeLabel}</p>
           </div>
         </div>
       </SidebarHeader>
@@ -148,7 +149,7 @@ export function AppSidebar({
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.label}>
                       <Link href={item.href}>
-                        <item.icon className="size-4" />
+                        <item.icon className={cn('size-4 transition-colors', isActive(item.href) ? 'text-primary' : 'text-muted-foreground')} />
                         <span>{item.label}</span>
                       </Link>
                     </SidebarMenuButton>

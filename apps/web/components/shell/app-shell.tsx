@@ -13,6 +13,11 @@ import type { EffectiveProfile } from '@/lib/effective-profile';
 import { moduleRegistry } from '@/lib/module-registry';
 import type { ModuleGroup } from '@/lib/module-registry';
 import { clearAccessToken, getAccessToken } from '@/lib/session-token';
+import {
+  applyDashboardDensity,
+  DASHBOARD_DENSITY_STORAGE_KEY,
+  resolveDashboardDensity,
+} from '@/lib/dashboard-density';
 import { AppSidebar } from '@/components/shell/app-sidebar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 
@@ -77,6 +82,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [activeProfileId, router]);
+
+  useEffect(() => {
+    const stored = resolveDashboardDensity(localStorage.getItem(DASHBOARD_DENSITY_STORAGE_KEY));
+    applyDashboardDensity(stored);
+  }, []);
 
   const visibleNavItems = useMemo(
     () =>

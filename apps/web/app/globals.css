@@ -79,6 +79,17 @@
   --enterprise-surface-soft: rgba(248, 250, 253, 0.9);
   --enterprise-line: rgba(124, 142, 170, 0.26);
   --enterprise-shadow: 0 24px 52px -28px rgba(15, 23, 42, 0.3);
+  --dashboard-page-gap: 1.25rem;
+  --dashboard-section-gap: 0.75rem;
+  --dashboard-main-gap: 0.75rem;
+  --dashboard-card-padding: 0.875rem;
+}
+
+:root[data-dashboard-density='compact'] {
+  --dashboard-page-gap: 0.95rem;
+  --dashboard-section-gap: 0.55rem;
+  --dashboard-main-gap: 0.55rem;
+  --dashboard-card-padding: 0.65rem;
 }
 
 @layer base {

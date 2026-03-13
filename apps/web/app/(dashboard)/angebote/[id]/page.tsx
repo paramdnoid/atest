@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { notFound, useParams } from 'next/navigation';
-import { Brain, ClipboardList, History, LayoutPanelTop, Sparkles } from 'lucide-react';
+import { Brain, ClipboardList, History, LayoutPanelTop, Network, Sparkles } from 'lucide-react';
 
 import { AngeboteApprovalDialog } from '@/components/angebote/angebote-approval-dialog';
 import { AngeboteAuditTimeline } from '@/components/angebote/angebote-audit-timeline';
@@ -16,14 +16,16 @@ import {
   getDashboardTabId,
   getDashboardTabPanelId,
 } from '@/components/dashboard/dashboard-tabs';
+import { CrossModuleLinksContent } from '@/components/dashboard/cross-module-links-card';
+import { ModuleSideTabsCard } from '@/components/dashboard/module-side-tabs-card';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { PageHeader } from '@/components/dashboard/page-header';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getQuoteRecordById, getQuoteRecords } from '@/lib/angebote/mock-data';
 import { getQuoteTotals } from '@/lib/angebote/pricing';
 import { angeboteRolloutFlags } from '@/lib/angebote/rollout-flags';
 import { getTransitionBlockers, transitionQuoteStatus } from '@/lib/angebote/state-machine';
+import { getVerknuepfungSnapshot } from '@/lib/auftragsabwicklung/cross-module-intelligence';
 import type { QuoteAuditEvent, QuoteRecord, QuoteStatus } from '@/lib/angebote/types';
 
 type TabKey = 'overview' | 'positions' | 'options' | 'approval' | 'insights' | 'history';
@@ -68,9 +70,14 @@ export default function AngebotDetailPage() {
   const allRecords = useMemo(() => getQuoteRecords(), []);
   const initial = useMemo(() => getQuoteRecordById(params.id), [params.id]);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [overviewContextTab, setOverviewContextTab] = useState<'insights' | 'datennetz'>('insights');
   const [record, setRecord] = useState<QuoteRecord | undefined>(initial);
   const [lastBlockers, setLastBlockers] = useState<string[]>([]);
   const detailSplitGridClassName = 'grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,1fr)]';
+  const verknuepfungSnapshot = useMemo(
+    () => getVerknuepfungSnapshot('ANGEBOTE', record?.id ?? ''),
+    [record?.id],
+  );
 
   if (!record) {
     notFound();
@@ -177,11 +184,6 @@ export default function AngebotDetailPage() {
       <PageHeader
         title="Angebots-Workspace"
         description={`${record.number} · ${record.customerName}`}
-        badge={
-          <Badge variant="outline" className="font-mono text-xs">
-            {record.tradeLabel}
-          </Badge>
-        }
       >
         <Button asChild variant="outline" size="sm">
           <Link href="/angebote">Zurueck zur Liste</Link>
@@ -245,15 +247,45 @@ export default function AngebotDetailPage() {
               </p>
             </div>
           </ModuleTableCard>
-          {angeboteRolloutFlags.enableIntelligence ? (
-            <AngeboteIntelligencePanel record={record} allRecords={allRecords} />
-          ) : (
-            <ModuleTableCard icon={Brain} label="Intelligence" title="Feature deaktiviert" hasData>
-              <p className="text-sm text-muted-foreground">
-                `NEXT_PUBLIC_ANGEBOTE_INTELLIGENCE` ist deaktiviert.
-              </p>
-            </ModuleTableCard>
-          )}
+          <ModuleSideTabsCard
+            idPrefix="angebote-detail-overview-context"
+            icon={Brain}
+            label="Kontext"
+            title="Insights und Datennetz"
+            activeTab={overviewContextTab}
+            onTabChange={setOverviewContextTab}
+            ariaLabel="Angebote Detailkontext"
+            tabs={[
+              {
+                id: 'insights',
+                label: 'Insights',
+                icon: Brain,
+                content: angeboteRolloutFlags.enableIntelligence ? (
+                  <AngeboteIntelligencePanel record={record} allRecords={allRecords} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    `NEXT_PUBLIC_ANGEBOTE_INTELLIGENCE` ist deaktiviert.
+                  </p>
+                ),
+              },
+              {
+                id: 'datennetz',
+                label: 'Datennetz',
+                icon: Network,
+                content: (
+                  <CrossModuleLinksContent
+                    snapshot={verknuepfungSnapshot}
+                    context={{
+                      module: 'ANGEBOTE',
+                      id: record.id,
+                      customerName: record.customerName,
+                      projectName: record.projectName,
+                    }}
+                  />
+                ),
+              },
+            ]}
+          />
         </section>
       )}
 

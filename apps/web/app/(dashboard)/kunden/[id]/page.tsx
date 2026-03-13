@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { notFound, useParams } from 'next/navigation';
-import { BadgeCheck, Building2, ClipboardList, History, ShieldCheck, Sparkles } from 'lucide-react';
+import { BadgeCheck, Building2, ClipboardList, History, Network, ShieldCheck, Sparkles } from 'lucide-react';
 
 import { AnsprechpartnerDirectory } from '@/components/kunden/ansprechpartner-directory';
 import { DuplicateReviewDrawer } from '@/components/kunden/duplicate-review-drawer';
@@ -18,10 +18,11 @@ import {
   getDashboardTabId,
   getDashboardTabPanelId,
 } from '@/components/dashboard/dashboard-tabs';
+import { CrossModuleLinksContent } from '@/components/dashboard/cross-module-links-card';
+import { ModuleSideTabsCard } from '@/components/dashboard/module-side-tabs-card';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { EmptyState } from '@/components/dashboard/states';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { detectDuplicateCandidates, resolveDuplicateCandidate } from '@/lib/kunden/duplicate-detection';
 import { getKundenRecords, getKundenRecordById } from '@/lib/kunden/mock-data';
@@ -35,6 +36,7 @@ import { getConsentBlockers, getRetentionDeadline } from '@/lib/kunden/privacy-p
 import { kundenRolloutFlags } from '@/lib/kunden/rollout-flags';
 import { transitionKundenStatus } from '@/lib/kunden/state-machine';
 import { resolveViewerRole } from '@/lib/kunden/viewer-role';
+import { getVerknuepfungSnapshot } from '@/lib/auftragsabwicklung/cross-module-intelligence';
 import type { DuplicateCandidate, KundenRecord, KundenStatus } from '@/lib/kunden/types';
 
 type TabKey = 'uebersicht' | 'objekte' | 'ansprechpartner' | 'timeline' | 'compliance' | 'duplikate';
@@ -76,12 +78,17 @@ export default function KundenDetailPage() {
 
   const [record, setRecord] = useState<KundenRecord | undefined>(initial);
   const [activeTab, setActiveTab] = useState<TabKey>('uebersicht');
+  const [overviewContextTab, setOverviewContextTab] = useState<'sla' | 'datennetz'>('sla');
   const [lastBlockers, setLastBlockers] = useState<string[]>([]);
   const [offlineQueue, setOfflineQueue] = useState(() => createOfflineQueueModel());
   const [duplicates, setDuplicates] = useState<DuplicateCandidate[]>(() =>
     kundenRolloutFlags.kundenDuplicateDetectionEnabled ? detectDuplicateCandidates(allRecords) : [],
   );
   const detailSplitGridClassName = 'grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,1fr)]';
+  const verknuepfungSnapshot = useMemo(
+    () => getVerknuepfungSnapshot('KUNDEN', record?.id ?? ''),
+    [record?.id],
+  );
   const viewerRole = useMemo(
     () => resolveViewerRole(process.env.NEXT_PUBLIC_KUNDEN_VIEWER_ROLE),
     [],
@@ -151,11 +158,6 @@ export default function KundenDetailPage() {
       <PageHeader
         title="Kunden-Workspace"
         description={`${record.number} · ${record.name}`}
-        badge={
-          <Badge variant="outline" className="font-mono text-xs">
-            {record.branche}
-          </Badge>
-        }
       >
         <Button asChild variant="outline" size="sm">
           <Link href="/kunden">Zurueck zur Liste</Link>
@@ -205,15 +207,46 @@ export default function KundenDetailPage() {
               </p>
             </ModuleTableCard>
           )}
-          {kundenRolloutFlags.kundenSlaEngineEnabled ? (
-            <ReminderSlaPanel record={record} />
-          ) : (
-            <ModuleTableCard icon={ShieldCheck} label="SLA" title="SLA-Engine deaktiviert" hasData>
-              <p className="text-sm text-muted-foreground">
-                `NEXT_PUBLIC_KUNDEN_SLA_ENGINE_ENABLED` ist deaktiviert.
-              </p>
-            </ModuleTableCard>
-          )}
+          <ModuleSideTabsCard
+            idPrefix="kunden-detail-overview-context"
+            icon={ShieldCheck}
+            label="Kontext"
+            title="SLA und Datennetz"
+            activeTab={overviewContextTab}
+            onTabChange={setOverviewContextTab}
+            ariaLabel="Kunden Detailkontext"
+            tabs={[
+              {
+                id: 'sla',
+                label: 'SLA',
+                icon: ShieldCheck,
+                content: kundenRolloutFlags.kundenSlaEngineEnabled ? (
+                  <ReminderSlaPanel record={record} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    `NEXT_PUBLIC_KUNDEN_SLA_ENGINE_ENABLED` ist deaktiviert.
+                  </p>
+                ),
+              },
+              {
+                id: 'datennetz',
+                label: 'Datennetz',
+                icon: Network,
+                content: (
+                  <CrossModuleLinksContent
+                    snapshot={verknuepfungSnapshot}
+                    context={{
+                      module: 'KUNDEN',
+                      id: record.id,
+                      customerName: record.name,
+                      projectName: record.objekte[0]?.name,
+                      siteName: record.objekte[0]?.adresse,
+                    }}
+                  />
+                ),
+              },
+            ]}
+          />
         </section>
       )}
 

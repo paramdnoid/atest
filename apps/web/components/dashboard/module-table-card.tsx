@@ -34,9 +34,9 @@ export function ModuleTableCard({
 }: ModuleTableCardProps) {
   const toneCardClassName =
     tone === 'emphasis'
-      ? 'border-border/90 bg-sidebar/55 shadow-sm shadow-black/5'
+      ? 'border-border/80 bg-sidebar/45 shadow-[0_1px_3px_color-mix(in_hsl,hsl(var(--primary))_10%,transparent)]'
       : tone === 'muted'
-        ? 'border-border/70 bg-sidebar/25'
+        ? 'border-border/60 bg-sidebar/20'
         : '';
   const toneBodyClassName =
     tone === 'emphasis'
@@ -53,7 +53,7 @@ export function ModuleTableCard({
         {isLoading ? (
           <div className="space-y-2">
             {[1, 2, 3].map((row) => (
-              <div key={row} className="h-11 animate-pulse rounded-lg bg-muted/60" />
+              <div key={row} className="h-11 animate-pulse rounded-lg bg-primary/10" />
             ))}
           </div>
         ) : hasData ? (
