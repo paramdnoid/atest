@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { notFound, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { Brain, ClipboardList, History, LayoutPanelTop, Network, Sparkles } from 'lucide-react';
 
 import { AngeboteApprovalDialog } from '@/components/angebote/angebote-approval-dialog';
@@ -20,6 +20,7 @@ import { CrossModuleLinksContent } from '@/components/dashboard/cross-module-lin
 import { ModuleSideTabsCard } from '@/components/dashboard/module-side-tabs-card';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { PageHeader } from '@/components/dashboard/page-header';
+import { EmptyState } from '@/components/dashboard/states';
 import { Button } from '@/components/ui/button';
 import { getQuoteRecordById, getQuoteRecords } from '@/lib/angebote/mock-data';
 import { getQuoteTotals } from '@/lib/angebote/pricing';
@@ -81,7 +82,18 @@ export default function AngebotDetailPage() {
   );
 
   if (!record) {
-    notFound();
+    return (
+      <div className="space-y-4">
+        <EmptyState
+          icon={<ClipboardList className="h-8 w-8" />}
+          title="Angebot nicht gefunden"
+          description="Der Datensatz wurde nicht gefunden."
+        />
+        <Button asChild variant="outline">
+          <Link href="/angebote">Zurueck zur Angebotsliste</Link>
+        </Button>
+      </div>
+    );
   }
 
   const totals = getQuoteTotals(record);

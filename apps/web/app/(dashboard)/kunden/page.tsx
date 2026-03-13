@@ -226,6 +226,159 @@ export default function KundenPage() {
     }));
   };
 
+  const resetAllFilters = () => {
+    setActiveSavedView(null);
+    setFilters(defaultFilters);
+  };
+
+  const dropdownContent = (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Filter</p>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={resetAllFilters}
+          className="h-6 rounded-md px-1.5 text-[11px]"
+        >
+          <X className="h-3.5 w-3.5" />
+          Zurücksetzen
+        </Button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Button
+          size="sm"
+          variant={kundenQuickMode === 'ALL' ? 'default' : 'outline'}
+          className="h-7 rounded-md px-2.5 text-xs"
+          onClick={() => setKundenQuickMode('ALL')}
+        >
+          Alle Kunden
+        </Button>
+        <Button
+          size="sm"
+          variant={kundenQuickMode === 'AKTIV' ? 'default' : 'outline'}
+          className="h-7 rounded-md px-2.5 text-xs"
+          onClick={() => setKundenQuickMode('AKTIV')}
+        >
+          Aktiv
+        </Button>
+        <Button
+          size="sm"
+          variant={kundenQuickMode === 'SLA_RISIKO' ? 'default' : 'outline'}
+          className="h-7 rounded-md px-2.5 text-xs"
+          onClick={() => setKundenQuickMode('SLA_RISIKO')}
+        >
+          SLA Risiko
+        </Button>
+        <Button
+          size="sm"
+          variant={kundenQuickMode === 'CONSENT_OFFEN' ? 'default' : 'outline'}
+          className="h-7 rounded-md px-2.5 text-xs"
+          onClick={() => setKundenQuickMode('CONSENT_OFFEN')}
+        >
+          Consent offen
+        </Button>
+      </div>
+
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-7 rounded-md px-2 text-xs"
+        onClick={() => setFiltersAdvancedOpen((prev) => !prev)}
+        aria-expanded={filtersAdvancedOpen}
+      >
+        <SlidersHorizontal className="h-3.5 w-3.5" />
+        Weitere Filter
+        <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', filtersAdvancedOpen && 'rotate-180')} />
+      </Button>
+
+      {filtersAdvancedOpen ? (
+        <div className="space-y-3 rounded-lg border border-border bg-background p-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Erweiterte Filter
+          </p>
+          <KundenFilterPanel
+            filters={filters}
+            owners={owners}
+            regions={regions}
+            activeSavedView={activeSavedView}
+            savedViewCounts={savedViewCounts}
+            recommendedViewId={recommendedViewId}
+            onApplySavedView={applySavedView}
+            onChange={(next) => {
+              setActiveSavedView(null);
+              setFilters(next);
+            }}
+            hideSearch
+            compact
+          />
+        </div>
+      ) : null}
+
+      <div className="space-y-2 rounded-lg border border-border bg-background p-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Button
+            size="sm"
+            variant={activeContextPanel === 'workflow' ? 'default' : 'outline'}
+            className="h-7 rounded-md px-2.5 text-xs"
+            onClick={() => setActiveContextPanel('workflow')}
+          >
+            Arbeitsweise
+          </Button>
+          <Button
+            size="sm"
+            variant={activeContextPanel === 'datennetz' ? 'default' : 'outline'}
+            className="h-7 rounded-md px-2.5 text-xs"
+            onClick={() => setActiveContextPanel('datennetz')}
+          >
+            <Network className="h-3.5 w-3.5" />
+            Datennetz
+          </Button>
+        </div>
+
+        {activeContextPanel === 'workflow' ? (
+          <div className="space-y-2 text-sm">
+            {workflowTasks.map((task, index) => (
+              <div
+                key={task.id}
+                className="flex items-center justify-between gap-2 rounded-md border border-border/70 bg-background/60 px-3 py-2"
+              >
+                <p className="text-sm">
+                  {index + 1}) {task.text}
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-xs"
+                  disabled={task.disabled}
+                  onClick={() => applySavedView(task.viewId)}
+                >
+                  Jetzt filtern
+                </Button>
+              </div>
+            ))}
+            {recommendedViewId ? (
+              <div className="rounded-md border border-border/70 bg-muted/35 px-3 py-2 text-xs text-foreground/85">
+                Empfehlung aus Facets: Fokus auf{' '}
+                <button
+                  type="button"
+                  className="font-semibold underline underline-offset-2 text-foreground"
+                  onClick={() => applySavedView(recommendedViewId)}
+                >
+                  {recommendedViewId.replaceAll('_', ' ')}
+                </button>
+                .
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <CrossModulePortfolioContent snapshot={portfolioSnapshot} />
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <ModulePageTemplate
       title="Kunden & Objekte"
@@ -264,157 +417,8 @@ export default function KundenPage() {
                 searchContainerClassName="relative w-full md:w-64 lg:w-72 xl:w-80 md:max-w-[40vw] xl:max-w-[46vw]"
                 showTokens={false}
                 dropdownAriaLabel="Kundenfilter öffnen"
-              dropdownContent={
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Filter</p>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setActiveSavedView(null);
-                        setFilters(defaultFilters);
-                      }}
-                      className="h-6 rounded-md px-1.5 text-[11px]"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                      Zurücksetzen
-                    </Button>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <Button
-                      size="sm"
-                      variant={kundenQuickMode === 'ALL' ? 'default' : 'outline'}
-                      className="h-7 rounded-md px-2.5 text-xs"
-                      onClick={() => setKundenQuickMode('ALL')}
-                    >
-                      Alle Kunden
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={kundenQuickMode === 'AKTIV' ? 'default' : 'outline'}
-                      className="h-7 rounded-md px-2.5 text-xs"
-                      onClick={() => setKundenQuickMode('AKTIV')}
-                    >
-                      Aktiv
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={kundenQuickMode === 'SLA_RISIKO' ? 'default' : 'outline'}
-                      className="h-7 rounded-md px-2.5 text-xs"
-                      onClick={() => setKundenQuickMode('SLA_RISIKO')}
-                    >
-                      SLA Risiko
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={kundenQuickMode === 'CONSENT_OFFEN' ? 'default' : 'outline'}
-                      className="h-7 rounded-md px-2.5 text-xs"
-                      onClick={() => setKundenQuickMode('CONSENT_OFFEN')}
-                    >
-                      Consent offen
-                    </Button>
-                  </div>
-
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 rounded-md px-2 text-xs"
-                    onClick={() => setFiltersAdvancedOpen((prev) => !prev)}
-                    aria-expanded={filtersAdvancedOpen}
-                  >
-                    <SlidersHorizontal className="h-3.5 w-3.5" />
-                    Weitere Filter
-                    <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', filtersAdvancedOpen && 'rotate-180')} />
-                  </Button>
-
-                  {filtersAdvancedOpen ? (
-                    <div className="space-y-3 rounded-lg border border-border bg-background p-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                        Erweiterte Filter
-                      </p>
-                      <KundenFilterPanel
-                        filters={filters}
-                        owners={owners}
-                        regions={regions}
-                        activeSavedView={activeSavedView}
-                        savedViewCounts={savedViewCounts}
-                        recommendedViewId={recommendedViewId}
-                        onApplySavedView={applySavedView}
-                        onChange={(next) => {
-                          setActiveSavedView(null);
-                          setFilters(next);
-                        }}
-                        hideSearch
-                        compact
-                      />
-                    </div>
-                  ) : null}
-
-                  <div className="space-y-2 rounded-lg border border-border bg-background p-2">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <Button
-                        size="sm"
-                        variant={activeContextPanel === 'workflow' ? 'default' : 'outline'}
-                        className="h-7 rounded-md px-2.5 text-xs"
-                        onClick={() => setActiveContextPanel('workflow')}
-                      >
-                        Arbeitsweise
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={activeContextPanel === 'datennetz' ? 'default' : 'outline'}
-                        className="h-7 rounded-md px-2.5 text-xs"
-                        onClick={() => setActiveContextPanel('datennetz')}
-                      >
-                        <Network className="h-3.5 w-3.5" />
-                        Datennetz
-                      </Button>
-                    </div>
-
-                    {activeContextPanel === 'workflow' ? (
-                      <div className="space-y-2 text-sm">
-                        {workflowTasks.map((task, index) => (
-                          <div
-                            key={task.id}
-                            className="flex items-center justify-between gap-2 rounded-md border border-border/70 bg-background/60 px-3 py-2"
-                          >
-                            <p className="text-sm">
-                              {index + 1}) {task.text}
-                            </p>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 px-2 text-xs"
-                              disabled={task.disabled}
-                              onClick={() => applySavedView(task.viewId)}
-                            >
-                              Jetzt filtern
-                            </Button>
-                          </div>
-                        ))}
-                        {recommendedViewId ? (
-                          <div className="rounded-md border border-border/70 bg-muted/35 px-3 py-2 text-xs text-foreground/85">
-                            Empfehlung aus Facets: Fokus auf{' '}
-                            <button
-                              type="button"
-                              className="font-semibold underline underline-offset-2 text-foreground"
-                              onClick={() => applySavedView(recommendedViewId)}
-                            >
-                              {recommendedViewId.replaceAll('_', ' ')}
-                            </button>
-                            .
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : (
-                      <CrossModulePortfolioContent snapshot={portfolioSnapshot} />
-                    )}
-                  </div>
-                </div>
-              }
-            />
+                dropdownContent={dropdownContent}
+              />
             </div>
           }
           headerBottomContent={
@@ -430,156 +434,7 @@ export default function KundenPage() {
                   queryAriaLabel="Kundensuche"
                   showTokens={false}
                   dropdownAriaLabel="Kundenfilter öffnen"
-                  dropdownContent={
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Filter</p>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setActiveSavedView(null);
-                            setFilters(defaultFilters);
-                          }}
-                          className="h-6 rounded-md px-1.5 text-[11px]"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                          Zurücksetzen
-                        </Button>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <Button
-                          size="sm"
-                          variant={kundenQuickMode === 'ALL' ? 'default' : 'outline'}
-                          className="h-7 rounded-md px-2.5 text-xs"
-                          onClick={() => setKundenQuickMode('ALL')}
-                        >
-                          Alle Kunden
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={kundenQuickMode === 'AKTIV' ? 'default' : 'outline'}
-                          className="h-7 rounded-md px-2.5 text-xs"
-                          onClick={() => setKundenQuickMode('AKTIV')}
-                        >
-                          Aktiv
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={kundenQuickMode === 'SLA_RISIKO' ? 'default' : 'outline'}
-                          className="h-7 rounded-md px-2.5 text-xs"
-                          onClick={() => setKundenQuickMode('SLA_RISIKO')}
-                        >
-                          SLA Risiko
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={kundenQuickMode === 'CONSENT_OFFEN' ? 'default' : 'outline'}
-                          className="h-7 rounded-md px-2.5 text-xs"
-                          onClick={() => setKundenQuickMode('CONSENT_OFFEN')}
-                        >
-                          Consent offen
-                        </Button>
-                      </div>
-
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 rounded-md px-2 text-xs"
-                        onClick={() => setFiltersAdvancedOpen((prev) => !prev)}
-                        aria-expanded={filtersAdvancedOpen}
-                      >
-                        <SlidersHorizontal className="h-3.5 w-3.5" />
-                        Weitere Filter
-                        <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', filtersAdvancedOpen && 'rotate-180')} />
-                      </Button>
-
-                      {filtersAdvancedOpen ? (
-                        <div className="space-y-3 rounded-lg border border-border bg-background p-2">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                            Erweiterte Filter
-                          </p>
-                          <KundenFilterPanel
-                            filters={filters}
-                            owners={owners}
-                            regions={regions}
-                            activeSavedView={activeSavedView}
-                            savedViewCounts={savedViewCounts}
-                            recommendedViewId={recommendedViewId}
-                            onApplySavedView={applySavedView}
-                            onChange={(next) => {
-                              setActiveSavedView(null);
-                              setFilters(next);
-                            }}
-                            hideSearch
-                            compact
-                          />
-                        </div>
-                      ) : null}
-
-                      <div className="space-y-2 rounded-lg border border-border bg-background p-2">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <Button
-                            size="sm"
-                            variant={activeContextPanel === 'workflow' ? 'default' : 'outline'}
-                            className="h-7 rounded-md px-2.5 text-xs"
-                            onClick={() => setActiveContextPanel('workflow')}
-                          >
-                            Arbeitsweise
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={activeContextPanel === 'datennetz' ? 'default' : 'outline'}
-                            className="h-7 rounded-md px-2.5 text-xs"
-                            onClick={() => setActiveContextPanel('datennetz')}
-                          >
-                            <Network className="h-3.5 w-3.5" />
-                            Datennetz
-                          </Button>
-                        </div>
-
-                        {activeContextPanel === 'workflow' ? (
-                          <div className="space-y-2 text-sm">
-                            {workflowTasks.map((task, index) => (
-                              <div
-                                key={task.id}
-                                className="flex items-center justify-between gap-2 rounded-md border border-border/70 bg-background/60 px-3 py-2"
-                              >
-                                <p className="text-sm">
-                                  {index + 1}) {task.text}
-                                </p>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-7 px-2 text-xs"
-                                  disabled={task.disabled}
-                                  onClick={() => applySavedView(task.viewId)}
-                                >
-                                  Jetzt filtern
-                                </Button>
-                              </div>
-                            ))}
-                            {recommendedViewId ? (
-                              <div className="rounded-md border border-border/70 bg-muted/35 px-3 py-2 text-xs text-foreground/85">
-                                Empfehlung aus Facets: Fokus auf{' '}
-                                <button
-                                  type="button"
-                                  className="font-semibold underline underline-offset-2 text-foreground"
-                                  onClick={() => applySavedView(recommendedViewId)}
-                                >
-                                  {recommendedViewId.replaceAll('_', ' ')}
-                                </button>
-                                .
-                              </div>
-                            ) : null}
-                          </div>
-                        ) : (
-                          <CrossModulePortfolioContent snapshot={portfolioSnapshot} />
-                        )}
-                      </div>
-                    </div>
-                  }
+                  dropdownContent={dropdownContent}
                 />
               </div>
               <ModuleListHeaderControls
@@ -592,10 +447,7 @@ export default function KundenPage() {
                 queryAriaLabel="Kundensuche"
                 showSearch={false}
                 tokens={activeFilterTokens}
-                onResetAll={() => {
-                  setActiveSavedView(null);
-                  setFilters(defaultFilters);
-                }}
+                onResetAll={resetAllFilters}
               />
             </div>
           }

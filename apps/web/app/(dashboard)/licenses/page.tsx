@@ -17,6 +17,16 @@ type Seat = {
   updatedAt: string;
 };
 
+function parseSeatsPayload(payload: unknown): { seats?: Seat[] } | Seat[] {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Ungueltige Antwort fuer Lizenz-Sitze.');
+  }
+  if (Array.isArray(payload)) {
+    return payload as Seat[];
+  }
+  return payload as { seats?: Seat[] };
+}
+
 export default function LicensesPage() {
   const router = useRouter();
   const [seats, setSeats] = useState<Seat[]>([]);
@@ -38,6 +48,7 @@ export default function LicensesPage() {
       const data = await apiRequest<{ seats?: Seat[] } | Seat[]>({
         path: '/v1/licenses/seats',
         token,
+        validate: parseSeatsPayload,
       });
       const normalized = Array.isArray(data) ? data : (data.seats ?? []);
       setSeats(

@@ -20,6 +20,12 @@ function toBase64Url(buffer: ArrayBuffer): string {
 }
 
 type RecordValue = Record<string, unknown>;
+export class WebAuthnUserCancelledError extends Error {
+  constructor(message = 'WebAuthn Vorgang wurde abgebrochen.') {
+    super(message);
+    this.name = 'WebAuthnUserCancelledError';
+  }
+}
 
 type EncodedDescriptor = {
   id: string;
@@ -141,9 +147,21 @@ export async function createAssertion(plainOptions: string): Promise<string> {
   const parsed = JSON.parse(plainOptions);
   const options = transformPublicKeyOptions(parsed);
 
-  const credential = (await navigator.credentials.get({
-    publicKey: options
-  })) as PublicKeyCredential;
+  let rawCredential: Credential | null;
+  try {
+    rawCredential = await navigator.credentials.get({
+      publicKey: options
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'NotAllowedError') {
+      throw new WebAuthnUserCancelledError();
+    }
+    throw error;
+  }
+  if (!rawCredential) {
+    throw new WebAuthnUserCancelledError();
+  }
+  const credential = rawCredential as PublicKeyCredential;
 
   const response = credential.response as AuthenticatorAssertionResponse;
   const responseJson: Record<string, string | null> = {
@@ -170,9 +188,21 @@ export async function createRegistration(plainOptions: string): Promise<string> 
   const parsed = JSON.parse(plainOptions);
   const options = transformCreationOptions(parsed);
 
-  const credential = (await navigator.credentials.create({
-    publicKey: options
-  })) as PublicKeyCredential;
+  let rawCredential: Credential | null;
+  try {
+    rawCredential = await navigator.credentials.create({
+      publicKey: options
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'NotAllowedError') {
+      throw new WebAuthnUserCancelledError();
+    }
+    throw error;
+  }
+  if (!rawCredential) {
+    throw new WebAuthnUserCancelledError();
+  }
+  const credential = rawCredential as PublicKeyCredential;
 
   const response = credential.response as AuthenticatorAttestationResponse;
   const transports = typeof response.getTransports === 'function' ? response.getTransports() : [];

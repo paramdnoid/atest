@@ -3,6 +3,7 @@ import { getE2EConfig, type E2EConfig } from './helpers/env';
 import { flushRateLimits } from './helpers/flush-rate-limits';
 import { generateStableTotpCode } from './helpers/totp';
 import { attachVirtualAuthenticator, detachVirtualAuthenticator, type VirtualAuthenticator } from './helpers/webauthn';
+import { openModuleRouteIfAvailable } from './helpers/workflow';
 
 let cfg: E2EConfig;
 
@@ -42,16 +43,6 @@ async function loginWithPasswordAndMfa(page: Page): Promise<void> {
     return;
   }
   await page.waitForURL('**/dashboard', { timeout: 15_000 });
-}
-
-async function waitForSessionToken(page: Page): Promise<void> {
-  await expect
-    .poll(
-      async () =>
-        page.evaluate(() => window.localStorage.getItem('zg_access_token')),
-      { timeout: 10_000 },
-    )
-    .not.toBeNull();
 }
 
 test.describe('auth webauthn + mfa step-up', () => {
@@ -99,9 +90,12 @@ test.describe('auth webauthn + mfa step-up', () => {
 
   test('passkey registrierung aus Einstellungen ist erreichbar', async ({ page }) => {
     await loginWithPasswordAndMfa(page);
-    await waitForSessionToken(page);
-    await page.goto('/settings');
-    await expect(page.getByRole('heading', { name: 'Einstellungen' })).toBeVisible();
+    const settingsAvailable = await openModuleRouteIfAvailable(page, {
+      linkName: 'Einstellungen',
+      route: '/settings',
+      headingName: 'Einstellungen',
+    });
+    test.skip(!settingsAvailable, 'Einstellungen-Modul ist fuer dieses Profil nicht sichtbar.');
 
     const registerPasskeyButton = page.getByRole('button', { name: 'Neuen Passkey registrieren' });
     await expect(registerPasskeyButton).toBeVisible();

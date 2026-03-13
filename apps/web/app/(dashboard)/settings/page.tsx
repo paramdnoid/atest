@@ -17,6 +17,27 @@ type MfaStatus = {
   totpSetup?: boolean;
 };
 
+function parseMfaStatus(payload: unknown): MfaStatus {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Ungueltige Antwort fuer MFA-Status.');
+  }
+  const record = payload as Record<string, unknown>;
+  return {
+    mfaEnabled: Boolean(record.mfaEnabled),
+    totpSetup: typeof record.totpSetup === 'boolean' ? record.totpSetup : undefined,
+  };
+}
+
+function parseWorkspaceEmail(payload: unknown): { email?: string } {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Ungueltige Antwort fuer Workspace-Profil.');
+  }
+  const record = payload as Record<string, unknown>;
+  return {
+    email: typeof record.email === 'string' ? record.email : undefined,
+  };
+}
+
 export default function SettingsPage() {
   const router = useRouter();
   const [mfa, setMfa] = useState<MfaStatus | null>(null);
@@ -44,7 +65,11 @@ export default function SettingsPage() {
     setLoading(true);
     setError('');
     try {
-      const data = await apiRequest<MfaStatus>({ path: '/v1/auth/mfa/status', token });
+      const data = await apiRequest<MfaStatus>({
+        path: '/v1/auth/mfa/status',
+        token,
+        validate: parseMfaStatus,
+      });
       setMfa(data);
     } catch {
       // MFA status endpoint may not exist yet — show placeholder
@@ -55,17 +80,33 @@ export default function SettingsPage() {
   }, [router]);
 
   useEffect(() => {
+    const controller = new AbortController();
+    let cancelled = false;
     async function initialize() {
       const token = await getAccessToken();
       if (token) {
-        apiRequest<{ email?: string }>({ path: '/v1/workspace/me', token })
-          .then((ws) => setEmail(ws.email ?? ''))
-          .catch(() => {});
+        apiRequest<{ email?: string }>({
+          path: '/v1/workspace/me',
+          token,
+          validate: parseWorkspaceEmail,
+        })
+          .then((ws) => {
+            if (cancelled || controller.signal.aborted) return;
+            setEmail(ws.email ?? '');
+          })
+          .catch(() => {
+            if (cancelled || controller.signal.aborted) return;
+            setError('Workspace-Profil konnte nicht geladen werden.');
+          });
       }
       fetchStatus();
     }
 
     initialize();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [fetchStatus]);
 
   const handlePasskeyRegister = async (e: FormEvent) => {

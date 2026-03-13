@@ -3,10 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import {
-  CAPABILITY_PROFILE_STORAGE_KEY,
-  resolveCapabilityProfile,
-} from '@/lib/capability-mock';
+import { CAPABILITY_PROFILE_STORAGE_KEY } from '@/lib/capability-mock';
 import { logoutSession } from '@/lib/auth-client';
 import { loadEffectiveProfile } from '@/lib/effective-profile';
 import type { EffectiveProfile } from '@/lib/effective-profile';
@@ -15,6 +12,7 @@ import type { ModuleGroup } from '@/lib/module-registry';
 import { clearAccessToken, getAccessToken } from '@/lib/session-token';
 import { AppSidebar } from '@/components/shell/app-sidebar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+const CAPABILITY_MOCK_ENABLED = process.env.NEXT_PUBLIC_ENABLE_CAPABILITY_MOCK === 'true';
 
 const groupOrder: ModuleGroup[] = [
   'hauptmenue',
@@ -57,21 +55,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [activeProfileId] = useState<string | undefined>(() => {
     if (typeof window === 'undefined') return undefined;
+    if (!CAPABILITY_MOCK_ENABLED) return undefined;
     return localStorage.getItem(CAPABILITY_PROFILE_STORAGE_KEY) ?? undefined;
   });
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  const [profile, setProfile] = useState<EffectiveProfile>(() => {
-    const fallback = resolveCapabilityProfile();
-    return {
-      userName: undefined,
-      userEmail: undefined,
-      tenantName: fallback.tenantName,
-      role: fallback.role,
-      trade: fallback.trade,
-      capabilities: fallback.capabilities,
-      source: 'mock' as const,
-    };
-  });
+  const [profile, setProfile] = useState<EffectiveProfile | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,9 +73,17 @@ export function AppShell({ children }: { children: ReactNode }) {
       }
 
       setIsLoadingProfile(true);
-      const effectiveProfile = await loadEffectiveProfile(token, activeProfileId);
-      if (!cancelled) {
+      try {
+        const effectiveProfile = await loadEffectiveProfile(token, activeProfileId);
+        if (cancelled) return;
         setProfile(effectiveProfile);
+      } catch {
+        if (cancelled) return;
+        clearAccessToken();
+        setProfile(null);
+        router.replace('/signin');
+      } finally {
+        if (cancelled) return;
         setIsLoadingProfile(false);
       }
     }
@@ -99,17 +95,16 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [activeProfileId, router]);
 
 
-  const visibleNavItems = useMemo(
-    () =>
-      moduleRegistry.filter((item) => {
-        const hasRequiredCapabilities = item.requiredCapabilities.every((capability) =>
-          profile.capabilities.includes(capability),
-        );
-        const isTradeVisible = !item.trades || item.trades.includes(profile.trade);
-        return hasRequiredCapabilities && isTradeVisible;
-      }),
-    [profile.capabilities, profile.trade],
-  );
+  const visibleNavItems = useMemo(() => {
+    if (!profile) return [];
+    return moduleRegistry.filter((item) => {
+      const hasRequiredCapabilities = item.requiredCapabilities.every((capability) =>
+        profile.capabilities.includes(capability),
+      );
+      const isTradeVisible = !item.trades || item.trades.includes(profile.trade);
+      return hasRequiredCapabilities && isTradeVisible;
+    });
+  }, [profile]);
 
   const visibleGroups = useMemo(
     () =>
@@ -124,32 +119,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   const hasVisibleModules = visibleNavItems.length > 0;
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function guardRoute() {
-      const token = await getAccessToken();
-      if (!token) {
-        router.push('/signin');
-        return;
-      }
-
-      if (isLoadingProfile || cancelled) {
-        return;
-      }
-
-      const activeRoute = visibleNavItems.find((item) =>
-        item.href === '/dashboard' ? pathname === item.href : pathname.startsWith(item.href),
-      );
-      if (!activeRoute && visibleNavItems.length > 0) {
-        router.replace(visibleNavItems[0].href);
-      }
+    if (isLoadingProfile || !profile) {
+      return;
     }
 
-    guardRoute();
-    return () => {
-      cancelled = true;
-    };
-  }, [isLoadingProfile, pathname, router, visibleNavItems]);
+    const activeRoute = visibleNavItems.find((item) =>
+      item.href === '/dashboard' ? pathname === item.href : pathname.startsWith(item.href),
+    );
+    if (!activeRoute && visibleNavItems.length > 0) {
+      router.replace(visibleNavItems[0].href);
+    }
+  }, [isLoadingProfile, pathname, profile, router, visibleNavItems]);
 
   async function handleSignOut() {
     try {
@@ -158,7 +138,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       // Always clear local auth state even if remote logout fails.
     }
     clearAccessToken();
-    localStorage.removeItem(CAPABILITY_PROFILE_STORAGE_KEY);
+    if (CAPABILITY_MOCK_ENABLED) {
+      localStorage.removeItem(CAPABILITY_PROFILE_STORAGE_KEY);
+    }
     router.push('/signin');
     router.refresh();
   }
@@ -167,11 +149,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     <SidebarProvider>
       <AppSidebar
         isLoadingProfile={isLoadingProfile}
-        userName={profile.userName}
-        userEmail={profile.userEmail}
-        tenantName={profile.tenantName}
-        trade={profile.trade}
-        role={profile.role}
+        userName={profile?.userName}
+        userEmail={profile?.userEmail}
+        tenantName={profile?.tenantName ?? ''}
+        trade={profile?.trade ?? ''}
+        role={profile?.role ?? ''}
         groups={visibleGroups}
         onSignOut={handleSignOut}
       />
@@ -180,6 +162,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div id="main-content" className="mx-auto w-full px-4 pb-10 pt-2 sm:px-6 sm:pt-3">
             {isLoadingProfile ? (
               <ShellContentSkeleton />
+            ) : !profile ? (
+              null
             ) : hasVisibleModules ? (
               children
             ) : (
