@@ -12,6 +12,8 @@ import com.zunftgewerk.api.modules.abnahmen.repository.AbnahmeParticipantReposit
 import com.zunftgewerk.api.modules.abnahmen.repository.AbnahmeProtocolRepository;
 import com.zunftgewerk.api.modules.abnahmen.repository.AbnahmeRecordRepository;
 import com.zunftgewerk.api.modules.abnahmen.repository.AbnahmeReworkRepository;
+import com.zunftgewerk.api.shared.audit.DomainMutationAuditLogger;
+import com.zunftgewerk.api.shared.monitoring.DomainMutationMetrics;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,8 @@ public class AbnahmeService {
     private final AbnahmeDefectRepository defectRepository;
     private final AbnahmeReworkRepository reworkRepository;
     private final AbnahmeEvidenceRepository evidenceRepository;
+    private final DomainMutationMetrics domainMutationMetrics;
+    private final DomainMutationAuditLogger domainMutationAuditLogger;
 
     public AbnahmeService(
         AbnahmeRecordRepository recordRepository,
@@ -39,7 +43,9 @@ public class AbnahmeService {
         AbnahmeParticipantRepository participantRepository,
         AbnahmeDefectRepository defectRepository,
         AbnahmeReworkRepository reworkRepository,
-        AbnahmeEvidenceRepository evidenceRepository
+        AbnahmeEvidenceRepository evidenceRepository,
+        DomainMutationMetrics domainMutationMetrics,
+        DomainMutationAuditLogger domainMutationAuditLogger
     ) {
         this.recordRepository = recordRepository;
         this.protocolRepository = protocolRepository;
@@ -47,6 +53,8 @@ public class AbnahmeService {
         this.defectRepository = defectRepository;
         this.reworkRepository = reworkRepository;
         this.evidenceRepository = evidenceRepository;
+        this.domainMutationMetrics = domainMutationMetrics;
+        this.domainMutationAuditLogger = domainMutationAuditLogger;
     }
 
     public List<AbnahmeRecordEntity> list(UUID tenantId, String status) {
@@ -82,7 +90,10 @@ public class AbnahmeService {
         entity.setOverdue(Boolean.TRUE.equals(input.overdue()));
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
-        return recordRepository.save(entity);
+        AbnahmeRecordEntity saved = recordRepository.save(entity);
+        domainMutationMetrics.recordCreate("abnahmen");
+        domainMutationAuditLogger.recordMutation("abnahmen", "create", tenantId, actorUserId, saved.getId());
+        return saved;
     }
 
     @Transactional
@@ -113,7 +124,9 @@ public class AbnahmeService {
             entity.setOverdue(input.overdue());
         }
         entity.setUpdatedAt(OffsetDateTime.now());
-        return recordRepository.save(entity);
+        AbnahmeRecordEntity saved = recordRepository.save(entity);
+        domainMutationMetrics.recordUpdate("abnahmen");
+        return saved;
     }
 
     @Transactional
@@ -123,7 +136,9 @@ public class AbnahmeService {
         entity.setDeletedBy(actorUserId);
         entity.setDeleteReason(defaultText(reason, "MANUAL_DELETE"));
         entity.setUpdatedAt(OffsetDateTime.now());
-        recordRepository.save(entity);
+        AbnahmeRecordEntity saved = recordRepository.save(entity);
+        domainMutationMetrics.recordDelete("abnahmen");
+        domainMutationAuditLogger.recordMutation("abnahmen", "delete", tenantId, actorUserId, saved.getId());
     }
 
     @Transactional
@@ -134,7 +149,9 @@ public class AbnahmeService {
         entity.setDeletedBy(null);
         entity.setDeleteReason(null);
         entity.setUpdatedAt(OffsetDateTime.now());
-        return recordRepository.save(entity);
+        AbnahmeRecordEntity saved = recordRepository.save(entity);
+        domainMutationMetrics.recordRestore("abnahmen");
+        return saved;
     }
 
     public AbnahmeProtocolEntity getProtocol(UUID tenantId, UUID abnahmeId) {

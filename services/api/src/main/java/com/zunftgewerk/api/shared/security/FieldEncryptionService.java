@@ -86,13 +86,28 @@ public class FieldEncryptionService {
         if (!encryptedValue.startsWith(FORMAT_PREFIX)) {
             return encryptedValue;
         }
-        try {
-            String[] parts = encryptedValue.split(":", 3);
-            if (parts.length != 3) {
-                throw new IllegalArgumentException("Encrypted value format invalid");
-            }
+        String[] parts = encryptedValue.split(":", 3);
+        if (parts.length != 3) {
+            throw new IllegalArgumentException("Encrypted value format invalid");
+        }
+        String valueKeyVersion = parts[1];
+        if (valueKeyVersion == null || valueKeyVersion.isBlank()) {
+            throw new IllegalArgumentException("Encrypted value key version missing");
+        }
+        if (!keyVersion.equals(valueKeyVersion)) {
+            throw new IllegalStateException("Encrypted value key version '" + valueKeyVersion + "' is not supported");
+        }
 
-            byte[] packed = Base64.getUrlDecoder().decode(parts[2]);
+        byte[] packed;
+        try {
+            packed = Base64.getUrlDecoder().decode(parts[2]);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Encrypted value payload invalid", ex);
+        }
+        if (packed.length <= GCM_IV_SIZE) {
+            throw new IllegalArgumentException("Encrypted value payload too short");
+        }
+        try {
             byte[] iv = new byte[GCM_IV_SIZE];
             byte[] encrypted = new byte[packed.length - GCM_IV_SIZE];
             System.arraycopy(packed, 0, iv, 0, GCM_IV_SIZE);
@@ -108,6 +123,13 @@ public class FieldEncryptionService {
         } catch (GeneralSecurityException ex) {
             throw new IllegalStateException("Field decryption failed", ex);
         }
+    }
+
+    public String roundTrip(String value, String aad) {
+        if (value == null) {
+            return null;
+        }
+        return decrypt(encrypt(value, aad), aad);
     }
 
     public String blindIndex(String value, String aad) {

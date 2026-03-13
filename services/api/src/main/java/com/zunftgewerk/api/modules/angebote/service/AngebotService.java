@@ -6,6 +6,8 @@ import com.zunftgewerk.api.modules.angebote.entity.AngebotPositionEntity;
 import com.zunftgewerk.api.modules.angebote.repository.AngebotOptionRepository;
 import com.zunftgewerk.api.modules.angebote.repository.AngebotPositionRepository;
 import com.zunftgewerk.api.modules.angebote.repository.AngebotRepository;
+import com.zunftgewerk.api.shared.audit.DomainMutationAuditLogger;
+import com.zunftgewerk.api.shared.monitoring.DomainMutationMetrics;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,15 +26,21 @@ public class AngebotService {
     private final AngebotRepository angebotRepository;
     private final AngebotPositionRepository positionRepository;
     private final AngebotOptionRepository optionRepository;
+    private final DomainMutationMetrics domainMutationMetrics;
+    private final DomainMutationAuditLogger domainMutationAuditLogger;
 
     public AngebotService(
         AngebotRepository angebotRepository,
         AngebotPositionRepository positionRepository,
-        AngebotOptionRepository optionRepository
+        AngebotOptionRepository optionRepository,
+        DomainMutationMetrics domainMutationMetrics,
+        DomainMutationAuditLogger domainMutationAuditLogger
     ) {
         this.angebotRepository = angebotRepository;
         this.positionRepository = positionRepository;
         this.optionRepository = optionRepository;
+        this.domainMutationMetrics = domainMutationMetrics;
+        this.domainMutationAuditLogger = domainMutationAuditLogger;
     }
 
     public List<AngebotEntity> list(UUID tenantId, String status) {
@@ -70,7 +78,10 @@ public class AngebotService {
         entity.setConvertedOrderNumber(input.convertedOrderNumber());
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
-        return angebotRepository.save(entity);
+        AngebotEntity saved = angebotRepository.save(entity);
+        domainMutationMetrics.recordCreate("angebote");
+        domainMutationAuditLogger.recordMutation("angebote", "create", tenantId, actorUserId, saved.getId());
+        return saved;
     }
 
     @Transactional
@@ -107,7 +118,9 @@ public class AngebotService {
             entity.setConvertedOrderNumber(input.convertedOrderNumber().trim());
         }
         entity.setUpdatedAt(OffsetDateTime.now());
-        return angebotRepository.save(entity);
+        AngebotEntity saved = angebotRepository.save(entity);
+        domainMutationMetrics.recordUpdate("angebote");
+        return saved;
     }
 
     @Transactional
@@ -117,7 +130,10 @@ public class AngebotService {
         entity.setDeletedBy(actorUserId);
         entity.setDeleteReason(defaultText(reason, "MANUAL_DELETE"));
         entity.setUpdatedAt(OffsetDateTime.now());
-        return angebotRepository.save(entity);
+        AngebotEntity saved = angebotRepository.save(entity);
+        domainMutationMetrics.recordDelete("angebote");
+        domainMutationAuditLogger.recordMutation("angebote", "delete", tenantId, actorUserId, saved.getId());
+        return saved;
     }
 
     @Transactional
@@ -128,7 +144,9 @@ public class AngebotService {
         entity.setDeletedBy(null);
         entity.setDeleteReason(null);
         entity.setUpdatedAt(OffsetDateTime.now());
-        return angebotRepository.save(entity);
+        AngebotEntity saved = angebotRepository.save(entity);
+        domainMutationMetrics.recordRestore("angebote");
+        return saved;
     }
 
     public List<AngebotPositionEntity> listPositionen(UUID tenantId, UUID angebotId) {

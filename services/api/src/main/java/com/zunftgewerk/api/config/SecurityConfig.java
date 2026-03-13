@@ -33,6 +33,11 @@ public class SecurityConfig {
                 .requestMatchers("/v1/licenses/summary", "/v1/licenses/seats", "/v1/licenses/seats/assign", "/v1/licenses/seats/revoke").permitAll()
                 .requestMatchers("/v1/team/members", "/v1/team/invite", "/v1/team/invites/accept").permitAll()
                 .requestMatchers("/v1/admin/audit-export", "/v1/admin/flags").permitAll()
+                .requestMatchers(
+                    "/v1/ops/workflow/overview",
+                    "/v1/ops/encryption/rotation/status",
+                    "/v1/ops/encryption/rotation/validate"
+                ).permitAll()
                 .requestMatchers("/v1/account").permitAll()
                 .requestMatchers("/v1/consent").permitAll()
                 .requestMatchers("/v1/sync/push", "/v1/sync/pull").permitAll()

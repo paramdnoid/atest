@@ -10,6 +10,8 @@ import com.zunftgewerk.api.modules.aufmass.repository.AufmassMeasurementReposito
 import com.zunftgewerk.api.modules.aufmass.repository.AufmassPositionRepository;
 import com.zunftgewerk.api.modules.aufmass.repository.AufmassRecordRepository;
 import com.zunftgewerk.api.modules.aufmass.repository.AufmassRoomRepository;
+import com.zunftgewerk.api.shared.audit.DomainMutationAuditLogger;
+import com.zunftgewerk.api.shared.monitoring.DomainMutationMetrics;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,19 +32,25 @@ public class AufmassService {
     private final AufmassPositionRepository positionRepository;
     private final AufmassMeasurementRepository measurementRepository;
     private final AufmassMappingRepository mappingRepository;
+    private final DomainMutationMetrics domainMutationMetrics;
+    private final DomainMutationAuditLogger domainMutationAuditLogger;
 
     public AufmassService(
         AufmassRecordRepository recordRepository,
         AufmassRoomRepository roomRepository,
         AufmassPositionRepository positionRepository,
         AufmassMeasurementRepository measurementRepository,
-        AufmassMappingRepository mappingRepository
+        AufmassMappingRepository mappingRepository,
+        DomainMutationMetrics domainMutationMetrics,
+        DomainMutationAuditLogger domainMutationAuditLogger
     ) {
         this.recordRepository = recordRepository;
         this.roomRepository = roomRepository;
         this.positionRepository = positionRepository;
         this.measurementRepository = measurementRepository;
         this.mappingRepository = mappingRepository;
+        this.domainMutationMetrics = domainMutationMetrics;
+        this.domainMutationAuditLogger = domainMutationAuditLogger;
     }
 
     public List<AufmassRecordEntity> list(UUID tenantId, String status) {
@@ -78,7 +86,10 @@ public class AufmassService {
         entity.setRevisionOfId(input.revisionOfId());
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
-        return recordRepository.save(entity);
+        AufmassRecordEntity saved = recordRepository.save(entity);
+        domainMutationMetrics.recordCreate("aufmass");
+        domainMutationAuditLogger.recordMutation("aufmass", "create", tenantId, actorUserId, saved.getId());
+        return saved;
     }
 
     @Transactional
@@ -109,7 +120,9 @@ public class AufmassService {
             entity.setRevisionOfId(input.revisionOfId());
         }
         entity.setUpdatedAt(OffsetDateTime.now());
-        return recordRepository.save(entity);
+        AufmassRecordEntity saved = recordRepository.save(entity);
+        domainMutationMetrics.recordUpdate("aufmass");
+        return saved;
     }
 
     @Transactional
@@ -119,7 +132,9 @@ public class AufmassService {
         entity.setDeletedBy(actorUserId);
         entity.setDeleteReason(defaultText(reason, "MANUAL_DELETE"));
         entity.setUpdatedAt(OffsetDateTime.now());
-        recordRepository.save(entity);
+        AufmassRecordEntity saved = recordRepository.save(entity);
+        domainMutationMetrics.recordDelete("aufmass");
+        domainMutationAuditLogger.recordMutation("aufmass", "delete", tenantId, actorUserId, saved.getId());
     }
 
     @Transactional
@@ -130,7 +145,9 @@ public class AufmassService {
         entity.setDeletedBy(null);
         entity.setDeleteReason(null);
         entity.setUpdatedAt(OffsetDateTime.now());
-        return recordRepository.save(entity);
+        AufmassRecordEntity saved = recordRepository.save(entity);
+        domainMutationMetrics.recordRestore("aufmass");
+        return saved;
     }
 
     public List<AufmassRoomEntity> listRooms(UUID tenantId, UUID recordId) {

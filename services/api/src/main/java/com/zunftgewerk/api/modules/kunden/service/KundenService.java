@@ -8,6 +8,8 @@ import com.zunftgewerk.api.modules.kunden.repository.KundenAnsprechpartnerReposi
 import com.zunftgewerk.api.modules.kunden.repository.KundenObjektRepository;
 import com.zunftgewerk.api.modules.kunden.repository.KundenReminderRepository;
 import com.zunftgewerk.api.modules.kunden.repository.KundenRepository;
+import com.zunftgewerk.api.shared.audit.DomainMutationAuditLogger;
+import com.zunftgewerk.api.shared.monitoring.DomainMutationMetrics;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,17 +28,23 @@ public class KundenService {
     private final KundenObjektRepository objektRepository;
     private final KundenAnsprechpartnerRepository ansprechpartnerRepository;
     private final KundenReminderRepository reminderRepository;
+    private final DomainMutationMetrics domainMutationMetrics;
+    private final DomainMutationAuditLogger domainMutationAuditLogger;
 
     public KundenService(
         KundenRepository kundenRepository,
         KundenObjektRepository objektRepository,
         KundenAnsprechpartnerRepository ansprechpartnerRepository,
-        KundenReminderRepository reminderRepository
+        KundenReminderRepository reminderRepository,
+        DomainMutationMetrics domainMutationMetrics,
+        DomainMutationAuditLogger domainMutationAuditLogger
     ) {
         this.kundenRepository = kundenRepository;
         this.objektRepository = objektRepository;
         this.ansprechpartnerRepository = ansprechpartnerRepository;
         this.reminderRepository = reminderRepository;
+        this.domainMutationMetrics = domainMutationMetrics;
+        this.domainMutationAuditLogger = domainMutationAuditLogger;
     }
 
     public List<KundenEntity> listKunden(UUID tenantId, String search, String status) {
@@ -78,7 +86,10 @@ public class KundenService {
         entity.setNextFollowUpAt(input.nextFollowUpAt());
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
-        return kundenRepository.save(entity);
+        KundenEntity saved = kundenRepository.save(entity);
+        domainMutationMetrics.recordCreate("kunden");
+        domainMutationAuditLogger.recordMutation("kunden", "create", tenantId, actorUserId, saved.getId());
+        return saved;
     }
 
     @Transactional
@@ -115,7 +126,9 @@ public class KundenService {
             entity.setNextFollowUpAt(input.nextFollowUpAt());
         }
         entity.setUpdatedAt(OffsetDateTime.now());
-        return kundenRepository.save(entity);
+        KundenEntity saved = kundenRepository.save(entity);
+        domainMutationMetrics.recordUpdate("kunden");
+        return saved;
     }
 
     @Transactional
@@ -125,7 +138,10 @@ public class KundenService {
         entity.setDeletedBy(actorUserId);
         entity.setDeleteReason(defaultText(reason, "MANUAL_DELETE"));
         entity.setUpdatedAt(OffsetDateTime.now());
-        return kundenRepository.save(entity);
+        KundenEntity saved = kundenRepository.save(entity);
+        domainMutationMetrics.recordDelete("kunden");
+        domainMutationAuditLogger.recordMutation("kunden", "delete", tenantId, actorUserId, saved.getId());
+        return saved;
     }
 
     @Transactional
@@ -136,7 +152,9 @@ public class KundenService {
         entity.setDeletedBy(null);
         entity.setDeleteReason(null);
         entity.setUpdatedAt(OffsetDateTime.now());
-        return kundenRepository.save(entity);
+        KundenEntity saved = kundenRepository.save(entity);
+        domainMutationMetrics.recordRestore("kunden");
+        return saved;
     }
 
     public List<KundenObjektEntity> listObjekte(UUID tenantId, UUID kundenId) {
