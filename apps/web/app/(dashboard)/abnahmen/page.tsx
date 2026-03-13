@@ -8,9 +8,11 @@ import { getAbnahmenKpiItems } from '@/components/abnahmen/abnahmen-kpi-strip';
 import { AbnahmenListTable } from '@/components/abnahmen/abnahmen-list-table';
 import { AbnahmenStatusBadge } from '@/components/abnahmen/abnahmen-status-badge';
 import { CrossModulePortfolioContent } from '@/components/dashboard/cross-module-portfolio-card';
+import { SidebarKpiGrid } from '@/components/dashboard/kpi-strip';
 import { ModulePageTemplate } from '@/components/dashboard/module-page-template';
 import { ModuleSideTabsCard } from '@/components/dashboard/module-side-tabs-card';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { filterAbnahmen } from '@/lib/abnahmen/selectors';
@@ -27,7 +29,7 @@ export default function AbnahmenPage() {
     onlyCritical: false,
     onlyOverdue: false,
   });
-  const [activeContextTab, setActiveContextTab] = useState<'workflow' | 'datennetz'>('workflow');
+  const [activeContextTab, setActiveContextTab] = useState<'filter' | 'workflow' | 'datennetz'>('filter');
 
   const filteredRecords = useMemo(() => filterAbnahmen(records, filters), [records, filters]);
   const handoffSuggestionId = searchParams.get('handoffSuggestionId') ?? undefined;
@@ -56,6 +58,7 @@ export default function AbnahmenPage() {
     () => getVerknuepfungPortfolioSnapshot('ABNAHMEN', displayRecords.map((entry) => entry.id)),
     [displayRecords],
   );
+  const kpiItems = useMemo(() => getAbnahmenKpiItems(records), [records]);
   const activeFilterChips = [
     filters.query ? `Suche: ${filters.query}` : null,
     filters.status !== 'ALL' ? `Status: ${filters.status}` : null,
@@ -73,7 +76,8 @@ export default function AbnahmenPage() {
           Neue Abnahme
         </Button>
       }
-      kpis={getAbnahmenKpiItems(records)}
+      kpis={[]}
+      sideTopContent={<SidebarKpiGrid items={kpiItems} />}
       topMessage={
         handoffFrom ? (
           <p className="text-sm text-muted-foreground">
@@ -122,109 +126,112 @@ export default function AbnahmenPage() {
         </ModuleTableCard>
       }
       sideContent={
-        <div className="space-y-4">
-          <ModuleTableCard icon={Filter} label="Filter" title="Schnellzugriff" hasData tone="emphasis">
-            <div className="space-y-3">
-              <Input
-                value={filters.query}
-                onChange={(event) => setFilters((prev) => ({ ...prev, query: event.target.value }))}
-                placeholder="Suche nach Nummer, Projekt, Kunde..."
-              />
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant={filters.status === 'ALL' ? 'default' : 'outline'}
-                  onClick={() => setFilters((prev) => ({ ...prev, status: 'ALL' }))}
-                >
-                  Alle
-                </Button>
-                <Button
-                  size="sm"
-                  variant={filters.status === 'DEFECTS_OPEN' ? 'default' : 'outline'}
-                  onClick={() => setFilters((prev) => ({ ...prev, status: 'DEFECTS_OPEN' }))}
-                >
-                  Mängel offen
-                </Button>
-                <Button
-                  size="sm"
-                  variant={filters.status === 'REWORK_IN_PROGRESS' ? 'default' : 'outline'}
-                  onClick={() => setFilters((prev) => ({ ...prev, status: 'REWORK_IN_PROGRESS' }))}
-                >
-                  Nacharbeit
-                </Button>
-                <Button
-                  size="sm"
-                  variant={filters.status === 'ACCEPTED' ? 'default' : 'outline'}
-                  onClick={() => setFilters((prev) => ({ ...prev, status: 'ACCEPTED' }))}
-                >
-                  Abgenommen
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant={filters.onlyCritical ? 'default' : 'outline'}
-                  onClick={() => setFilters((prev) => ({ ...prev, onlyCritical: !prev.onlyCritical }))}
-                >
-                  Nur kritisch
-                </Button>
-                <Button
-                  size="sm"
-                  variant={filters.onlyOverdue ? 'default' : 'outline'}
-                  onClick={() => setFilters((prev) => ({ ...prev, onlyOverdue: !prev.onlyOverdue }))}
-                >
-                  Nur überfällig
-                </Button>
-              </div>
-            </div>
-          </ModuleTableCard>
-          <ModuleSideTabsCard
-            idPrefix="abnahmen-context"
-            icon={ShieldCheck}
-            label="Kontext"
-            title="Workflow und Datennetz"
-            activeTab={activeContextTab}
-            onTabChange={setActiveContextTab}
-            ariaLabel="Abnahmen Kontextansicht"
-            tabs={[
-              {
-                id: 'workflow',
-                label: 'Workflow',
-                icon: ShieldCheck,
-                content: (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Vorbereitung</span>
-                      <AbnahmenStatusBadge status="PREPARATION" />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Mängel offen</span>
-                      <AbnahmenStatusBadge status="DEFECTS_OPEN" />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Nacharbeit läuft</span>
-                      <AbnahmenStatusBadge status="REWORK_IN_PROGRESS" />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Abnahme vorbehalten</span>
-                      <AbnahmenStatusBadge status="ACCEPTED_WITH_RESERVATION" />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Abgenommen</span>
-                      <AbnahmenStatusBadge status="ACCEPTED" />
-                    </div>
+        <ModuleSideTabsCard
+          idPrefix="abnahmen-context"
+          icon={Filter}
+          label="Steuerung"
+          title="Filter, Workflow und Datennetz"
+          activeTab={activeContextTab}
+          onTabChange={setActiveContextTab}
+          ariaLabel="Abnahmen Kontextansicht"
+          tabs={[
+            {
+              id: 'filter',
+              label: 'Filter',
+              icon: Filter,
+              content: (
+                <div className="space-y-3">
+                  <Input
+                    value={filters.query}
+                    onChange={(event) => setFilters((prev) => ({ ...prev, query: event.target.value }))}
+                    placeholder="Suche nach Nummer, Projekt, Kunde..."
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant={filters.status === 'ALL' ? 'default' : 'outline'}
+                      onClick={() => setFilters((prev) => ({ ...prev, status: 'ALL' }))}
+                    >
+                      Alle
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={filters.status === 'DEFECTS_OPEN' ? 'default' : 'outline'}
+                      onClick={() => setFilters((prev) => ({ ...prev, status: 'DEFECTS_OPEN' }))}
+                    >
+                      Mängel offen
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={filters.status === 'REWORK_IN_PROGRESS' ? 'default' : 'outline'}
+                      onClick={() => setFilters((prev) => ({ ...prev, status: 'REWORK_IN_PROGRESS' }))}
+                    >
+                      Nacharbeit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={filters.status === 'ACCEPTED' ? 'default' : 'outline'}
+                      onClick={() => setFilters((prev) => ({ ...prev, status: 'ACCEPTED' }))}
+                    >
+                      Abgenommen
+                    </Button>
                   </div>
-                ),
-              },
-              {
-                id: 'datennetz',
-                label: 'Datennetz',
-                icon: Network,
-                content: <CrossModulePortfolioContent snapshot={portfolioSnapshot} />,
-              },
-            ]}
-          />
-        </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant={filters.onlyCritical ? 'default' : 'outline'}
+                      onClick={() => setFilters((prev) => ({ ...prev, onlyCritical: !prev.onlyCritical }))}
+                    >
+                      Nur kritisch
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={filters.onlyOverdue ? 'default' : 'outline'}
+                      onClick={() => setFilters((prev) => ({ ...prev, onlyOverdue: !prev.onlyOverdue }))}
+                    >
+                      Nur überfällig
+                    </Button>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: 'workflow',
+              label: 'Workflow',
+              icon: ShieldCheck,
+              content: (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Vorbereitung</span>
+                    <AbnahmenStatusBadge status="PREPARATION" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Mängel offen</span>
+                    <AbnahmenStatusBadge status="DEFECTS_OPEN" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Nacharbeit läuft</span>
+                    <AbnahmenStatusBadge status="REWORK_IN_PROGRESS" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Abnahme vorbehalten</span>
+                    <AbnahmenStatusBadge status="ACCEPTED_WITH_RESERVATION" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Abgenommen</span>
+                    <AbnahmenStatusBadge status="ACCEPTED" />
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: 'datennetz',
+              label: 'Datennetz',
+              icon: Network,
+              content: <CrossModulePortfolioContent snapshot={portfolioSnapshot} />,
+            },
+          ]}
+        />
       }
     />
   );

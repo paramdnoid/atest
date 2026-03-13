@@ -154,7 +154,7 @@ export default function KundenDetailPage() {
   const consentBlockers = getConsentBlockers(record);
   const retentionDeadline = getRetentionDeadline(record);
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Kunden-Workspace"
         description={`${record.number} · ${record.name}`}

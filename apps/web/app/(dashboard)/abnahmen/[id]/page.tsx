@@ -19,6 +19,7 @@ import {
   getDashboardTabPanelId,
 } from '@/components/dashboard/dashboard-tabs';
 import { CrossModuleLinksContent } from '@/components/dashboard/cross-module-links-card';
+import { KpiStrip } from '@/components/dashboard/kpi-strip';
 import { ModulePageTemplate } from '@/components/dashboard/module-page-template';
 import { ModuleSideTabsCard } from '@/components/dashboard/module-side-tabs-card';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
@@ -93,8 +94,8 @@ export default function AbnahmeDetailPage() {
   const initial = useMemo(() => getAbnahmeRecordById(params.id), [params.id]);
   const [record, setRecord] = useState<AbnahmeRecord | null>(initial);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
-  const [activeSideContextTab, setActiveSideContextTab] = useState<'protocol' | 'compliance' | 'datennetz'>(
-    'protocol',
+  const [activeSideContextTab, setActiveSideContextTab] = useState<'status' | 'protocol' | 'compliance' | 'datennetz'>(
+    'status',
   );
   const baseVisibleTabs = tabs.filter((tab) => (tab.id === 'insights' ? abnahmenRolloutFlags.enableInsights : true));
   const verknuepfungSnapshot = useMemo(
@@ -258,54 +259,59 @@ export default function AbnahmeDetailPage() {
     return tab;
   });
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <ModulePageTemplate
         title="Abnahmeakte"
         description={`${record.number} · ${record.customerName} · ${record.projectName}`}
         mainGridClassName="grid-cols-1 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,1fr)]"
         actions={<DefectCaptureDrawer onAddDefect={onAddDefect} />}
-        kpis={getAbnahmenKpiItems([record])}
+        kpis={[]}
         sideContent={
-          <div className="space-y-4 xl:sticky xl:top-4 xl:self-start">
-            <ModuleTableCard icon={LayoutPanelTop} label="Statuskompass" title="Aktueller Stand" hasData>
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <div className="rounded-md border border-border/60 bg-background/50 px-2.5 py-2">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Status</p>
-                  <p className="mt-1 text-sm font-medium text-foreground">{record.status}</p>
-                </div>
-                <div className="rounded-md border border-border/60 bg-background/50 px-2.5 py-2">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Nächster Schritt</p>
-                  <p className="mt-1 text-sm font-medium text-foreground">{transitionTarget ?? '—'}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-md border border-border/60 bg-background/50 px-2.5 py-2">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Offen</p>
-                    <p className="mt-1 text-sm font-semibold text-foreground">{openDefects.length}</p>
-                  </div>
-                  <div
-                    className={`rounded-md border px-2.5 py-2 ${
-                      blockers.length > 0
-                        ? 'border-destructive/40 bg-destructive/10'
-                        : 'border-emerald-500/30 bg-emerald-500/10'
-                    }`}
-                  >
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Blocker</p>
-                    <p className={`mt-1 text-sm font-semibold ${blockers.length > 0 ? 'text-destructive' : 'text-emerald-700'}`}>
-                      {blockers.length}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </ModuleTableCard>
+          <div className="xl:sticky xl:top-4 xl:self-start">
             <ModuleSideTabsCard
               idPrefix="abnahmen-detail-side-context"
-              icon={FileText}
-              label="Kontext"
-              title="Protokoll, Compliance und Datennetz"
+              icon={LayoutPanelTop}
+              label="Steuerung"
+              title="Status, Protokoll, Compliance und Datennetz"
               activeTab={activeSideContextTab}
               onTabChange={setActiveSideContextTab}
               ariaLabel="Abnahmen Detailkontext"
               tabs={[
+                {
+                  id: 'status',
+                  label: 'Status',
+                  icon: LayoutPanelTop,
+                  content: (
+                    <div className="space-y-2 text-xs text-muted-foreground">
+                      <div className="rounded-md border border-border/60 bg-background/50 px-2.5 py-2">
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Status</p>
+                        <p className="mt-1 text-sm font-medium text-foreground">{record.status}</p>
+                      </div>
+                      <div className="rounded-md border border-border/60 bg-background/50 px-2.5 py-2">
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Nächster Schritt</p>
+                        <p className="mt-1 text-sm font-medium text-foreground">{transitionTarget ?? '—'}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="rounded-md border border-border/60 bg-background/50 px-2.5 py-2">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Offen</p>
+                          <p className="mt-1 text-sm font-semibold text-foreground">{openDefects.length}</p>
+                        </div>
+                        <div
+                          className={`rounded-md border px-2.5 py-2 ${
+                            blockers.length > 0
+                              ? 'border-destructive/40 bg-destructive/10'
+                              : 'border-emerald-500/30 bg-emerald-500/10'
+                          }`}
+                        >
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground/80">Blocker</p>
+                          <p className={`mt-1 text-sm font-semibold ${blockers.length > 0 ? 'text-destructive' : 'text-emerald-700'}`}>
+                            {blockers.length}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ),
+                },
                 {
                   id: 'protocol',
                   label: 'Protokoll',
@@ -501,6 +507,7 @@ export default function AbnahmeDetailPage() {
                 )
               }
             />
+            <KpiStrip items={getAbnahmenKpiItems([record])} />
             {abnahmenRolloutFlags.enablePrivacyGuards ? (
               <PrivacyBanner
                 blockingCount={privacyBlockingCount}

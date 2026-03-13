@@ -5,12 +5,14 @@ import { useSearchParams } from 'next/navigation';
 import { Building2, ListFilter, Network, PlusCircle, Search, X } from 'lucide-react';
 
 import { KundenFilterPanel } from '@/components/kunden/kunden-filter-panel';
-import { KundenKpiStrip } from '@/components/kunden/kunden-kpi-strip';
+import { getKundenKpiItems } from '@/components/kunden/kunden-kpi-strip';
 import { KundenListTable } from '@/components/kunden/kunden-list-table';
 import { CrossModulePortfolioContent } from '@/components/dashboard/cross-module-portfolio-card';
+import { SidebarKpiGrid } from '@/components/dashboard/kpi-strip';
 import { ModulePageTemplate } from '@/components/dashboard/module-page-template';
 import { ModuleSideTabsCard } from '@/components/dashboard/module-side-tabs-card';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getKundenRecords } from '@/lib/kunden/mock-data';
 import { applyKundenSavedView, filterKunden, getKundenKpis } from '@/lib/kunden/selectors';
@@ -34,7 +36,7 @@ export default function KundenPage() {
   const [records] = useState(() => getKundenRecords());
   const [filters, setFilters] = useState<KundenFilters>(defaultFilters);
   const [activeSavedView, setActiveSavedView] = useState<KundenSavedViewId | null>(null);
-  const [activeContextTab, setActiveContextTab] = useState<'workflow' | 'datennetz'>('workflow');
+  const [activeContextTab, setActiveContextTab] = useState<'filter' | 'workflow' | 'datennetz'>('filter');
   const handoffFrom = searchParams.get('handoffFrom');
   const handoffQuery = [
     searchParams.get('handoffCustomer'),
@@ -59,6 +61,7 @@ export default function KundenPage() {
     [displayRecords],
   );
   const kpis = useMemo(() => getKundenKpis(records), [records]);
+  const kpiItems = useMemo(() => getKundenKpiItems(kpis), [kpis]);
   const owners = useMemo(
     () => Array.from(new Set(records.map((record) => record.owner))).sort((a, b) => a.localeCompare(b)),
     [records],
@@ -76,6 +79,91 @@ export default function KundenPage() {
     filters.onlyConsentMissing ? 'Consent offen' : null,
   ].filter(Boolean) as string[];
 
+  const contextualStats = useMemo(() => {
+    const now = new Date();
+    const sevenDaysFromNow = new Date(now);
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+
+    const withSlaRisk = filteredRecords.filter((record) =>
+      record.reminders.some((reminder) => reminder.breachState !== 'ON_TRACK'),
+    ).length;
+    const withConsentGap = filteredRecords.filter((record) => record.consentState !== 'ERTEILT').length;
+    const withDuplicateHint = filteredRecords.filter((record) =>
+      record.duplicateCandidates.some((candidate) => candidate.resolution === 'OPEN'),
+    ).length;
+    const followUpThisWeek = filteredRecords.filter((record) => {
+      if (!record.nextFollowUpAt) return false;
+      const followUpAt = new Date(record.nextFollowUpAt);
+      return followUpAt >= now && followUpAt <= sevenDaysFromNow;
+    }).length;
+    const activeCustomers = filteredRecords.filter((record) => record.status === 'AKTIV').length;
+
+    return {
+      withSlaRisk,
+      withConsentGap,
+      withDuplicateHint,
+      followUpThisWeek,
+      activeCustomers,
+    };
+  }, [filteredRecords]);
+
+  const savedViewCounts = useMemo(() => {
+    const viewIds: KundenSavedViewId[] = [
+      'ALLE_AKTIVEN',
+      'SLA_RISIKO',
+      'CONSENT_OFFEN',
+      'FOLLOWUP_DIESE_WOCHE',
+    ];
+    return viewIds.reduce<Record<KundenSavedViewId, number>>((acc, viewId) => {
+      acc[viewId] = filterKunden(records, applyKundenSavedView(viewId, filters)).length;
+      return acc;
+    }, {
+      ALLE_AKTIVEN: 0,
+      SLA_RISIKO: 0,
+      CONSENT_OFFEN: 0,
+      FOLLOWUP_DIESE_WOCHE: 0,
+    });
+  }, [filters, records]);
+
+  const recommendedViewId = useMemo<KundenSavedViewId | null>(() => {
+    const candidates: Array<{ id: KundenSavedViewId; score: number }> = [
+      { id: 'SLA_RISIKO', score: contextualStats.withSlaRisk * 3 + contextualStats.followUpThisWeek },
+      { id: 'CONSENT_OFFEN', score: contextualStats.withConsentGap * 2 + contextualStats.withDuplicateHint },
+      { id: 'FOLLOWUP_DIESE_WOCHE', score: contextualStats.followUpThisWeek * 2 },
+      { id: 'ALLE_AKTIVEN', score: contextualStats.activeCustomers },
+    ];
+    const best = [...candidates].sort((left, right) => right.score - left.score)[0];
+    if (!best || best.score <= 0) return null;
+    return best.id;
+  }, [contextualStats]);
+
+  const workflowTasks = [
+    {
+      id: 'sla',
+      text: `SLA-Risiko priorisieren und ueberfaellige Follow-ups zuerst abarbeiten (${contextualStats.withSlaRisk}).`,
+      viewId: 'SLA_RISIKO' as const,
+      disabled: contextualStats.withSlaRisk === 0,
+    },
+    {
+      id: 'dup',
+      text: `Duplikatverdacht pruefen und Stammdaten vereinheitlichen (${contextualStats.withDuplicateHint}).`,
+      viewId: 'CONSENT_OFFEN' as const,
+      disabled: contextualStats.withDuplicateHint === 0,
+    },
+    {
+      id: 'consent',
+      text: `Pro Kunde primaeren Ansprechpartner mit Consent sicherstellen (${contextualStats.withConsentGap}).`,
+      viewId: 'CONSENT_OFFEN' as const,
+      disabled: contextualStats.withConsentGap === 0,
+    },
+  ];
+
+  const applySavedView = (viewId: KundenSavedViewId) => {
+    setActiveSavedView(viewId);
+    setFilters((prev) => applyKundenSavedView(viewId, prev));
+    setActiveContextTab(viewId === 'ALLE_AKTIVEN' ? 'datennetz' : 'workflow');
+  };
+
   useEffect(() => {
     if (!handoffFrom || handoffQuery.trim().length === 0) return;
     setActiveSavedView(null);
@@ -86,7 +174,6 @@ export default function KundenPage() {
     <ModulePageTemplate
       title="Kunden & Objekte"
       description="Kundenstammdaten, Objekte und Ansprechpartner fuer Folgeauftraege organisieren."
-      mainGridClassName="lg:grid-cols-1 xl:grid-cols-[minmax(0,2.2fr)_minmax(320px,1fr)]"
       compact
       actions={
         <Button size="sm">
@@ -95,15 +182,13 @@ export default function KundenPage() {
         </Button>
       }
       kpis={[]}
+      sideTopContent={<SidebarKpiGrid items={kpiItems} />}
       topMessage={
-        <div className="space-y-2">
-          <KundenKpiStrip kpis={kpis} />
-          {handoffFrom ? (
-            <p className="text-sm text-muted-foreground">
-              Kontext aus {handoffFrom} übernommen. Suche wurde automatisch vorbelegt.
-            </p>
-          ) : null}
-        </div>
+        handoffFrom ? (
+          <p className="text-sm text-muted-foreground">
+            Kontext aus {handoffFrom} übernommen. Suche wurde automatisch vorbelegt.
+          </p>
+        ) : null
       }
       mainContent={
         <ModuleTableCard
@@ -145,59 +230,94 @@ export default function KundenPage() {
         </ModuleTableCard>
       }
       sideContent={
-        <div className="space-y-3">
-          <ModuleTableCard icon={ListFilter} label="Filter" title="Saved Views und Facets" hasData tone="emphasis">
-            <KundenFilterPanel
-              filters={filters}
-              owners={owners}
-              regions={regions}
-              activeSavedView={activeSavedView}
-              onApplySavedView={(viewId) => {
-                setActiveSavedView(viewId);
-                setFilters((prev) => applyKundenSavedView(viewId, prev));
-              }}
-              onChange={(next) => {
-                setActiveSavedView(null);
-                setFilters(next);
-              }}
-            />
-          </ModuleTableCard>
-          <ModuleSideTabsCard
-            idPrefix="kunden-context"
-            icon={Search}
-            label="Kontext"
-            title="Arbeitsweise und Datennetz"
-            activeTab={activeContextTab}
-            onTabChange={setActiveContextTab}
-            ariaLabel="Kunden Kontextansicht"
-            tabs={[
-              {
-                id: 'workflow',
-                label: 'Arbeitsweise',
-                icon: Search,
-                content: (
-                  <div className="space-y-2 text-sm">
-                    <p className="rounded-md border border-border/70 bg-background/60 px-3 py-2">
-                      1) SLA-Risiko priorisieren und ueberfaellige Follow-ups zuerst abarbeiten.
-                    </p>
-                    <p className="rounded-md border border-border/70 bg-background/60 px-3 py-2">
-                      2) Duplikatverdacht pruefen und Stammdaten vereinheitlichen.
-                    </p>
-                    <p className="rounded-md border border-border/70 bg-background/60 px-3 py-2">
-                      3) Pro Kunde primaeren Ansprechpartner mit Consent sicherstellen.
-                    </p>
-                  </div>
-                ),
-              },
-              {
-                id: 'datennetz',
-                label: 'Datennetz',
-                icon: Network,
-                content: <CrossModulePortfolioContent snapshot={portfolioSnapshot} />,
-              },
-            ]}
-          />
-        </div>
+        <ModuleSideTabsCard
+          idPrefix="kunden-context"
+          icon={ListFilter}
+          label="Steuerung"
+          title="Filter, Arbeitsweise und Datennetz"
+          activeTab={activeContextTab}
+          onTabChange={setActiveContextTab}
+          ariaLabel="Kunden Kontextansicht"
+          tabs={[
+            {
+              id: 'filter',
+              label: 'Filter',
+              icon: ListFilter,
+              content: (
+                <KundenFilterPanel
+                  filters={filters}
+                  owners={owners}
+                  regions={regions}
+                  activeSavedView={activeSavedView}
+                  savedViewCounts={savedViewCounts}
+                  recommendedViewId={recommendedViewId}
+                  onApplySavedView={applySavedView}
+                  onChange={(next) => {
+                    setActiveSavedView(null);
+                    setFilters(next);
+                  }}
+                />
+              ),
+            },
+            {
+              id: 'workflow',
+              label: 'Arbeitsweise',
+              icon: Search,
+              badge: (
+                <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                  {contextualStats.withSlaRisk + contextualStats.withConsentGap}
+                </span>
+              ),
+              content: (
+                <div className="space-y-2 text-sm">
+                  {workflowTasks.map((task, index) => (
+                    <div
+                      key={task.id}
+                      className="flex items-center justify-between gap-2 rounded-md border border-border/70 bg-background/60 px-3 py-2"
+                    >
+                      <p className="text-sm">
+                        {index + 1}) {task.text}
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-xs"
+                        disabled={task.disabled}
+                        onClick={() => applySavedView(task.viewId)}
+                      >
+                        Jetzt filtern
+                      </Button>
+                    </div>
+                  ))}
+                  {recommendedViewId ? (
+                    <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-primary">
+                      Empfehlung aus Facets: Fokus auf{' '}
+                      <button
+                        type="button"
+                        className="font-semibold underline underline-offset-2"
+                        onClick={() => applySavedView(recommendedViewId)}
+                      >
+                        {recommendedViewId.replaceAll('_', ' ')}
+                      </button>
+                      .
+                    </div>
+                  ) : null}
+                </div>
+              ),
+            },
+            {
+              id: 'datennetz',
+              label: 'Datennetz',
+              icon: Network,
+              badge: (
+                <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                  {portfolioSnapshot.weakLinks}
+                </span>
+              ),
+              content: <CrossModulePortfolioContent snapshot={portfolioSnapshot} />,
+            },
+          ]}
+        />
       }
     />
   );

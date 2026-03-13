@@ -1,6 +1,6 @@
 import { CheckCircle2, CircleDollarSign, Gauge, ShieldAlert } from 'lucide-react';
-import type { ComponentType } from 'react';
 
+import type { KpiStripItem } from '@/components/dashboard/kpi-strip';
 import { StatCard } from '@/components/dashboard/stat-card';
 import type { QuoteKpis } from '@/lib/angebote/types';
 
@@ -12,14 +12,8 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-export function AngeboteKpiStrip({ kpis }: { kpis: QuoteKpis }) {
-  const items: Array<{
-    icon: ComponentType<{ className?: string }>;
-    label: string;
-    value: string | number;
-    subtitle: string;
-    accent?: boolean;
-  }> = [
+export function getAngeboteKpiItems(kpis: QuoteKpis): KpiStripItem[] {
+  return [
     {
       icon: CircleDollarSign,
       label: 'Pipeline Netto',
@@ -46,9 +40,13 @@ export function AngeboteKpiStrip({ kpis }: { kpis: QuoteKpis }) {
       subtitle: 'Alle Angebote',
     },
   ];
+}
+
+export function AngeboteKpiStrip({ kpis }: { kpis: QuoteKpis }) {
+  const items = getAngeboteKpiItems(kpis);
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
       {items.map((item) => (
         <StatCard
           key={item.label}
@@ -57,6 +55,7 @@ export function AngeboteKpiStrip({ kpis }: { kpis: QuoteKpis }) {
           value={item.value}
           subtitle={item.subtitle}
           accent={item.accent}
+          compact
         />
       ))}
     </div>

@@ -12,6 +12,8 @@ type ModulePageTemplateProps = {
   badge?: ReactNode;
   actions?: ReactNode;
   kpis: KpiStripItem[];
+  mainTopContent?: ReactNode;
+  sideTopContent?: ReactNode;
   mainContent: ReactNode;
   sideContent?: ReactNode;
   topMessage?: ReactNode;
@@ -25,22 +27,46 @@ export function ModulePageTemplate({
   badge,
   actions,
   kpis,
+  mainTopContent,
+  sideTopContent,
   mainContent,
   sideContent,
   topMessage,
   mainGridClassName,
   compact = false,
 }: ModulePageTemplateProps) {
+  const resolvedMainTopContent =
+    mainTopContent ??
+    (topMessage || kpis.length > 0 ? (
+      <>
+        {topMessage}
+        {kpis.length > 0 ? <KpiStrip items={kpis} /> : null}
+      </>
+    ) : null);
+
   return (
     <div className={cn(dashboardUiTokens.pageStack, compact && 'space-y-4')}>
       <PageHeader title={title} description={description} badge={badge}>
         {actions}
       </PageHeader>
-      {topMessage}
-      {kpis.length > 0 ? <KpiStrip items={kpis} /> : null}
-      <div className={cn(dashboardUiTokens.mainGrid, compact && 'gap-3', mainGridClassName)}>
-        {mainContent}
-        {sideContent}
+      <div
+        className={cn(
+          dashboardUiTokens.mainGrid,
+          compact && 'gap-3',
+          !sideContent && 'xl:grid-cols-1',
+          mainGridClassName,
+        )}
+      >
+        <div className={dashboardUiTokens.sectionStack}>
+          {resolvedMainTopContent}
+          {mainContent}
+        </div>
+        {sideContent ? (
+          <div className={dashboardUiTokens.sectionStack}>
+            {sideTopContent}
+            {sideContent}
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ export const dashboardUiTokens = {
   pageStack: 'space-y-[var(--dashboard-page-gap)]',
   sectionStack: 'space-y-[var(--dashboard-section-gap)]',
   kpiGrid: 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3',
-  mainGrid: 'grid gap-[var(--dashboard-main-gap)] xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,1fr)]',
+  mainGrid: 'grid gap-[var(--dashboard-main-gap)] xl:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]',
   card: 'rounded-xl border border-border bg-sidebar/40',
   cardHeader: 'px-4 py-3',
   cardBody: 'p-[var(--dashboard-card-padding)]',

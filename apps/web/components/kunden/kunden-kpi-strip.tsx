@@ -1,17 +1,10 @@
 import { AlertTriangle, Building2, CalendarClock, Users } from 'lucide-react';
-import type { ComponentType } from 'react';
 
-import { StatCard } from '@/components/dashboard/stat-card';
+import { KpiStrip, type KpiStripItem } from '@/components/dashboard/kpi-strip';
 import type { KundenKpis } from '@/lib/kunden/types';
 
-export function KundenKpiStrip({ kpis }: { kpis: KundenKpis }) {
-  const items: Array<{
-    icon: ComponentType<{ className?: string }>;
-    label: string;
-    value: string | number;
-    subtitle: string;
-    accent?: boolean;
-  }> = [
+export function getKundenKpiItems(kpis: KundenKpis): KpiStripItem[] {
+  return [
     {
       icon: Users,
       label: 'Aktive Kunden',
@@ -38,20 +31,8 @@ export function KundenKpiStrip({ kpis }: { kpis: KundenKpis }) {
       subtitle: 'Offene Duplicate Candidates',
     },
   ];
+}
 
-  return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      {items.map((item) => (
-        <StatCard
-          key={item.label}
-          icon={item.icon}
-          label={item.label}
-          value={item.value}
-          subtitle={item.subtitle}
-          accent={item.accent}
-          compact
-        />
-      ))}
-    </div>
-  );
+export function KundenKpiStrip({ kpis }: { kpis: KundenKpis }) {
+  return <KpiStrip items={getKundenKpiItems(kpis)} />;
 }

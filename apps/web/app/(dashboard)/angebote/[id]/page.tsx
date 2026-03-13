@@ -180,7 +180,7 @@ export default function AngebotDetailPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Angebots-Workspace"
         description={`${record.number} · ${record.customerName}`}
@@ -190,28 +190,30 @@ export default function AngebotDetailPage() {
         </Button>
       </PageHeader>
 
-      <AngeboteDetailHeader
-        record={record}
-        blockers={lastBlockers}
-        onSetStatus={setStatus}
-        onQuickConvert={quickConvert}
-        quickConvertEnabled={angeboteRolloutFlags.enableQuickConvert}
-      />
+      <div className="space-y-3">
+        <AngeboteDetailHeader
+          record={record}
+          blockers={lastBlockers}
+          onSetStatus={setStatus}
+          onQuickConvert={quickConvert}
+          quickConvertEnabled={angeboteRolloutFlags.enableQuickConvert}
+        />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <ModuleTableCard icon={LayoutPanelTop} label="Angebot" title="Netto" hasData>
-          <p className="text-2xl font-semibold">{totals.totalNet.toFixed(2)} EUR</p>
-        </ModuleTableCard>
-        <ModuleTableCard icon={LayoutPanelTop} label="Marge" title="Profitabilitaet" hasData>
-          <p className={totals.marginPercent < 18 ? 'text-2xl font-semibold text-amber-700' : 'text-2xl font-semibold text-emerald-700'}>
-            {totals.marginPercent.toFixed(1)}%
-          </p>
-        </ModuleTableCard>
-        <ModuleTableCard icon={LayoutPanelTop} label="Konvertierung" title="Auftrag" hasData>
-          <p className="text-sm text-muted-foreground">
-            {record.convertedOrderNumber ? `Konvertiert: ${record.convertedOrderNumber}` : 'Noch nicht konvertiert'}
-          </p>
-        </ModuleTableCard>
+        <div className="grid gap-2 sm:grid-cols-3">
+          <ModuleTableCard icon={LayoutPanelTop} label="Angebot" title="Netto" hasData>
+            <p className="text-2xl font-semibold">{totals.totalNet.toFixed(2)} EUR</p>
+          </ModuleTableCard>
+          <ModuleTableCard icon={LayoutPanelTop} label="Marge" title="Profitabilitaet" hasData>
+            <p className={totals.marginPercent < 18 ? 'text-2xl font-semibold text-amber-700' : 'text-2xl font-semibold text-emerald-700'}>
+              {totals.marginPercent.toFixed(1)}%
+            </p>
+          </ModuleTableCard>
+          <ModuleTableCard icon={LayoutPanelTop} label="Konvertierung" title="Auftrag" hasData>
+            <p className="text-sm text-muted-foreground">
+              {record.convertedOrderNumber ? `Konvertiert: ${record.convertedOrderNumber}` : 'Noch nicht konvertiert'}
+            </p>
+          </ModuleTableCard>
+        </div>
       </div>
 
       <DashboardTabs

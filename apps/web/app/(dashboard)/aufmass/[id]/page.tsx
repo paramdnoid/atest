@@ -86,6 +86,7 @@ export default function AufmassDetailPage() {
     detail: string;
   } | null>(null);
   const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
+  const detailSplitGridClassName = 'grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,1fr)]';
 
   if (!record) {
     return (
@@ -268,7 +269,7 @@ export default function AufmassDetailPage() {
     });
   };
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Aufmaß Workspace"
         description={`${record.number} · ${record.customerName}`}
@@ -306,18 +307,19 @@ export default function AufmassDetailPage() {
         </ModuleTableCard>
       ) : null}
 
-      <AufmassDetailHeader
-        record={record}
-        blockers={record.status === 'IN_REVIEW' ? effectiveReviewBlockers : submitReviewBlockers}
-        canSubmitReview={canSubmitReview}
-        canApprove={canApprove}
-        canBill={canBill}
-        onSubmitForReview={() => setStatus('IN_REVIEW', 'Zur Prüfung übergeben.')}
-        onOpenApprovalDialog={() => setIsApprovalDialogOpen(true)}
-        onBill={() => setStatus('BILLED', 'Abrechnungsvorschau abgeschlossen.')}
-      />
-
-      <AufmassKpiStrip record={record} />
+      <div className="space-y-3">
+        <AufmassDetailHeader
+          record={record}
+          blockers={record.status === 'IN_REVIEW' ? effectiveReviewBlockers : submitReviewBlockers}
+          canSubmitReview={canSubmitReview}
+          canApprove={canApprove}
+          canBill={canBill}
+          onSubmitForReview={() => setStatus('IN_REVIEW', 'Zur Prüfung übergeben.')}
+          onOpenApprovalDialog={() => setIsApprovalDialogOpen(true)}
+          onBill={() => setStatus('BILLED', 'Abrechnungsvorschau abgeschlossen.')}
+        />
+        <AufmassKpiStrip record={record} />
+      </div>
 
       <DashboardTabs
         idPrefix="aufmass"
@@ -333,7 +335,7 @@ export default function AufmassDetailPage() {
           id={getDashboardTabPanelId('aufmass', 'overview')}
           aria-labelledby={getDashboardTabId('aufmass', 'overview')}
           tabIndex={0}
-          className="grid gap-4 lg:grid-cols-2"
+          className={detailSplitGridClassName}
         >
           <div className="space-y-4">
             <RoomTreePanel rooms={record.rooms} activeRoomId={activeRoomId} onSelectRoom={setActiveRoomId} />
@@ -405,7 +407,7 @@ export default function AufmassDetailPage() {
           id={getDashboardTabPanelId('aufmass', 'rooms')}
           aria-labelledby={getDashboardTabId('aufmass', 'rooms')}
           tabIndex={0}
-          className="grid gap-4 lg:grid-cols-2"
+          className={detailSplitGridClassName}
         >
           <RoomTreePanel rooms={record.rooms} activeRoomId={activeRoomId} onSelectRoom={setActiveRoomId} />
           <MeasurementGrid room={activeRoom} measurements={record.measurements} positions={record.positions} />
@@ -433,7 +435,7 @@ export default function AufmassDetailPage() {
           id={getDashboardTabPanelId('aufmass', 'review')}
           aria-labelledby={getDashboardTabId('aufmass', 'review')}
           tabIndex={0}
-          className="grid gap-4 lg:grid-cols-2"
+          className={detailSplitGridClassName}
         >
           <ReviewDiffPanel issues={reviewIssues} />
           <ModuleTableCard icon={ClipboardList} label="Prüfhinweis" title="Action Guards">
@@ -480,7 +482,7 @@ export default function AufmassDetailPage() {
           id={getDashboardTabPanelId('aufmass', 'insights')}
           aria-labelledby={getDashboardTabId('aufmass', 'insights')}
           tabIndex={0}
-          className="grid gap-4 lg:grid-cols-2"
+          className={detailSplitGridClassName}
         >
           <AufmassIntelligencePanel record={record} allRecords={allRecords} snapshot={intelligenceSnapshot} />
           <ReviewDiffPanel issues={reviewIssues} />

@@ -23,6 +23,8 @@ type KundenFilterPanelProps = {
   owners: string[];
   regions: string[];
   activeSavedView: KundenSavedViewId | null;
+  savedViewCounts: Record<KundenSavedViewId, number>;
+  recommendedViewId: KundenSavedViewId | null;
   onApplySavedView: (viewId: KundenSavedViewId) => void;
   onChange: (next: KundenFilters) => void;
 };
@@ -32,6 +34,8 @@ export function KundenFilterPanel({
   owners,
   regions,
   activeSavedView,
+  savedViewCounts,
+  recommendedViewId,
   onApplySavedView,
   onChange,
 }: KundenFilterPanelProps) {
@@ -48,10 +52,20 @@ export function KundenFilterPanel({
               variant={activeSavedView === view.id ? 'default' : 'outline'}
               onClick={() => onApplySavedView(view.id)}
             >
-              {view.label}
+              {view.label} ({savedViewCounts[view.id]})
+              {recommendedViewId === view.id ? (
+                <span className="ml-1 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                  Empfehlung
+                </span>
+              ) : null}
             </Button>
           ))}
         </div>
+        {recommendedViewId ? (
+          <p className="text-[11px] text-muted-foreground">
+            Empfehlung basiert auf SLA-, Consent- und Follow-up-Signal in der aktuellen Auswahl.
+          </p>
+        ) : null}
       </div>
 
       <Input

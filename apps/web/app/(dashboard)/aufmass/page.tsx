@@ -9,8 +9,10 @@ import { AufmassListTable } from '@/components/aufmass/aufmass-list-table';
 import { AufmassStatusBadge } from '@/components/aufmass/aufmass-status-badge';
 import { ModulePageTemplate } from '@/components/dashboard/module-page-template';
 import { CrossModulePortfolioContent } from '@/components/dashboard/cross-module-portfolio-card';
+import { SidebarKpiGrid } from '@/components/dashboard/kpi-strip';
 import { ModuleSideTabsCard } from '@/components/dashboard/module-side-tabs-card';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { listAufmassRecordsSync } from '@/lib/aufmass/data-adapter';
 import { matchesAufmassQuery } from '@/lib/aufmass/selectors';
@@ -21,7 +23,7 @@ export default function AufmassPage() {
   const searchParams = useSearchParams();
   const records = useMemo<AufmassRecord[]>(() => listAufmassRecordsSync(), []);
   const [filters, setFilters] = useState<AufmassFilters>({ query: '', status: 'ALL' });
-  const [activeContextTab, setActiveContextTab] = useState<'workflow' | 'datennetz'>('workflow');
+  const [activeContextTab, setActiveContextTab] = useState<'filter' | 'workflow' | 'datennetz'>('filter');
   const handoffFrom = searchParams.get('handoffFrom');
   const handoffSuggestionId = searchParams.get('handoffSuggestionId') ?? undefined;
   const handoffQuery = [
@@ -65,6 +67,30 @@ export default function AufmassPage() {
     () => getVerknuepfungPortfolioSnapshot('AUFMASS', displayRecords.map((entry) => entry.id)),
     [displayRecords],
   );
+  const kpiItems = useMemo(
+    () => [
+      {
+        icon: Ruler,
+        label: 'Offene Entwürfe',
+        value: openDrafts,
+        subtitle: 'Status DRAFT',
+      },
+      {
+        icon: Search,
+        label: 'In Prüfung',
+        value: reviewCount,
+        subtitle: 'Freigaben ausstehend',
+        accent: true,
+      },
+      {
+        icon: Ruler,
+        label: 'Abgerechnet',
+        value: billedCount,
+        subtitle: 'Status BILLED',
+      },
+    ],
+    [billedCount, openDrafts, reviewCount],
+  );
 
   return (
     <ModulePageTemplate
@@ -76,27 +102,8 @@ export default function AufmassPage() {
           Neues Aufmaß (folgt)
         </Button>
       }
-      kpis={[
-        {
-          icon: Ruler,
-          label: 'Offene Entwürfe',
-          value: openDrafts,
-          subtitle: 'Status DRAFT',
-        },
-        {
-          icon: Search,
-          label: 'In Prüfung',
-          value: reviewCount,
-          subtitle: 'Freigaben ausstehend',
-          accent: true,
-        },
-        {
-          icon: Ruler,
-          label: 'Abgerechnet',
-          value: billedCount,
-          subtitle: 'Status BILLED',
-        },
-      ]}
+      kpis={[]}
+      sideTopContent={<SidebarKpiGrid items={kpiItems} />}
       topMessage={
         handoffFrom ? (
           <p className="text-sm text-muted-foreground">
@@ -138,59 +145,54 @@ export default function AufmassPage() {
         </ModuleTableCard>
       }
       sideContent={
-        <div className="space-y-4">
-          <ModuleTableCard
-            icon={Search}
-            label="Filter"
-            title="Schnellzugriff"
-            hasData
-            tone="emphasis"
-          >
-            <AufmassFilterPanel filters={filters} onChange={setFilters} />
-          </ModuleTableCard>
-          <ModuleSideTabsCard
-            idPrefix="aufmass-context"
-            icon={ShieldCheck}
-            label="Kontext"
-            title="Workflow und Datennetz"
-            activeTab={activeContextTab}
-            onTabChange={setActiveContextTab}
-            ariaLabel="Aufmaß Kontextansicht"
-            tabs={[
-              {
-                id: 'workflow',
-                label: 'Workflow',
-                icon: ShieldCheck,
-                content: (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Entwurf</span>
-                      <AufmassStatusBadge status="DRAFT" />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">In Prüfung</span>
-                      <AufmassStatusBadge status="IN_REVIEW" />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Freigegeben</span>
-                      <AufmassStatusBadge status="APPROVED" />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Abgerechnet</span>
-                      <AufmassStatusBadge status="BILLED" />
-                    </div>
+        <ModuleSideTabsCard
+          idPrefix="aufmass-context"
+          icon={Search}
+          label="Steuerung"
+          title="Filter, Workflow und Datennetz"
+          activeTab={activeContextTab}
+          onTabChange={setActiveContextTab}
+          ariaLabel="Aufmaß Kontextansicht"
+          tabs={[
+            {
+              id: 'filter',
+              label: 'Filter',
+              icon: Search,
+              content: <AufmassFilterPanel filters={filters} onChange={setFilters} />,
+            },
+            {
+              id: 'workflow',
+              label: 'Workflow',
+              icon: ShieldCheck,
+              content: (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Entwurf</span>
+                    <AufmassStatusBadge status="DRAFT" />
                   </div>
-                ),
-              },
-              {
-                id: 'datennetz',
-                label: 'Datennetz',
-                icon: Network,
-                content: <CrossModulePortfolioContent snapshot={portfolioSnapshot} />,
-              },
-            ]}
-          />
-        </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">In Prüfung</span>
+                    <AufmassStatusBadge status="IN_REVIEW" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Freigegeben</span>
+                    <AufmassStatusBadge status="APPROVED" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Abgerechnet</span>
+                    <AufmassStatusBadge status="BILLED" />
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: 'datennetz',
+              label: 'Datennetz',
+              icon: Network,
+              content: <CrossModulePortfolioContent snapshot={portfolioSnapshot} />,
+            },
+          ]}
+        />
       }
     />
   );
