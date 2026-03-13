@@ -89,7 +89,7 @@ export function AngebotePositionTable({ positions, onUpdatePositions }: Angebote
       </Table>
 
       {editingPosition && (
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-lg border border-border bg-card p-4">
           <p className="mb-3 text-sm font-medium">Side-Panel Bearbeitung: {editingPosition.title}</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-2">

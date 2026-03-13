@@ -13,7 +13,7 @@ export function DashboardCard({
   return (
     <div
       className={cn(
-        'flex flex-col overflow-hidden rounded-xl border border-border bg-white',
+        'flex flex-col overflow-hidden rounded-lg border border-border bg-white',
         className,
       )}
     >
@@ -46,15 +46,15 @@ export function DashboardCardHeader({
   return (
     <div className={cn('px-4 py-2.5', className)}>
       <div className="flex items-center justify-between gap-3">
-        <div className={cn('flex items-center gap-3', contentClassName)}>
+        <div className={cn('flex w-0 min-w-0 flex-1 items-center gap-3', contentClassName)}>
           <div className={cn('flex h-7 w-7 shrink-0 items-center justify-center', dashboardUiTokens.iconShell)}>
             {iconNode ?? <Icon className="h-3.5 w-3.5" />}
           </div>
-          <div>
-            <p className={dashboardUiTokens.kickerAccent}>
+          <div className="w-0 min-w-0 flex-1">
+            <p className={cn(dashboardUiTokens.kickerAccent, 'truncate')}>
               {label}
             </p>
-            <p className={cn('text-sm font-medium leading-tight', titleClassName)}>{title}</p>
+            <p className={cn('block max-w-full truncate text-sm font-medium leading-tight', titleClassName)}>{title}</p>
           </div>
         </div>
         {action}

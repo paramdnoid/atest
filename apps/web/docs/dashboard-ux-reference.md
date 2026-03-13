@@ -13,7 +13,7 @@ Diese Referenz definiert die verbindlichen Regeln für die `Übersicht` und alle
 
 - Nutze für alle Modulseiten dieselbe Zonenreihenfolge A-B-C-D.
 - Nutze bestehende Tokens aus `components/dashboard/ui-tokens.ts`.
-- Halte Karten auf `rounded-xl border border-border` und Tabellenzellen auf `px-4 py-3`.
+- Halte Karten auf `rounded-lg border border-border` und Tabellenzellen auf `px-4 py-3`.
 - Setze Statusindikatoren über `Badge`-Varianten statt über freie Farbcodes.
 - Definiere pro Datenblock immer Loading, Error und Empty.
 

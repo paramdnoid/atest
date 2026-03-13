@@ -4,7 +4,7 @@ export const dashboardUiTokens = {
   contextRailStack: 'space-y-[var(--dashboard-section-gap)]',
   kpiGrid: 'grid gap-2 grid-cols-1 [@media(min-width:480px)]:grid-cols-2 xl:grid-cols-4',
   mainGrid: 'grid items-start gap-[var(--dashboard-main-gap)] xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.85fr)]',
-  card: 'rounded-xl border border-border bg-white',
+  card: 'rounded-lg border border-border bg-white',
   cardHeader: 'px-4 py-3',
   cardBody: 'p-[var(--dashboard-card-padding)]',
   tableCell: 'px-4 py-3',

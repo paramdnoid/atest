@@ -93,7 +93,7 @@ export function AufmassWorkspaceTabs({
   }, [syncIndicator, reviewBadge]);
 
   return (
-    <div className={cn('flex min-w-0 items-center gap-2', inline ? '' : 'rounded-xl border border-border/60 bg-background/70 p-1.5')}>
+    <div className={cn('flex min-w-0 items-center gap-2', inline ? '' : 'rounded-lg border border-border/60 bg-background/70 p-1.5')}>
       <div className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div
           ref={tabListRef}

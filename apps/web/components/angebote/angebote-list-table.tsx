@@ -157,7 +157,7 @@ export function AngeboteListTable({
 
   return (
     <div className="space-y-2">
-      <div className="max-h-128 overflow-auto rounded-xl border border-border/60 bg-background/80">
+      <div className="max-h-128 overflow-auto rounded-lg border border-border/60 bg-background/80">
         <Table className="min-w-305 table-auto">
           <TableHeader className="sticky top-0 z-10 bg-slate-100/95 backdrop-blur supports-backdrop-filter:bg-slate-100/95 dark:bg-slate-900/95">
             <TableRow className="hover:bg-transparent">

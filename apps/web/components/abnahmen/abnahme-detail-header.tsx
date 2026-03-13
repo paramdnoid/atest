@@ -103,7 +103,7 @@ export function AbnahmeDetailHeader({
     <DashboardCard>
       <DashboardCardHeader icon={ClipboardCheck} label="Abnahmeakte" title={`${record.number} · ${record.projectName}`} />
       <div className="flex flex-col gap-4 p-4 pt-1">
-        <div className="rounded-xl border border-border/65 bg-background/60 px-3 py-2.5">
+        <div className="rounded-lg border border-border/65 bg-background/60 px-3 py-2.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <AbnahmenStatusBadge status={record.status} />
@@ -167,7 +167,7 @@ export function AbnahmeDetailHeader({
         </div>
 
         {blockers.length > 0 ? (
-          <div className="rounded-xl border border-amber-300/45 bg-amber-50/60 p-3.5 text-sm dark:bg-amber-950/22">
+          <div className="rounded-lg border border-amber-300/45 bg-amber-50/60 p-3.5 text-sm dark:bg-amber-950/22">
             <p className="flex items-center gap-1.5 font-medium text-amber-700 dark:text-amber-300">
               <AlertTriangle className="h-4 w-4" />
               Offene Voraussetzungen für {getStatusLabel(record.status)}

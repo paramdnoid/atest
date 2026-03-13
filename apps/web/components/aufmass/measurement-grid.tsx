@@ -115,7 +115,7 @@ export function MeasurementGrid({ room, measurements, positions }: MeasurementGr
 
   if (roomMeasurements.length === 0) {
     return (
-      <div className="rounded-xl border border-border/60 bg-background/80 px-6 py-12 text-center">
+      <div className="rounded-lg border border-border/60 bg-background/80 px-6 py-12 text-center">
         <div className="mx-auto h-12 w-12 rounded-lg bg-muted/20 flex items-center justify-center text-muted-foreground/60">
           <DraftingCompass className="h-6 w-6" />
         </div>
@@ -130,7 +130,7 @@ export function MeasurementGrid({ room, measurements, positions }: MeasurementGr
   return (
     <>
       {/* Desktop Table View */}
-      <div className="hidden lg:block overflow-x-auto rounded-xl border border-border/60 bg-background/80">
+      <div className="hidden lg:block overflow-x-auto rounded-lg border border-border/60 bg-background/80">
         <Table>
           <TableHeader className="border-b border-border/60 bg-slate-50/40">
             <TableRow className="hover:bg-transparent">

@@ -13,7 +13,7 @@ export function AngeboteIntelligencePanel({
   const signals = getQuoteIntelligenceSignals(record, allRecords);
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="rounded-lg border border-border bg-card p-4">
       <div className="flex items-center gap-2">
         <Brain className="h-4 w-4 text-primary" />
         <p className="font-medium">Angebots-Intelligence</p>

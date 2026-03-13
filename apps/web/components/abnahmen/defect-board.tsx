@@ -44,7 +44,7 @@ export function DefectBoard({ defects }: { defects: DefectEntry[] }) {
         {defects.map((defect) => (
           <div
             key={defect.id}
-            className="rounded-xl border border-border/70 bg-background/65 p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:bg-background/85"
+            className="rounded-lg border border-border/70 bg-background/65 p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:bg-background/85"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="font-mono text-xs text-muted-foreground">{defect.ref}</p>

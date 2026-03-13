@@ -212,14 +212,14 @@ export default function DashboardPage() {
         <div className="h-10 w-56 animate-pulse rounded-md bg-muted" />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-32 animate-pulse rounded-xl bg-muted/50" />
+            <div key={i} className="h-32 animate-pulse rounded-lg bg-muted/50" />
           ))}
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="h-80 animate-pulse rounded-xl bg-muted/50" />
+          <div className="h-80 animate-pulse rounded-lg bg-muted/50" />
           <div className="space-y-4">
-            <div className="h-40 animate-pulse rounded-xl bg-muted/50" />
-            <div className="h-40 animate-pulse rounded-xl bg-muted/50" />
+            <div className="h-40 animate-pulse rounded-lg bg-muted/50" />
+            <div className="h-40 animate-pulse rounded-lg bg-muted/50" />
           </div>
         </div>
       </div>

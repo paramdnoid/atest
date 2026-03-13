@@ -59,7 +59,7 @@ export function DashboardTabs<T extends string>({
   };
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border/60 bg-muted/45 p-1">
+    <div className="overflow-x-auto rounded-lg border border-border/60 bg-muted/45 p-1">
       <div className="flex min-w-max gap-1" role="tablist" aria-label={ariaLabel}>
         {tabs.map((tab) => {
           const Icon = tab.icon;

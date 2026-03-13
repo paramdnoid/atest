@@ -69,7 +69,7 @@ export default function TeamPage() {
         <div className="h-8 w-40 animate-pulse rounded-md bg-muted" />
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-14 animate-pulse rounded-xl bg-muted" />
+            <div key={i} className="h-14 animate-pulse rounded-lg bg-muted" />
           ))}
         </div>
       </div>

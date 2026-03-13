@@ -18,16 +18,29 @@ export function PageHeader({
   descriptionClassName?: string;
 }) {
   return (
-    <div className="flex items-center gap-4">
-      <div className="flex items-center gap-3 min-w-0 flex-1">
+    <div className="flex w-full min-w-0 items-center gap-4 overflow-hidden">
+      <div className="flex w-0 min-w-0 flex-1 items-center gap-3">
         <SidebarTrigger className="shrink-0 text-foreground/70 hover:text-foreground focus-visible:ring-primary/30" />
         <div className="h-6 w-px bg-border shrink-0" />
-        <div className="min-w-0 flex-1">
-          <h1 className={cn(dashboardUiTokens.heading, titleClassName)}>{title}</h1>
+        <div className="w-0 min-w-0 flex-1 overflow-hidden">
+          <h1
+            className={cn(
+              dashboardUiTokens.heading,
+              'block max-w-full overflow-hidden text-ellipsis whitespace-nowrap',
+              titleClassName,
+            )}
+          >
+            {title}
+          </h1>
           {description && (
-            <div className={cn('mt-1 text-sm text-foreground/75 min-w-0', descriptionClassName)}>
+            <p
+              className={cn(
+                'mt-1 block max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-sm text-foreground/75',
+                descriptionClassName,
+              )}
+            >
               {description}
-            </div>
+            </p>
           )}
         </div>
       </div>

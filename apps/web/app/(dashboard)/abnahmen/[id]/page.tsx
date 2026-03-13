@@ -518,7 +518,7 @@ export default function AbnahmeDetailPage() {
                 </p>
               </ModuleTableCard>
             )}
-            <div className="space-y-3 rounded-xl border border-border/55 bg-white p-2 sm:p-2.5">
+            <div className="space-y-3 rounded-lg border border-border/55 bg-white p-2 sm:p-2.5">
               <DashboardTabs
                 idPrefix="abnahmen"
                 tabs={visibleTabs}
