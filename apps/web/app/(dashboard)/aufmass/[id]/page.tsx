@@ -68,6 +68,17 @@ export default function AufmassDetailPage() {
   } | null>(null);
   const [activeReviewIssueId, setActiveReviewIssueId] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (activeWorkspace !== 'review' || !activeReviewIssueId) return;
+    const timeout = window.setTimeout(() => {
+      const target = document.getElementById(`review-issue-${activeReviewIssueId}`);
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.focus?.();
+    }, 60);
+    return () => window.clearTimeout(timeout);
+  }, [activeWorkspace, activeReviewIssueId]);
+
   if (!record) {
     return (
       <div className="space-y-4">
@@ -84,7 +95,7 @@ export default function AufmassDetailPage() {
   }
 
   const activeRoom = record.rooms.find((room) => room.id === activeRoomId);
-  const legacyMigrationIssues = useMemo<AufmassReviewIssue[]>(() => {
+  const legacyMigrationIssues = (() => {
     if (!aufmassRolloutFlags.enableAssistedMigration) return [];
     const issues: AufmassReviewIssue[] = [];
     for (const measurement of record.measurements) {
@@ -106,21 +117,12 @@ export default function AufmassDetailPage() {
       });
     }
     return issues;
-  }, [record]);
-  const generatedReviewIssues = useMemo(() => getRecordOvermeasureIssues(record), [record]);
-  const reviewIssues = useMemo(
-    () => [...generatedReviewIssues, ...legacyMigrationIssues],
-    [generatedReviewIssues, legacyMigrationIssues],
-  );
-  const reviewBlockers = useMemo(() => getTransitionBlockers(record, 'APPROVED'), [record]);
-  const intelligenceSnapshot = useMemo(
-    () => getIntelligenceSnapshot(record, allRecords),
-    [record, allRecords],
-  );
-  const verknuepfungSnapshot = useMemo(
-    () => getVerknuepfungSnapshot('AUFMASS', record.id),
-    [record.id],
-  );
+  })();
+  const generatedReviewIssues = getRecordOvermeasureIssues(record);
+  const reviewIssues = [...generatedReviewIssues, ...legacyMigrationIssues];
+  const reviewBlockers = getTransitionBlockers(record, 'APPROVED');
+  const intelligenceSnapshot = getIntelligenceSnapshot(record, allRecords);
+  const verknuepfungSnapshot = getVerknuepfungSnapshot('AUFMASS', record.id);
   const scoreGateBlockers =
     aufmassRolloutFlags.enforceBuilderScoreGate && intelligenceSnapshot.readinessScore < 75
       ? [`Reifegrad (${intelligenceSnapshot.readinessScore}) ist kleiner als 75.`]
@@ -132,22 +134,11 @@ export default function AufmassDetailPage() {
     (measurement) => !measurement.formulaAst && measurement.formula.trim().length > 0,
   ).length;
   const effectiveReviewBlockers = [...reviewBlockers, ...legacyReviewBlockers, ...scoreGateBlockers];
-  const submitReviewBlockers = useMemo(() => getTransitionBlockers(record, 'IN_REVIEW'), [record]);
+  const submitReviewBlockers = getTransitionBlockers(record, 'IN_REVIEW');
   const canSubmitReview = record.status === 'DRAFT' && submitReviewBlockers.length === 0;
   const canApprove = record.status === 'IN_REVIEW' && effectiveReviewBlockers.length === 0;
-  const billingBlockers = useMemo(() => getTransitionBlockers(record, 'BILLED'), [record]);
+  const billingBlockers = getTransitionBlockers(record, 'BILLED');
   const canBill = record.status === 'APPROVED' && billingBlockers.length === 0;
-
-  useEffect(() => {
-    if (activeWorkspace !== 'review' || !activeReviewIssueId) return;
-    const timeout = window.setTimeout(() => {
-      const target = document.getElementById(`review-issue-${activeReviewIssueId}`);
-      if (!target) return;
-      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      target.focus?.();
-    }, 60);
-    return () => window.clearTimeout(timeout);
-  }, [activeWorkspace, activeReviewIssueId]);
 
   const setStatus = (to: AufmassStatus, detail: string) => {
     const result = transitionRecordStatus(record, to);
@@ -297,7 +288,7 @@ export default function AufmassDetailPage() {
         <ModuleTableCard icon={ClipboardList} label="Statuswechsel" title="Aktion nicht möglich" tone="emphasis" hasData>
           <p className="text-sm text-muted-foreground">{statusError}</p>
           <p className="mt-1 text-xs text-muted-foreground/90">
-            Prüfe die Blocker im Bereich "Prüfung" und versuche die Aktion erneut.
+            Prüfe die Blocker im Bereich &quot;Prüfung&quot; und versuche die Aktion erneut.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button size="sm" variant="outline" onClick={() => setActiveWorkspace('review')}>

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown, FilePenLine } from 'lucide-react';
 
 import { AbnahmenStatusBadge } from '@/components/abnahmen/abnahmen-status-badge';
@@ -17,6 +17,44 @@ import { formatDate } from '@/lib/format';
 import type { AbnahmeRecord } from '@/lib/abnahmen/types';
 import { getOpenDefectsBySeverity } from '@/lib/abnahmen/selectors';
 
+type SortField = 'number' | 'projectName' | 'customerName' | 'status' | 'critical' | 'nextInspectionDate' | 'updatedAt';
+type SortDirection = 'asc' | 'desc';
+
+function SortIcon({ field, sortField, sortDirection }: { field: SortField; sortField: SortField; sortDirection: SortDirection }) {
+  if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/80" />;
+  return sortDirection === 'asc' ? (
+    <ArrowUp className="h-3.5 w-3.5 text-primary" />
+  ) : (
+    <ArrowDown className="h-3.5 w-3.5 text-primary" />
+  );
+}
+
+function SortButton({
+  field,
+  label,
+  sortField,
+  sortDirection,
+  onSort,
+}: {
+  field: SortField;
+  label: string;
+  sortField: SortField;
+  sortDirection: SortDirection;
+  onSort: (field: SortField) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(field)}
+      className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600 hover:text-foreground dark:text-slate-300"
+      aria-label={`${label} sortieren`}
+    >
+      {label}
+      <SortIcon field={field} sortField={sortField} sortDirection={sortDirection} />
+    </button>
+  );
+}
+
 export function AbnahmenListTable({
   records,
   totalEntries,
@@ -29,10 +67,8 @@ export function AbnahmenListTable({
   highlightedId?: string;
 }) {
   const [page, setPage] = useState(1);
-  const [sortField, setSortField] = useState<
-    'number' | 'projectName' | 'customerName' | 'status' | 'critical' | 'nextInspectionDate' | 'updatedAt'
-  >('updatedAt');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [sortField, setSortField] = useState<SortField>('updatedAt');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const pageSize = 25;
 
   const sortedRecords = useMemo(() => {
@@ -77,51 +113,16 @@ export function AbnahmenListTable({
     [safePage, sortedRecords],
   );
 
-  useEffect(() => {
-    setPage(1);
-  }, [records, sortDirection, sortField]);
-
-  const toggleSort = (
-    nextField: 'number' | 'projectName' | 'customerName' | 'status' | 'critical' | 'nextInspectionDate' | 'updatedAt',
-  ) => {
+  const toggleSort = (nextField: SortField) => {
     if (sortField === nextField) {
       setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      setPage(1);
       return;
     }
     setSortField(nextField);
     setSortDirection('asc');
+    setPage(1);
   };
-
-  const SortIcon = ({
-    field,
-  }: {
-    field: 'number' | 'projectName' | 'customerName' | 'status' | 'critical' | 'nextInspectionDate' | 'updatedAt';
-  }) => {
-    if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/80" />;
-    return sortDirection === 'asc' ? (
-      <ArrowUp className="h-3.5 w-3.5 text-primary" />
-    ) : (
-      <ArrowDown className="h-3.5 w-3.5 text-primary" />
-    );
-  };
-
-  const SortButton = ({
-    field,
-    label,
-  }: {
-    field: 'number' | 'projectName' | 'customerName' | 'status' | 'critical' | 'nextInspectionDate' | 'updatedAt';
-    label: string;
-  }) => (
-    <button
-      type="button"
-      onClick={() => toggleSort(field)}
-      className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600 hover:text-foreground dark:text-slate-300"
-      aria-label={`${label} sortieren`}
-    >
-      {label}
-      <SortIcon field={field} />
-    </button>
-  );
 
   return (
     <div className="space-y-2">
@@ -177,25 +178,25 @@ export function AbnahmenListTable({
           <TableHeader className="sticky top-0 z-10 bg-slate-100/95 backdrop-blur supports-backdrop-filter:bg-slate-100/95 dark:bg-slate-900/95">
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-32.5 px-3 py-2.5">
-                <SortButton field="number" label="Nummer" />
+                <SortButton field="number" label="Nummer" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
               </TableHead>
               <TableHead className="min-w-55 px-3 py-2.5">
-                <SortButton field="projectName" label="Projekt" />
+                <SortButton field="projectName" label="Projekt" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
               </TableHead>
               <TableHead className="min-w-50 px-3 py-2.5">
-                <SortButton field="customerName" label="Kunde" />
+                <SortButton field="customerName" label="Kunde" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
               </TableHead>
               <TableHead className="w-42.5 px-3 py-2.5">
-                <SortButton field="status" label="Status" />
+                <SortButton field="status" label="Status" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
               </TableHead>
               <TableHead className="w-22.5 px-3 py-2.5">
-                <SortButton field="critical" label="Kritisch" />
+                <SortButton field="critical" label="Kritisch" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
               </TableHead>
               <TableHead className="w-35 px-3 py-2.5">
-                <SortButton field="nextInspectionDate" label="Nächste Prüfung" />
+                <SortButton field="nextInspectionDate" label="Nächste Prüfung" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
               </TableHead>
               <TableHead className="w-32.5 px-3 py-2.5">
-                <SortButton field="updatedAt" label="Aktualisiert" />
+                <SortButton field="updatedAt" label="Aktualisiert" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
               </TableHead>
               <TableHead className="w-27.5 px-3 py-2.5 text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">Aktion</TableHead>
             </TableRow>
@@ -262,7 +263,7 @@ export function AbnahmenListTable({
       </div>
       <div className="flex flex-col gap-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <span>
-          {records.length} {isSearchActive ? 'Treffer' : 'Einträge'} · Seite {safePage} von {totalPages}
+          {(isSearchActive ? records.length : totalEntries)} {isSearchActive ? 'Treffer' : 'Einträge'} · Seite {safePage} von {totalPages}
         </span>
         <div className="flex items-center gap-2 self-end sm:self-auto">
           <Button

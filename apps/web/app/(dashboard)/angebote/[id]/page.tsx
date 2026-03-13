@@ -74,9 +74,10 @@ export default function AngebotDetailPage() {
   const [record, setRecord] = useState<QuoteRecord | undefined>(initial);
   const [lastBlockers, setLastBlockers] = useState<string[]>([]);
   const detailSplitGridClassName = 'grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.85fr)]';
+  const recordId = record ? record.id : '';
   const verknuepfungSnapshot = useMemo(
-    () => getVerknuepfungSnapshot('ANGEBOTE', record?.id ?? ''),
-    [record?.id],
+    () => getVerknuepfungSnapshot('ANGEBOTE', recordId),
+    [recordId],
   );
 
   if (!record) {

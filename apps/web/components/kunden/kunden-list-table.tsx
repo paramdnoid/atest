@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown, FilePenLine } from 'lucide-react';
 
 import { KundenStatusBadge } from '@/components/kunden/kunden-status-badge';
@@ -8,6 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatDate } from '@/lib/format';
 import type { KundenRecord } from '@/lib/kunden/types';
 
+type SortField = 'number' | 'name' | 'region' | 'owner' | 'objekte' | 'score' | 'status' | 'followUp';
+type SortDirection = 'asc' | 'desc';
+
 type KundenListTableProps = {
   records: KundenRecord[];
   totalEntries: number;
@@ -15,12 +18,45 @@ type KundenListTableProps = {
   highlightedId?: string;
 };
 
+function SortIcon({ field, sortField, sortDirection }: { field: SortField; sortField: SortField; sortDirection: SortDirection }) {
+  if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/80" />;
+  return sortDirection === 'asc' ? (
+    <ArrowUp className="h-3.5 w-3.5 text-primary" />
+  ) : (
+    <ArrowDown className="h-3.5 w-3.5 text-primary" />
+  );
+}
+
+function SortButton({
+  field,
+  label,
+  sortField,
+  sortDirection,
+  onSort,
+}: {
+  field: SortField;
+  label: string;
+  sortField: SortField;
+  sortDirection: SortDirection;
+  onSort: (field: SortField) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(field)}
+      className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600 hover:text-foreground dark:text-slate-300"
+      aria-label={`${label} sortieren`}
+    >
+      {label}
+      <SortIcon field={field} sortField={sortField} sortDirection={sortDirection} />
+    </button>
+  );
+}
+
 export function KundenListTable({ records, totalEntries, isSearchActive, highlightedId }: KundenListTableProps) {
   const [page, setPage] = useState(1);
-  const [sortField, setSortField] = useState<
-    'number' | 'name' | 'region' | 'owner' | 'objekte' | 'score' | 'status' | 'followUp'
-  >('number');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [sortField, setSortField] = useState<SortField>('number');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const pageSize = 25;
 
   const sortedRecords = useMemo(() => {
@@ -66,51 +102,16 @@ export function KundenListTable({ records, totalEntries, isSearchActive, highlig
     [safePage, sortedRecords],
   );
 
-  useEffect(() => {
-    setPage(1);
-  }, [records, sortDirection, sortField]);
-
-  const toggleSort = (
-    nextField: 'number' | 'name' | 'region' | 'owner' | 'objekte' | 'score' | 'status' | 'followUp',
-  ) => {
+  const toggleSort = (nextField: SortField) => {
     if (sortField === nextField) {
       setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      setPage(1);
       return;
     }
     setSortField(nextField);
     setSortDirection('asc');
+    setPage(1);
   };
-
-  const SortIcon = ({
-    field,
-  }: {
-    field: 'number' | 'name' | 'region' | 'owner' | 'objekte' | 'score' | 'status' | 'followUp';
-  }) => {
-    if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/80" />;
-    return sortDirection === 'asc' ? (
-      <ArrowUp className="h-3.5 w-3.5 text-primary" />
-    ) : (
-      <ArrowDown className="h-3.5 w-3.5 text-primary" />
-    );
-  };
-
-  const SortButton = ({
-    field,
-    label,
-  }: {
-    field: 'number' | 'name' | 'region' | 'owner' | 'objekte' | 'score' | 'status' | 'followUp';
-    label: string;
-  }) => (
-    <button
-      type="button"
-      onClick={() => toggleSort(field)}
-      className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600 hover:text-foreground dark:text-slate-300"
-      aria-label={`${label} sortieren`}
-    >
-      {label}
-      <SortIcon field={field} />
-    </button>
-  );
 
   return (
     <div className="space-y-2">
@@ -165,28 +166,28 @@ export function KundenListTable({ records, totalEntries, isSearchActive, highlig
           <TableHeader className="sticky top-0 z-10 bg-slate-100/95 backdrop-blur supports-backdrop-filter:bg-slate-100/95 dark:bg-slate-900/95">
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-32.5 px-3 py-2.5">
-                <SortButton field="number" label="Nummer" />
+                <SortButton field="number" label="Nummer" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
               </TableHead>
               <TableHead className="min-w-80 max-w-none px-3 py-2.5">
-                <SortButton field="name" label="Kunde" />
+                <SortButton field="name" label="Kunde" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
               </TableHead>
               <TableHead className="w-32.5 px-3 py-2.5">
-                <SortButton field="region" label="Region" />
+                <SortButton field="region" label="Region" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
               </TableHead>
               <TableHead className="w-37.5 px-3 py-2.5">
-                <SortButton field="owner" label="Verantwortlich" />
+                <SortButton field="owner" label="Verantwortlich" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
               </TableHead>
               <TableHead className="w-22.5 px-3 py-2.5">
-                <SortButton field="objekte" label="Objekte" />
+                <SortButton field="objekte" label="Objekte" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
               </TableHead>
               <TableHead className="w-22.5 px-3 py-2.5">
-                <SortButton field="score" label="Score" />
+                <SortButton field="score" label="Score" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
               </TableHead>
               <TableHead className="w-42.5 px-3 py-2.5">
-                <SortButton field="status" label="Status" />
+                <SortButton field="status" label="Status" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
               </TableHead>
               <TableHead className="w-32.5 px-3 py-2.5">
-                <SortButton field="followUp" label="Follow-up" />
+                <SortButton field="followUp" label="Follow-up" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
               </TableHead>
               <TableHead className="w-27.5 px-3 py-2.5 text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">Aktion</TableHead>
             </TableRow>
@@ -247,7 +248,7 @@ export function KundenListTable({ records, totalEntries, isSearchActive, highlig
       </div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-muted-foreground">
         <span className="hidden md:block">
-          {records.length} {isSearchActive ? 'Treffer' : 'Einträge'} · Seite {safePage} von {totalPages}
+          {(isSearchActive ? records.length : totalEntries)} {isSearchActive ? 'Treffer' : 'Einträge'} · Seite {safePage} von {totalPages}
         </span>
         <span className="block md:hidden">
           Seite {safePage}/{totalPages}

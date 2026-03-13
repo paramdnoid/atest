@@ -21,6 +21,73 @@ type MeasurementGridProps = {
   positions: AufmassPosition[];
 };
 
+type OvermeasureBreakdown = ReturnType<typeof getOvermeasureBreakdown>;
+
+function MobileMeasurementCard({
+  entry,
+  position,
+  breakdown,
+  hasException,
+}: {
+  entry: AufmassMeasurement;
+  position?: AufmassPosition;
+  breakdown: OvermeasureBreakdown;
+  hasException: boolean;
+}) {
+  return (
+    <Card className={cn('transition-all duration-200', hasException ? 'bg-amber-50/35 border-amber-200/50' : 'bg-background')}>
+      <CardContent className="p-4 space-y-3">
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-muted-foreground">Leistung</p>
+          <p className="text-sm font-semibold">{position?.title ?? entry.label}</p>
+        </div>
+
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-muted-foreground">Formel</p>
+          <p className="font-mono text-xs break-all bg-muted/50 rounded px-2 py-1">
+            {entry.formulaAst ? serializeFormulaAst(entry.formulaAst) : entry.formula}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 text-center">
+          <div>
+            <p className="text-xs text-muted-foreground">Netto</p>
+            <p className="font-mono text-sm font-semibold tabular-nums">{breakdown.net.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground">{entry.unit}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Brutto</p>
+            <p className="font-mono text-sm tabular-nums">{breakdown.gross.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground">{entry.unit}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Abzug</p>
+            <p className="font-mono text-sm tabular-nums">{breakdown.deducted.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground">{entry.unit}</p>
+          </div>
+        </div>
+
+        {((breakdown.decisions && breakdown.decisions[0]) || entry.note) && (
+          <div className="pt-2 border-t border-border/50 space-y-2">
+            {breakdown.decisions && breakdown.decisions[0] && (
+              <div>
+                <p className="text-xs text-muted-foreground">Regel</p>
+                <p className="text-xs">{breakdown.decisions[0].appliedRuleId}</p>
+              </div>
+            )}
+            {entry.note && (
+              <div>
+                <p className="text-xs text-muted-foreground">Notiz</p>
+                <p className="text-xs">{entry.note}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function MeasurementGrid({ room, measurements, positions }: MeasurementGridProps) {
   const positionsById = useMemo(
     () => new Map(positions.map((position) => [position.id, position])),
@@ -45,74 +112,6 @@ export function MeasurementGrid({ room, measurements, positions }: MeasurementGr
     [positionsById, roomMeasurements],
   );
 
-  // Mobile Card Component
-  const MobileCard = ({ entry, position, breakdown, hasException }: {
-    entry: AufmassMeasurement;
-    position?: AufmassPosition;
-    breakdown: any;
-    hasException: boolean;
-  }) => (
-    <Card className={cn(
-      'transition-all duration-200',
-      hasException ? 'bg-amber-50/35 border-amber-200/50' : 'bg-background'
-    )}>
-      <CardContent className="p-4 space-y-3">
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground">Leistung</p>
-          <p className="text-sm font-semibold">{position?.title ?? entry.label}</p>
-        </div>
-        
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground">Formel</p>
-          <p className="font-mono text-xs break-all bg-muted/50 rounded px-2 py-1">
-            {entry.formulaAst ? serializeFormulaAst(entry.formulaAst) : entry.formula}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-3 gap-3 text-center">
-          <div>
-            <p className="text-xs text-muted-foreground">Netto</p>
-            <p className="font-mono text-sm font-semibold tabular-nums">
-              {breakdown.net.toFixed(2)}
-            </p>
-            <p className="text-xs text-muted-foreground">{entry.unit}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Brutto</p>
-            <p className="font-mono text-sm tabular-nums">
-              {breakdown.gross.toFixed(2)}
-            </p>
-            <p className="text-xs text-muted-foreground">{entry.unit}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Abzug</p>
-            <p className="font-mono text-sm tabular-nums">
-              {breakdown.deducted.toFixed(2)}
-            </p>
-            <p className="text-xs text-muted-foreground">{entry.unit}</p>
-          </div>
-        </div>
-
-        {((breakdown.decisions && breakdown.decisions[0]) || entry.note) && (
-          <div className="pt-2 border-t border-border/50 space-y-2">
-            {breakdown.decisions && breakdown.decisions[0] && (
-              <div>
-                <p className="text-xs text-muted-foreground">Regel</p>
-                <p className="text-xs">{breakdown.decisions[0].appliedRuleId}</p>
-              </div>
-            )}
-            {entry.note && (
-              <div>
-                <p className="text-xs text-muted-foreground">Notiz</p>
-                <p className="text-xs">{entry.note}</p>
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-
   if (roomMeasurements.length === 0) {
     return (
       <div className="rounded-lg border border-border/60 bg-background/80 px-6 py-12 text-center">
@@ -121,7 +120,7 @@ export function MeasurementGrid({ room, measurements, positions }: MeasurementGr
         </div>
         <p className="mt-4 text-base font-semibold text-foreground">Keine Messwerte im Raum</p>
         <p className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto">
-          Über "Schnell erfassen" können neue Maße direkt ergänzt werden.
+          Über &quot;Schnell erfassen&quot; können neue Maße direkt ergänzt werden.
         </p>
       </div>
     );
@@ -212,7 +211,7 @@ export function MeasurementGrid({ room, measurements, positions }: MeasurementGr
         {rows.map(({ entry, position, breakdown }) => {
           const hasException = breakdown.overmeasured > 0 || breakdown.deducted > 0;
           return (
-            <MobileCard
+            <MobileMeasurementCard
               key={entry.id}
               entry={entry}
               position={position}

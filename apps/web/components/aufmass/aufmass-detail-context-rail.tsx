@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Brain, History, Network, Menu, X } from 'lucide-react';
+import { Brain, History } from 'lucide-react';
 
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { dashboardUiTokens } from '@/components/dashboard/ui-tokens';
