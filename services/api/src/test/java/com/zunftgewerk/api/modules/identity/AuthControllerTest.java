@@ -8,6 +8,7 @@ import com.zunftgewerk.api.modules.identity.service.IdentityService;
 import com.zunftgewerk.api.modules.identity.service.RefreshTokenService;
 import com.zunftgewerk.api.modules.identity.web.AuthController;
 import com.zunftgewerk.api.modules.identity.web.AuthCookieService;
+import com.zunftgewerk.api.shared.security.JwtPrincipal;
 import com.zunftgewerk.api.shared.security.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,6 +70,34 @@ class AuthControllerTest {
     }
 
     @Test
+    void shouldRejectSignupWhenRequestIsNull() {
+        ResponseEntity<?> response = authController.signup(null);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(error(response)).isEqualTo("Missing required fields");
+        verifyNoInteractions(identityService);
+    }
+
+    @Test
+    void shouldNotLeakSignupFailureDetails() {
+        when(identityService.signUp(anyString(), anyString(), any(), anyString(), any(), any(), anyString()))
+            .thenThrow(new IllegalArgumentException("Tenant creation failed with DB detail"));
+
+        ResponseEntity<?> response = authController.signup(new AuthController.SignupHttpRequest(
+            "ops@zunft.test",
+            "secret-secret-123",
+            "Ops User",
+            "Ops Workspace",
+            "maler",
+            null,
+            "STARTER"
+        ));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(error(response)).isEqualTo("Invalid signup request");
+    }
+
+    @Test
     void shouldNotLeakInternalLoginFailureMessage() {
         when(authRateLimitService.checkLogin(anyString(), anyString(), anyString()))
             .thenReturn(AuthRateLimitService.RateLimitDecision.allowed());
@@ -99,6 +128,18 @@ class AuthControllerTest {
     }
 
     @Test
+    void shouldRejectEnableMfaWhenUserIdMissing() {
+        ResponseEntity<?> response = authController.enableMfa(
+            new AuthController.EnableMfaHttpRequest(" "),
+            "Bearer token"
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(error(response)).isEqualTo("userId required");
+        verifyNoInteractions(identityService);
+    }
+
+    @Test
     void shouldRejectMfaVerifyWithoutAnyCode() {
         ResponseEntity<?> response = authController.verifyMfa(
             new AuthController.VerifyMfaHttpRequest(
@@ -115,6 +156,69 @@ class AuthControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(error(response)).isEqualTo("One verification code is required");
         verifyNoInteractions(identityService);
+    }
+
+    @Test
+    void shouldRejectDisableMfaWithoutAnyCode() {
+        ResponseEntity<?> response = authController.disableMfa(
+            new AuthController.DisableMfaHttpRequest(" ", null),
+            "Bearer token"
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(error(response)).isEqualTo("One verification code is required");
+        verifyNoInteractions(identityService);
+    }
+
+    @Test
+    void shouldNotLeakDisableMfaFailureDetails() {
+        UUID userId = UUID.randomUUID();
+        when(jwtService.verifyAccessToken("token"))
+            .thenReturn(new JwtPrincipal(userId, UUID.randomUUID(), List.of("owner"), true, List.of("pwd", "totp")));
+        doThrow(new IllegalArgumentException("TOTP window mismatch for user"))
+            .when(identityService)
+            .disableMfa(eq(userId), eq("123456"), eq(null));
+
+        ResponseEntity<?> response = authController.disableMfa(
+            new AuthController.DisableMfaHttpRequest("123456", null),
+            "Bearer token"
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(error(response)).isEqualTo("Invalid MFA disable request");
+    }
+
+    @Test
+    void shouldRejectRequestPasswordResetWhenRequestIsNull() {
+        ResponseEntity<?> response = authController.requestPasswordReset(null);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(error(response)).isEqualTo("Email required");
+        verifyNoInteractions(identityService);
+    }
+
+    @Test
+    void shouldNotLeakResetPasswordFailureDetails() {
+        doThrow(new IllegalArgumentException("Reset token expired at 2026-03-01T10:00Z"))
+            .when(identityService)
+            .resetPassword("reset-token", "secret-secret-123");
+
+        ResponseEntity<?> response = authController.resetPassword(
+            new AuthController.ResetPasswordHttpRequest("reset-token", "secret-secret-123")
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(error(response)).isEqualTo("Invalid reset token or password");
+    }
+
+    @Test
+    void shouldReturnEnglishUnauthorizedMessageForMfaStatusWhenSessionMissing() {
+        when(refreshTokenService.peekUser(any())).thenReturn(java.util.Optional.empty());
+
+        ResponseEntity<?> response = authController.getMfaStatus(null);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(error(response)).isEqualTo("Not authenticated");
     }
 
     @Test
