@@ -19,7 +19,7 @@ function AuditPreview({ events }: { events: AufmassAuditEvent[] }) {
   return (
     <div className="space-y-2">
       {events.slice(0, 4).map((event) => (
-        <div key={event.id} className="rounded-lg border border-border/70 bg-sidebar/30 p-2">
+        <div key={event.id} className="rounded-lg border border-border/70 bg-white p-2">
           <p className="text-xs font-medium">{event.action}</p>
           <p className="text-[11px] text-muted-foreground">{event.detail}</p>
           <p className="mt-0.5 text-[10px] text-muted-foreground">{formatDate(event.createdAt)}</p>
@@ -39,7 +39,7 @@ export function AufmassDetailContextRail({
     <div className="space-y-3">
       <ModuleTableCard icon={Brain} label="Analyse" title="Reifegrad und Aktionen" hasData>
         <div className="space-y-3">
-          <div className="rounded-lg border border-border/70 bg-sidebar/30 p-3">
+          <div className="rounded-lg border border-border/70 bg-white p-3">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Reifegrad</p>
             <p className="mt-1 font-mono text-2xl font-semibold">{snapshot.readinessScore}/100</p>
           </div>

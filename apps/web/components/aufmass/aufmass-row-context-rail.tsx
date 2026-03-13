@@ -27,7 +27,7 @@ export function AufmassRowContextRail({ record }: { record?: AufmassRecord }) {
     <div className="space-y-3">
       <ModuleTableCard icon={Network} label="Kontext" title={record.number} hasData>
         <div className="space-y-3">
-          <div className="rounded-lg border border-border/70 bg-sidebar/30 p-3">
+          <div className="rounded-lg border border-border/70 bg-white p-3">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Projekt</p>
             <p className="mt-1 text-sm font-medium">{record.projectName}</p>
             <p className="mt-0.5 text-xs text-muted-foreground">{record.customerName}</p>
@@ -50,7 +50,7 @@ export function AufmassRowContextRail({ record }: { record?: AufmassRecord }) {
               </Link>
             </Button>
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-border/70 bg-background/75 px-3 py-2">
+          <div className="flex items-center justify-between rounded-lg border border-border/70 bg-white px-3 py-2">
             <span className="flex items-center gap-2 text-xs text-muted-foreground">
               <Brain className="h-3.5 w-3.5" />
               Reifegrad

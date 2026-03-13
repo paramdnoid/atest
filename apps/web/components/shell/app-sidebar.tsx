@@ -115,18 +115,18 @@ export function AppSidebar({
         <div className="flex items-start content-center gap-2.5">
           <div
             aria-hidden="true"
-            className="mb-2 h-10 w-10 shrink-0 rounded-sm bg-no-repeat self-center"
+            className="mb-1 h-8 w-8 shrink-0 rounded-sm bg-no-repeat self-center"
             style={{
               backgroundImage: "url('/logo.png')",
               backgroundSize: 'contain',
               backgroundPosition: 'top',
             }}
           />
-          <div className="min-w-0 leading-none mt-1">
-            <p className="font-display text-lg font-extrabold leading-none">
+          <div className="mt-1 min-w-0 leading-none">
+            <p className="font-display text-base font-extrabold leading-none">
               Zunft<span className="text-primary">Gewerk</span>
             </p>
-            <p className="mt-0 truncate text-sm text-muted-foreground">{isLoadingProfile ? 'Gewerk' : tradeLabel}</p>
+            <p className="m-0 truncate text-xs text-muted-foreground">{isLoadingProfile ? 'Gewerk' : tradeLabel}</p>
           </div>
         </div>
       </SidebarHeader>
@@ -147,7 +147,7 @@ export function AppSidebar({
               <SidebarMenu>
                 {group.items.map((item) => (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.label}>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive(item.href)} tooltip={item.label}>
                       <Link href={item.href}>
                         <item.icon className={cn('size-4 transition-colors', isActive(item.href) ? 'text-primary' : 'text-muted-foreground')} />
                         <span>{item.label}</span>

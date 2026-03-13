@@ -11,6 +11,8 @@ type AngeboteFilterPanelProps = {
   onChange: (next: QuoteFilters) => void;
   onApplySavedView: (viewId: QuoteSavedViewId) => void;
   activeSavedView?: QuoteSavedViewId | null;
+  hideSearch?: boolean;
+  compact?: boolean;
 };
 
 const savedViews: Array<{ id: QuoteSavedViewId; label: string }> = [
@@ -26,42 +28,46 @@ export function AngeboteFilterPanel({
   onChange,
   onApplySavedView,
   activeSavedView,
+  hideSearch = false,
+  compact = false,
 }: AngeboteFilterPanelProps) {
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-          Suche
-        </p>
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={filters.query}
-              onChange={(event) => onChange({ ...filters, query: event.target.value })}
-              className="h-9 pl-8 text-sm"
-              placeholder="Suche nach Nummer, Kunde, Projekt, Verantwortlich..."
-            />
+    <div className={compact ? 'space-y-3' : 'space-y-4'}>
+      {!hideSearch ? (
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            Suche
+          </p>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={filters.query}
+                onChange={(event) => onChange({ ...filters, query: event.target.value })}
+                className="h-9 bg-white pl-8 text-sm"
+                placeholder="Suche nach Nummer, Kunde, Projekt, Verantwortlich..."
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() =>
+                onChange({
+                  ...filters,
+                  query: '',
+                  status: 'ALL',
+                  owner: 'ALL',
+                  risk: 'ALL',
+                  onlyExpiringSoon: false,
+                })
+              }
+              aria-label="Filter zuruecksetzen"
+            >
+              <Filter className="h-4 w-4" />
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() =>
-              onChange({
-                ...filters,
-                query: '',
-                status: 'ALL',
-                owner: 'ALL',
-                risk: 'ALL',
-                onlyExpiringSoon: false,
-              })
-            }
-            aria-label="Filter zuruecksetzen"
-          >
-            <Filter className="h-4 w-4" />
-          </Button>
         </div>
-      </div>
+      ) : null}
 
       <div className="space-y-2 border-t border-border/60 pt-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
@@ -69,6 +75,7 @@ export function AngeboteFilterPanel({
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           <FormSelect
+            className="bg-white"
             value={filters.sortBy}
             onChange={(event) => onChange({ ...filters, sortBy: event.target.value as QuoteFilters['sortBy'] })}
           >
@@ -79,6 +86,7 @@ export function AngeboteFilterPanel({
           </FormSelect>
 
           <FormSelect
+            className="bg-white"
             value={filters.status}
             onChange={(event) => onChange({ ...filters, status: event.target.value as QuoteFilters['status'] })}
           >
@@ -92,6 +100,7 @@ export function AngeboteFilterPanel({
           </FormSelect>
 
           <FormSelect
+            className="bg-white"
             value={filters.owner}
             onChange={(event) => onChange({ ...filters, owner: event.target.value })}
           >
@@ -104,6 +113,7 @@ export function AngeboteFilterPanel({
           </FormSelect>
 
           <FormSelect
+            className="bg-white"
             value={filters.risk}
             onChange={(event) => onChange({ ...filters, risk: event.target.value as QuoteFilters['risk'] })}
           >
@@ -113,7 +123,7 @@ export function AngeboteFilterPanel({
             <option value="HIGH">Hoch</option>
           </FormSelect>
 
-          <label className="flex h-9 items-center gap-2 rounded-md border border-input px-3 text-sm leading-none sm:col-span-2">
+          <label className="flex h-9 items-center gap-2 rounded-md border border-input bg-white px-3 text-sm leading-none sm:col-span-2">
             <FormCheckbox
               checked={filters.onlyExpiringSoon}
               onChange={(checked) => onChange({ ...filters, onlyExpiringSoon: checked })}
@@ -134,7 +144,7 @@ export function AngeboteFilterPanel({
               <Button
                 key={view.id}
                 size="sm"
-                  className="h-8 px-3 text-xs"
+                className="h-8 bg-white px-3 text-xs"
                 variant={activeSavedView === view.id ? 'default' : 'outline'}
                 onClick={() => onApplySavedView(view.id)}
               >

@@ -13,6 +13,7 @@ export function getAbnahmenKpiItems(records: AbnahmeRecord[]): KpiStripItem[] {
       label: 'Offene Abnahmen',
       value: kpis.openAbnahmen,
       subtitle: 'Alle Vorgänge vor Abschluss',
+      tone: 'blue',
     },
     {
       icon: AlertTriangle,
@@ -20,12 +21,14 @@ export function getAbnahmenKpiItems(records: AbnahmeRecord[]): KpiStripItem[] {
       value: kpis.criticalDefects,
       subtitle: 'Sofortmaßnahmen erforderlich',
       accent: true,
+      tone: 'rose',
     },
     {
       icon: Clock3,
       label: 'Überfällige Nacharbeit',
       value: kpis.overdueRework,
       subtitle: 'Frist bereits überschritten',
+      tone: 'amber',
     },
   ];
 }

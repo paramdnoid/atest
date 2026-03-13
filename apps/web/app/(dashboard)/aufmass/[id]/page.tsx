@@ -68,7 +68,7 @@ export default function AufmassDetailPage() {
     detail: string;
   } | null>(null);
   const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
-  const detailSplitGridClassName = 'grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,1fr)]';
+  const detailSplitGridClassName = 'grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.85fr)]';
 
   if (!record) {
     return (
@@ -255,6 +255,8 @@ export default function AufmassDetailPage() {
       <PageHeader
         title="Aufmaß-Arbeitsbereich"
         description={`${record.number} · ${record.customerName}`}
+        titleClassName="text-lg"
+        descriptionClassName="-mt-0.5"
       >
         <ApprovalDialog
           currentStatus={record.status}

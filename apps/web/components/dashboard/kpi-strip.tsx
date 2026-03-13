@@ -10,6 +10,7 @@ export type KpiStripItem = {
   subtitle?: string;
   trialLabel?: string;
   accent?: boolean;
+  tone?: 'neutral' | 'primary' | 'amber' | 'rose' | 'emerald' | 'teal' | 'blue';
 };
 
 export function KpiStrip({ items }: { items: KpiStripItem[] }) {
@@ -24,6 +25,8 @@ export function KpiStrip({ items }: { items: KpiStripItem[] }) {
           subtitle={item.subtitle}
           trialLabel={item.trialLabel}
           accent={item.accent}
+          tone={item.tone}
+          compact
         />
       ))}
     </div>

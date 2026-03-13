@@ -193,7 +193,7 @@ export function AufmassListTable({
         <div className="flex items-center gap-2">
           <Button
             size="sm"
-            variant="outline"
+            variant="default"
             disabled={safePage <= 1}
             onClick={() => setPage((prev) => Math.max(1, prev - 1))}
           >
@@ -201,7 +201,7 @@ export function AufmassListTable({
           </Button>
           <Button
             size="sm"
-            variant="outline"
+            variant="default"
             disabled={safePage >= totalPages}
             onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
           >

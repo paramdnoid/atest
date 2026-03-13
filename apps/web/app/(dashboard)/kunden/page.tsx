@@ -2,22 +2,24 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Building2, ListFilter, Network, PlusCircle, Search, X } from 'lucide-react';
+import { Building2, ChevronDown, Network, PlusCircle, SlidersHorizontal, X } from 'lucide-react';
 
 import { KundenFilterPanel } from '@/components/kunden/kunden-filter-panel';
 import { getKundenKpiItems } from '@/components/kunden/kunden-kpi-strip';
 import { KundenListTable } from '@/components/kunden/kunden-list-table';
 import { CrossModulePortfolioContent } from '@/components/dashboard/cross-module-portfolio-card';
-import { SidebarKpiGrid } from '@/components/dashboard/kpi-strip';
+import {
+  ModuleListHeaderControls,
+  type ModuleListFilterToken,
+} from '@/components/dashboard/module-list-header-controls';
 import { ModulePageTemplate } from '@/components/dashboard/module-page-template';
-import { ModuleSideTabsCard } from '@/components/dashboard/module-side-tabs-card';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getKundenRecords } from '@/lib/kunden/mock-data';
 import { applyKundenSavedView, filterKunden, getKundenKpis } from '@/lib/kunden/selectors';
 import { getVerknuepfungPortfolioSnapshot } from '@/lib/auftragsabwicklung/cross-module-intelligence';
 import type { KundenFilters, KundenSavedViewId } from '@/lib/kunden/types';
+import { cn } from '@/lib/utils';
 
 const defaultFilters: KundenFilters = {
   query: '',
@@ -36,7 +38,8 @@ export default function KundenPage() {
   const [records] = useState(() => getKundenRecords());
   const [filters, setFilters] = useState<KundenFilters>(defaultFilters);
   const [activeSavedView, setActiveSavedView] = useState<KundenSavedViewId | null>(null);
-  const [activeContextTab, setActiveContextTab] = useState<'filter' | 'workflow' | 'datennetz'>('filter');
+  const [filtersAdvancedOpen, setFiltersAdvancedOpen] = useState(false);
+  const [activeContextPanel, setActiveContextPanel] = useState<'workflow' | 'datennetz'>('workflow');
   const handoffFrom = searchParams.get('handoffFrom');
   const handoffQuery = [
     searchParams.get('handoffCustomer'),
@@ -71,13 +74,50 @@ export default function KundenPage() {
     [records],
   );
 
-  const activeFilterChips = [
-    filters.status !== 'ALL' ? `Status: ${filters.status}` : null,
-    filters.owner !== 'ALL' ? `Verantwortlich: ${filters.owner}` : null,
-    filters.region !== 'ALL' ? `Region: ${filters.region}` : null,
-    filters.onlySlaRisk ? 'SLA Risiko' : null,
-    filters.onlyConsentMissing ? 'Consent offen' : null,
-  ].filter(Boolean) as string[];
+  const activeFilterTokens: ModuleListFilterToken[] = [
+    filters.query.trim().length > 0
+      ? {
+          key: 'query',
+          label: `Suche: ${filters.query}`,
+          clear: () => setFilters((prev) => ({ ...prev, query: '' })),
+        }
+      : null,
+    filters.status !== 'ALL'
+      ? {
+          key: 'status',
+          label: `Status: ${filters.status}`,
+          clear: () => setFilters((prev) => ({ ...prev, status: 'ALL' })),
+        }
+      : null,
+    filters.owner !== 'ALL'
+      ? {
+          key: 'owner',
+          label: `Verantwortlich: ${filters.owner}`,
+          clear: () => setFilters((prev) => ({ ...prev, owner: 'ALL' })),
+        }
+      : null,
+    filters.region !== 'ALL'
+      ? {
+          key: 'region',
+          label: `Region: ${filters.region}`,
+          clear: () => setFilters((prev) => ({ ...prev, region: 'ALL' })),
+        }
+      : null,
+    filters.onlySlaRisk
+      ? {
+          key: 'onlySlaRisk',
+          label: 'SLA Risiko',
+          clear: () => setFilters((prev) => ({ ...prev, onlySlaRisk: false })),
+        }
+      : null,
+    filters.onlyConsentMissing
+      ? {
+          key: 'onlyConsentMissing',
+          label: 'Consent offen',
+          clear: () => setFilters((prev) => ({ ...prev, onlyConsentMissing: false })),
+        }
+      : null,
+  ].filter((token): token is ModuleListFilterToken => token !== null);
 
   const contextualStats = useMemo(() => {
     const now = new Date();
@@ -161,7 +201,28 @@ export default function KundenPage() {
   const applySavedView = (viewId: KundenSavedViewId) => {
     setActiveSavedView(viewId);
     setFilters((prev) => applyKundenSavedView(viewId, prev));
-    setActiveContextTab(viewId === 'ALLE_AKTIVEN' ? 'datennetz' : 'workflow');
+    setActiveContextPanel(viewId === 'ALLE_AKTIVEN' ? 'datennetz' : 'workflow');
+  };
+
+  const kundenQuickMode =
+    filters.onlySlaRisk ? 'SLA_RISIKO' : filters.onlyConsentMissing ? 'CONSENT_OFFEN' : filters.status === 'AKTIV' ? 'AKTIV' : 'ALL';
+
+  const setKundenQuickMode = (mode: 'ALL' | 'AKTIV' | 'SLA_RISIKO' | 'CONSENT_OFFEN') => {
+    setActiveSavedView(null);
+    if (mode === 'SLA_RISIKO') {
+      setFilters((prev) => ({ ...prev, status: 'ALL', onlySlaRisk: true, onlyConsentMissing: false }));
+      return;
+    }
+    if (mode === 'CONSENT_OFFEN') {
+      setFilters((prev) => ({ ...prev, status: 'ALL', onlySlaRisk: false, onlyConsentMissing: true }));
+      return;
+    }
+    setFilters((prev) => ({
+      ...prev,
+      status: mode === 'AKTIV' ? 'AKTIV' : 'ALL',
+      onlySlaRisk: false,
+      onlyConsentMissing: false,
+    }));
   };
 
   useEffect(() => {
@@ -181,8 +242,7 @@ export default function KundenPage() {
           Neuer Kunde
         </Button>
       }
-      kpis={[]}
-      sideTopContent={<SidebarKpiGrid items={kpiItems} />}
+      kpis={kpiItems}
       topMessage={
         handoffFrom ? (
           <p className="text-sm text-muted-foreground">
@@ -197,7 +257,186 @@ export default function KundenPage() {
           title="Kundenliste mit Folgeauftragsfokus"
           hasData={displayRecords.length > 0}
           action={
-            <span className="text-sm font-medium text-muted-foreground">{displayRecords.length} Treffer</span>
+            <ModuleListHeaderControls
+              query={filters.query}
+              onQueryChange={(next) => {
+                setActiveSavedView(null);
+                setFilters((prev) => ({ ...prev, query: next }));
+              }}
+              queryPlaceholder="Suche nach Kunde, Objekt, Kontakt ..."
+              queryAriaLabel="Kundensuche"
+              showTokens={false}
+              dropdownAriaLabel="Kundenfilter öffnen"
+              dropdownContent={
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Filter</p>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setActiveSavedView(null);
+                        setFilters(defaultFilters);
+                      }}
+                      className="h-6 rounded-md px-1.5 text-[11px]"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      Zurücksetzen
+                    </Button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Button
+                      size="sm"
+                      variant={kundenQuickMode === 'ALL' ? 'default' : 'outline'}
+                      className="h-7 rounded-md px-2.5 text-xs"
+                      onClick={() => setKundenQuickMode('ALL')}
+                    >
+                      Alle Kunden
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={kundenQuickMode === 'AKTIV' ? 'default' : 'outline'}
+                      className="h-7 rounded-md px-2.5 text-xs"
+                      onClick={() => setKundenQuickMode('AKTIV')}
+                    >
+                      Aktiv
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={kundenQuickMode === 'SLA_RISIKO' ? 'default' : 'outline'}
+                      className="h-7 rounded-md px-2.5 text-xs"
+                      onClick={() => setKundenQuickMode('SLA_RISIKO')}
+                    >
+                      SLA Risiko
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={kundenQuickMode === 'CONSENT_OFFEN' ? 'default' : 'outline'}
+                      className="h-7 rounded-md px-2.5 text-xs"
+                      onClick={() => setKundenQuickMode('CONSENT_OFFEN')}
+                    >
+                      Consent offen
+                    </Button>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 rounded-md px-2 text-xs"
+                    onClick={() => setFiltersAdvancedOpen((prev) => !prev)}
+                    aria-expanded={filtersAdvancedOpen}
+                  >
+                    <SlidersHorizontal className="h-3.5 w-3.5" />
+                    Weitere Filter
+                    <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', filtersAdvancedOpen && 'rotate-180')} />
+                  </Button>
+
+                  {filtersAdvancedOpen ? (
+                    <div className="space-y-3 rounded-lg border border-border bg-background p-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        Erweiterte Filter
+                      </p>
+                      <KundenFilterPanel
+                        filters={filters}
+                        owners={owners}
+                        regions={regions}
+                        activeSavedView={activeSavedView}
+                        savedViewCounts={savedViewCounts}
+                        recommendedViewId={recommendedViewId}
+                        onApplySavedView={applySavedView}
+                        onChange={(next) => {
+                          setActiveSavedView(null);
+                          setFilters(next);
+                        }}
+                        hideSearch
+                        compact
+                      />
+                    </div>
+                  ) : null}
+
+                  <div className="space-y-2 rounded-lg border border-border bg-background p-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Button
+                        size="sm"
+                        variant={activeContextPanel === 'workflow' ? 'default' : 'outline'}
+                        className="h-7 rounded-md px-2.5 text-xs"
+                        onClick={() => setActiveContextPanel('workflow')}
+                      >
+                        Arbeitsweise
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={activeContextPanel === 'datennetz' ? 'default' : 'outline'}
+                        className="h-7 rounded-md px-2.5 text-xs"
+                        onClick={() => setActiveContextPanel('datennetz')}
+                      >
+                        <Network className="h-3.5 w-3.5" />
+                        Datennetz
+                      </Button>
+                    </div>
+
+                    {activeContextPanel === 'workflow' ? (
+                      <div className="space-y-2 text-sm">
+                        {workflowTasks.map((task, index) => (
+                          <div
+                            key={task.id}
+                            className="flex items-center justify-between gap-2 rounded-md border border-border/70 bg-background/60 px-3 py-2"
+                          >
+                            <p className="text-sm">
+                              {index + 1}) {task.text}
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 text-xs"
+                              disabled={task.disabled}
+                              onClick={() => applySavedView(task.viewId)}
+                            >
+                              Jetzt filtern
+                            </Button>
+                          </div>
+                        ))}
+                        {recommendedViewId ? (
+                          <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-primary">
+                            Empfehlung aus Facets: Fokus auf{' '}
+                            <button
+                              type="button"
+                              className="font-semibold underline underline-offset-2"
+                              onClick={() => applySavedView(recommendedViewId)}
+                            >
+                              {recommendedViewId.replaceAll('_', ' ')}
+                            </button>
+                            .
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <CrossModulePortfolioContent snapshot={portfolioSnapshot} />
+                    )}
+                  </div>
+                </div>
+              }
+            />
+          }
+          headerBottomContent={
+            <div className="space-y-2">
+              <ModuleListHeaderControls
+                query={filters.query}
+                onQueryChange={(next) => {
+                  setActiveSavedView(null);
+                  setFilters((prev) => ({ ...prev, query: next }));
+                }}
+                queryPlaceholder="Suche nach Kunde, Objekt, Kontakt ..."
+                queryAriaLabel="Kundensuche"
+                showSearch={false}
+                tokens={activeFilterTokens}
+                onResetAll={() => {
+                  setActiveSavedView(null);
+                  setFilters(defaultFilters);
+                }}
+              />
+            </div>
           }
           emptyState={{
             icon: <Building2 className="h-8 w-8" />,
@@ -205,119 +444,13 @@ export default function KundenPage() {
             description: 'Passe die Filter an oder lege einen neuen Kunden an.',
           }}
         >
-          {activeFilterChips.length > 0 ? (
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              {activeFilterChips.map((chip) => (
-                <Badge key={chip} variant="secondary" className="text-xs font-medium">
-                  {chip}
-                </Badge>
-              ))}
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 px-2 text-xs"
-                onClick={() => {
-                  setActiveSavedView(null);
-                  setFilters(defaultFilters);
-                }}
-              >
-                <X className="h-3.5 w-3.5" />
-                Alle Filter loeschen
-              </Button>
-            </div>
-          ) : null}
-          <KundenListTable records={displayRecords} highlightedId={handoffSuggestionId} />
+          <KundenListTable
+            records={displayRecords}
+            totalEntries={records.length}
+            isSearchActive={filters.query.trim().length > 0}
+            highlightedId={handoffSuggestionId}
+          />
         </ModuleTableCard>
-      }
-      sideContent={
-        <ModuleSideTabsCard
-          idPrefix="kunden-context"
-          icon={ListFilter}
-          label="Steuerung"
-          title="Filter, Arbeitsweise und Datennetz"
-          activeTab={activeContextTab}
-          onTabChange={setActiveContextTab}
-          ariaLabel="Kunden Kontextansicht"
-          tabs={[
-            {
-              id: 'filter',
-              label: 'Filter',
-              icon: ListFilter,
-              content: (
-                <KundenFilterPanel
-                  filters={filters}
-                  owners={owners}
-                  regions={regions}
-                  activeSavedView={activeSavedView}
-                  savedViewCounts={savedViewCounts}
-                  recommendedViewId={recommendedViewId}
-                  onApplySavedView={applySavedView}
-                  onChange={(next) => {
-                    setActiveSavedView(null);
-                    setFilters(next);
-                  }}
-                />
-              ),
-            },
-            {
-              id: 'workflow',
-              label: 'Arbeitsweise',
-              icon: Search,
-              badge: (
-                <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                  {contextualStats.withSlaRisk + contextualStats.withConsentGap}
-                </span>
-              ),
-              content: (
-                <div className="space-y-2 text-sm">
-                  {workflowTasks.map((task, index) => (
-                    <div
-                      key={task.id}
-                      className="flex items-center justify-between gap-2 rounded-md border border-border/70 bg-background/60 px-3 py-2"
-                    >
-                      <p className="text-sm">
-                        {index + 1}) {task.text}
-                      </p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 px-2 text-xs"
-                        disabled={task.disabled}
-                        onClick={() => applySavedView(task.viewId)}
-                      >
-                        Jetzt filtern
-                      </Button>
-                    </div>
-                  ))}
-                  {recommendedViewId ? (
-                    <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-primary">
-                      Empfehlung aus Facets: Fokus auf{' '}
-                      <button
-                        type="button"
-                        className="font-semibold underline underline-offset-2"
-                        onClick={() => applySavedView(recommendedViewId)}
-                      >
-                        {recommendedViewId.replaceAll('_', ' ')}
-                      </button>
-                      .
-                    </div>
-                  ) : null}
-                </div>
-              ),
-            },
-            {
-              id: 'datennetz',
-              label: 'Datennetz',
-              icon: Network,
-              badge: (
-                <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
-                  {portfolioSnapshot.weakLinks}
-                </span>
-              ),
-              content: <CrossModulePortfolioContent snapshot={portfolioSnapshot} />,
-            },
-          ]}
-        />
       }
     />
   );

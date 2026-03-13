@@ -1,7 +1,6 @@
 import { CheckCircle2, CircleDollarSign, Gauge, ShieldAlert } from 'lucide-react';
 
-import type { KpiStripItem } from '@/components/dashboard/kpi-strip';
-import { StatCard } from '@/components/dashboard/stat-card';
+import { KpiStrip, type KpiStripItem } from '@/components/dashboard/kpi-strip';
 import type { QuoteKpis } from '@/lib/angebote/types';
 
 function formatCurrency(value: number): string {
@@ -19,6 +18,7 @@ export function getAngeboteKpiItems(kpis: QuoteKpis): KpiStripItem[] {
       label: 'Pipeline Netto',
       value: formatCurrency(kpis.pipelineNet),
       subtitle: 'Offene Angebotswerte',
+      tone: 'teal',
     },
     {
       icon: ShieldAlert,
@@ -26,18 +26,21 @@ export function getAngeboteKpiItems(kpis: QuoteKpis): KpiStripItem[] {
       value: kpis.openApprovals,
       subtitle: 'Status IN_APPROVAL',
       accent: true,
+      tone: 'amber',
     },
     {
       icon: CheckCircle2,
       label: 'Konvertierungsquote',
       value: `${kpis.conversionRate.toFixed(1)}%`,
       subtitle: 'SENT -> CONVERTED',
+      tone: 'emerald',
     },
     {
       icon: Gauge,
       label: 'Durchschnittsmarge',
       value: `${kpis.averageMarginPercent.toFixed(1)}%`,
       subtitle: 'Alle Angebote',
+      tone: 'blue',
     },
   ];
 }
@@ -45,19 +48,5 @@ export function getAngeboteKpiItems(kpis: QuoteKpis): KpiStripItem[] {
 export function AngeboteKpiStrip({ kpis }: { kpis: QuoteKpis }) {
   const items = getAngeboteKpiItems(kpis);
 
-  return (
-    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-      {items.map((item) => (
-        <StatCard
-          key={item.label}
-          icon={item.icon}
-          label={item.label}
-          value={item.value}
-          subtitle={item.subtitle}
-          accent={item.accent}
-          compact
-        />
-      ))}
-    </div>
-  );
+  return <KpiStrip items={items} />;
 }

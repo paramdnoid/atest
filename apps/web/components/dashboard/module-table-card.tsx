@@ -38,15 +38,15 @@ export function ModuleTableCard({
 }: ModuleTableCardProps) {
   const toneCardClassName =
     tone === 'emphasis'
-      ? 'border-border/80 bg-sidebar/45 shadow-[0_1px_3px_color-mix(in_hsl,hsl(var(--primary))_10%,transparent)]'
+      ? 'border-border/80 bg-white shadow-[0_1px_3px_color-mix(in_hsl,hsl(var(--primary))_10%,transparent)]'
       : tone === 'muted'
-        ? 'border-border/60 bg-sidebar/20'
+        ? 'border-border/60 bg-white'
         : '';
   const toneBodyClassName =
     tone === 'emphasis'
-      ? 'bg-background/35'
+      ? 'bg-white'
       : tone === 'muted'
-        ? 'bg-background/20'
+        ? 'bg-white'
         : '';
 
   return (

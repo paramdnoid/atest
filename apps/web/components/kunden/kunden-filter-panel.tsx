@@ -27,6 +27,8 @@ type KundenFilterPanelProps = {
   recommendedViewId: KundenSavedViewId | null;
   onApplySavedView: (viewId: KundenSavedViewId) => void;
   onChange: (next: KundenFilters) => void;
+  hideSearch?: boolean;
+  compact?: boolean;
 };
 
 export function KundenFilterPanel({
@@ -38,9 +40,11 @@ export function KundenFilterPanel({
   recommendedViewId,
   onApplySavedView,
   onChange,
+  hideSearch = false,
+  compact = false,
 }: KundenFilterPanelProps) {
   return (
-    <div className="space-y-3">
+    <div className={compact ? 'space-y-2.5' : 'space-y-3'}>
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Saved Views</p>
         <div className="flex flex-wrap gap-2">
@@ -48,7 +52,7 @@ export function KundenFilterPanel({
             <Button
               key={view.id}
               size="sm"
-              className="h-8 px-3 text-xs"
+              className="h-8 bg-white px-3 text-xs"
               variant={activeSavedView === view.id ? 'default' : 'outline'}
               onClick={() => onApplySavedView(view.id)}
             >
@@ -68,11 +72,14 @@ export function KundenFilterPanel({
         ) : null}
       </div>
 
-      <Input
-        value={filters.query}
-        onChange={(event) => onChange({ ...filters, query: event.target.value })}
-        placeholder="Suche nach Kunde, Objekt, Kontakt..."
-      />
+      {!hideSearch ? (
+        <Input
+          value={filters.query}
+          onChange={(event) => onChange({ ...filters, query: event.target.value })}
+          className="bg-white"
+          placeholder="Suche nach Kunde, Objekt, Kontakt..."
+        />
+      ) : null}
 
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Status</p>
@@ -93,6 +100,7 @@ export function KundenFilterPanel({
 
       <div className="grid gap-2 sm:grid-cols-2">
         <FormSelect
+          className="bg-white"
           value={filters.owner}
           onChange={(event) => onChange({ ...filters, owner: event.target.value })}
         >
@@ -104,6 +112,7 @@ export function KundenFilterPanel({
           ))}
         </FormSelect>
         <FormSelect
+          className="bg-white"
           value={filters.region}
           onChange={(event) => onChange({ ...filters, region: event.target.value })}
         >
@@ -117,7 +126,7 @@ export function KundenFilterPanel({
       </div>
 
       <div className="space-y-2">
-        <label className="flex h-9 items-center gap-2 rounded-md border border-input px-3 text-sm leading-none">
+        <label className="flex h-9 items-center gap-2 rounded-md border border-input bg-white px-3 text-sm leading-none">
           <FormCheckbox
             checked={filters.onlySlaRisk}
             onChange={(checked) => onChange({ ...filters, onlySlaRisk: checked })}
@@ -125,7 +134,7 @@ export function KundenFilterPanel({
           />
           Nur SLA-Risiko
         </label>
-        <label className="flex h-9 items-center gap-2 rounded-md border border-input px-3 text-sm leading-none">
+        <label className="flex h-9 items-center gap-2 rounded-md border border-input bg-white px-3 text-sm leading-none">
           <FormCheckbox
             checked={filters.onlyConsentMissing}
             onChange={(checked) => onChange({ ...filters, onlyConsentMissing: checked })}

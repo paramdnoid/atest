@@ -223,7 +223,7 @@ export default function AbnahmeDetailPage() {
   const openDefects = getOpenDefects(record);
   const inProgressReworkCount = record.rework.filter((entry) => entry.status === 'IN_PROGRESS').length;
   const resolvedReworkCount = record.rework.filter((entry) => entry.status === 'DONE').length;
-  const tabPanelSplitClassName = 'grid gap-4 2xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,1fr)]';
+  const tabPanelSplitClassName = 'grid gap-4 2xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.85fr)]';
   const visibleTabs = baseVisibleTabs.map((tab) => {
     if (tab.id === 'defects') {
       return {
@@ -263,7 +263,7 @@ export default function AbnahmeDetailPage() {
       <ModulePageTemplate
         title="Abnahmeakte"
         description={`${record.number} · ${record.customerName} · ${record.projectName}`}
-        mainGridClassName="grid-cols-1 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,1fr)]"
+        mainGridClassName="grid-cols-1 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.85fr)]"
         actions={<DefectCaptureDrawer onAddDefect={onAddDefect} />}
         kpis={[]}
         sideContent={

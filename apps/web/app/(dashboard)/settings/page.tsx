@@ -9,9 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { beginPasskey, verifyPasskey } from '@/lib/auth-client';
 import { createRegistration } from '@/lib/webauthn';
-import { PageHeader } from '@/components/dashboard/page-header';
-import { DashboardCard, DashboardCardContent } from '@/components/dashboard/cards';
-import { ErrorBanner } from '@/components/dashboard/states';
+import { ModulePageTemplate } from '@/components/dashboard/module-page-template';
+import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 
 type MfaStatus = {
   mfaEnabled: boolean;
@@ -100,19 +99,16 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Einstellungen" description="Workspace-Konfiguration anpassen." />
-
-      {error && <ErrorBanner message={error} />}
-      <div className="premium-divider" />
-
-      <DashboardCard>
-        <DashboardCardContent className="p-6">
-          <div className="flex items-center gap-2.5">
-            <Shield className="h-5 w-5 text-muted-foreground" />
-            <h2 className="text-base font-semibold">Zwei-Faktor-Authentifizierung (MFA)</h2>
-          </div>
-          <p className="mt-2 text-sm text-muted-foreground">MFA schützt dein Konto mit einem zeitbasierten Einmalpasswort (TOTP).</p>
+    <ModulePageTemplate
+      title="Einstellungen"
+      description="Workspace-Konfiguration anpassen."
+      kpis={[]}
+      mainTopContent={error ? <p className="text-sm text-destructive">{error}</p> : undefined}
+      mainContent={
+        <ModuleTableCard icon={Shield} label="Sicherheit" title="Zwei-Faktor-Authentifizierung (MFA)" hasData>
+          <p className="text-sm text-muted-foreground">
+            MFA schützt dein Konto mit einem zeitbasierten Einmalpasswort (TOTP).
+          </p>
           <div className="mt-4 flex items-center gap-3">
             <Badge variant={mfa?.mfaEnabled ? 'default' : 'secondary'}>
               {mfa?.mfaEnabled ? 'Aktiviert' : 'Deaktiviert'}
@@ -121,43 +117,37 @@ export default function SettingsPage() {
               <p className="text-xs text-muted-foreground">MFA-Enrollment über die Anmeldungsseite verfügbar.</p>
             )}
           </div>
-        </DashboardCardContent>
-      </DashboardCard>
-
-      <DashboardCard>
-        <DashboardCardContent className="p-6">
-          <div className="flex items-center gap-2.5">
-            <KeyRound className="h-5 w-5 text-muted-foreground" />
-            <h2 className="text-base font-semibold">Passkey</h2>
-          </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Registriere einen hardwaregebundenen Passkey (WebAuthn) für passwortlose Anmeldung.
+        </ModuleTableCard>
+      }
+      sideContent={
+        <ModuleTableCard icon={KeyRound} label="Passkey" title="WebAuthn Registrierung" hasData>
+          <p className="text-sm text-muted-foreground">
+            Registriere einen hardwaregebundenen Passkey für passwortlose Anmeldung.
           </p>
-
           {!canUsePasskey ? (
             <p className="mt-4 text-sm text-amber-600">Passkeys werden in diesem Browser nicht unterstützt.</p>
           ) : (
-            <form className="mt-4" onSubmit={handlePasskeyRegister}>
+            <form className="mt-4 space-y-3" onSubmit={handlePasskeyRegister}>
               <Button type="submit" variant="outline" disabled={passkeyLoading || !email} className="gap-2">
                 <KeyRound className="h-4 w-4" />
                 {passkeyLoading ? 'Registrierung läuft…' : 'Neuen Passkey registrieren'}
               </Button>
               {passkeySuccess && (
-                <p className="mt-3 flex items-center gap-1.5 text-sm text-emerald-700">
+                <p className="flex items-center gap-1.5 text-sm text-emerald-700">
                   <CheckCircle2 className="h-4 w-4" />
                   {passkeySuccess}
                 </p>
               )}
               {passkeyError && (
-                <p className="mt-3 flex items-center gap-1.5 text-sm text-red-600">
+                <p className="flex items-center gap-1.5 text-sm text-red-600">
                   <AlertCircle className="h-4 w-4" />
                   {passkeyError}
                 </p>
               )}
             </form>
           )}
-        </DashboardCardContent>
-      </DashboardCard>
-    </div>
+        </ModuleTableCard>
+      }
+    />
   );
 }

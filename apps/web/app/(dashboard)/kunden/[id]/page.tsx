@@ -84,7 +84,7 @@ export default function KundenDetailPage() {
   const [duplicates, setDuplicates] = useState<DuplicateCandidate[]>(() =>
     kundenRolloutFlags.kundenDuplicateDetectionEnabled ? detectDuplicateCandidates(allRecords) : [],
   );
-  const detailSplitGridClassName = 'grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,1fr)]';
+  const detailSplitGridClassName = 'grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.85fr)]';
   const verknuepfungSnapshot = useMemo(
     () => getVerknuepfungSnapshot('KUNDEN', record?.id ?? ''),
     [record?.id],
@@ -158,6 +158,8 @@ export default function KundenDetailPage() {
       <PageHeader
         title="Kunden-Workspace"
         description={`${record.number} · ${record.name}`}
+        titleClassName="text-lg"
+        descriptionClassName="-mt-0.5"
       >
         <Button asChild variant="outline" size="sm">
           <Link href="/kunden">Zurueck zur Liste</Link>

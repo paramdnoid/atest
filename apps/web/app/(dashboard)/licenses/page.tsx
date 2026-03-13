@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { KeyRound, RefreshCw } from 'lucide-react';
+import { KeyRound, RefreshCw, ShieldCheck } from 'lucide-react';
 import { apiRequest } from '@/lib/api';
 import { getAccessToken } from '@/lib/session-token';
 import { LicenseSeatTable } from '@/components/license-seat-table';
 import { Button } from '@/components/ui/button';
-import { PageHeader } from '@/components/dashboard/page-header';
-import { EmptyState, ErrorBanner } from '@/components/dashboard/states';
+import { ModulePageTemplate } from '@/components/dashboard/module-page-template';
+import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 
 type Seat = {
   id: string;
@@ -61,11 +61,10 @@ export default function LicensesPage() {
   }, [fetchSeats]);
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Lizenzverwaltung"
-        description="Named seats, Entitlements und Auditierbarkeit pro Tenant."
-      >
+    <ModulePageTemplate
+      title="Lizenzverwaltung"
+      description="Named seats, Entitlements und Auditierbarkeit pro Tenant."
+      actions={
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={fetchSeats} className="gap-2">
             <RefreshCw className="h-3.5 w-3.5" />
@@ -73,25 +72,34 @@ export default function LicensesPage() {
           </Button>
           <Button size="sm">Seat zuweisen</Button>
         </div>
-      </PageHeader>
-
-      {error && <ErrorBanner message={error} />}
-
-      <div className="premium-divider" />
-
-      <section>
-        {loading ? (
-          <div className="premium-panel h-64 animate-pulse rounded-xl border border-border bg-muted/30" />
-        ) : seats.length === 0 ? (
-          <EmptyState
-            title="Keine Seats vorhanden"
-            description="Weisen Sie Mitarbeitern Lizenzen zu."
-            icon={<KeyRound className="h-8 w-8" />}
-          />
-        ) : (
+      }
+      kpis={[]}
+      mainContent={
+        <ModuleTableCard
+          icon={KeyRound}
+          label="Seats"
+          title="Lizenzzuweisungen"
+          hasData={!loading && seats.length > 0}
+          isLoading={loading}
+          errorMessage={error || undefined}
+          emptyState={{
+            icon: <KeyRound className="h-8 w-8" />,
+            title: 'Keine Seats vorhanden',
+            description: 'Weisen Sie Mitarbeitern Lizenzen zu.',
+          }}
+        >
           <LicenseSeatTable seats={seats} />
-        )}
-      </section>
-    </div>
+        </ModuleTableCard>
+      }
+      sideContent={
+        <ModuleTableCard icon={ShieldCheck} label="Kontrolle" title="Status" hasData>
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p>Aktiv: {seats.filter((seat) => seat.status === 'ACTIVE').length}</p>
+            <p>Ausstehend: {seats.filter((seat) => seat.status === 'PENDING').length}</p>
+            <p>Entzogen: {seats.filter((seat) => seat.status === 'REVOKED').length}</p>
+          </div>
+        </ModuleTableCard>
+      }
+    />
   );
 }

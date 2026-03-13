@@ -73,7 +73,7 @@ export default function AngebotDetailPage() {
   const [overviewContextTab, setOverviewContextTab] = useState<'insights' | 'datennetz'>('insights');
   const [record, setRecord] = useState<QuoteRecord | undefined>(initial);
   const [lastBlockers, setLastBlockers] = useState<string[]>([]);
-  const detailSplitGridClassName = 'grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,1fr)]';
+  const detailSplitGridClassName = 'grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.85fr)]';
   const verknuepfungSnapshot = useMemo(
     () => getVerknuepfungSnapshot('ANGEBOTE', record?.id ?? ''),
     [record?.id],
@@ -184,6 +184,8 @@ export default function AngebotDetailPage() {
       <PageHeader
         title="Angebots-Workspace"
         description={`${record.number} · ${record.customerName}`}
+        titleClassName="text-lg"
+        descriptionClassName="-mt-0.5"
       >
         <Button asChild variant="outline" size="sm">
           <Link href="/angebote">Zurueck zur Liste</Link>

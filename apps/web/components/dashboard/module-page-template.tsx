@@ -46,13 +46,18 @@ export function ModulePageTemplate({
 
   return (
     <div className={cn(dashboardUiTokens.pageStack, compact && 'space-y-4')}>
-      <PageHeader title={title} description={description} badge={badge}>
+      <PageHeader
+        title={title}
+        description={description}
+        badge={badge}
+        titleClassName="text-lg"
+        descriptionClassName="-mt-0.5"
+      >
         {actions}
       </PageHeader>
       <div
         className={cn(
           dashboardUiTokens.mainGrid,
-          compact && 'gap-3',
           !sideContent && 'xl:grid-cols-1',
           mainGridClassName,
         )}

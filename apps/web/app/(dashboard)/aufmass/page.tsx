@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { PlusCircle, Ruler, Search, X } from 'lucide-react';
+import { PlusCircle, Ruler } from 'lucide-react';
 
 import {
   AufmassListCommandBar,
@@ -11,11 +11,13 @@ import {
 import { AufmassListTable } from '@/components/aufmass/aufmass-list-table';
 import { AufmassOperationalSnapshot } from '@/components/aufmass/aufmass-operational-snapshot';
 import { AufmassRowContextRail } from '@/components/aufmass/aufmass-row-context-rail';
+import {
+  ModuleListHeaderControls,
+  type ModuleListFilterToken,
+} from '@/components/dashboard/module-list-header-controls';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { listAufmassRecordsSync } from '@/lib/aufmass/data-adapter';
 import { matchesAufmassQuery } from '@/lib/aufmass/selectors';
 import { getTransitionBlockers } from '@/lib/aufmass/state-machine';
@@ -104,7 +106,7 @@ export default function AufmassPage() {
       versionAtLeast2: false,
     });
 
-  const activeFilterTokens: Array<{ key: string; label: string; clear: () => void }> = [
+  const activeFilterTokens: ModuleListFilterToken[] = [
     filters.query.trim().length > 0
       ? {
           key: 'query',
@@ -172,16 +174,13 @@ export default function AufmassPage() {
           title="Tabellenansicht"
           titleClassName="text-[13px]"
           action={
-            <div className="relative w-80 max-w-[46vw]">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={filters.query}
-                  onChange={(event) => setFilters((prev) => ({ ...prev, query: event.target.value }))}
-                  className="h-8 rounded-md border-border/70 bg-background pl-8 pr-9 text-sm placeholder:text-xs"
-                  placeholder="Suche nach Nummer, Kunde, Projekt ..."
-                  aria-label="Aufmaßsuche"
-                />
-              <div className="absolute right-1 top-1/2 -translate-y-1/2">
+            <ModuleListHeaderControls
+              query={filters.query}
+              onQueryChange={(next) => setFilters((prev) => ({ ...prev, query: next }))}
+              queryPlaceholder="Suche nach Nummer, Kunde, Projekt ..."
+              queryAriaLabel="Aufmaßsuche"
+              showTokens={false}
+              inlineControl={
                 <AufmassListCommandBar
                   filters={filters}
                   onChange={setFilters}
@@ -195,37 +194,19 @@ export default function AufmassPage() {
                   chromeless
                   iconOnlyTrigger
                 />
-              </div>
-            </div>
+              }
+            />
           }
           headerBottomContent={
-            <div className="space-y-2">
-              {activeFilterTokens.length > 0 ? (
-                <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border/70 bg-background/70 px-2 py-1.5">
-                  {activeFilterTokens.map((token) => (
-                    <Badge key={token.key} variant="secondary" className="h-6 rounded-md px-1.5 text-[11px]">
-                      {token.label}
-                      <button
-                        type="button"
-                        onClick={token.clear}
-                        className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-sm text-muted-foreground hover:bg-background"
-                        aria-label={`Filter entfernen: ${token.label}`}
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 rounded-md px-1.5 text-[11px]"
-                    onClick={resetFilters}
-                  >
-                    Alle löschen
-                  </Button>
-                </div>
-              ) : null}
-            </div>
+            <ModuleListHeaderControls
+              query={filters.query}
+              onQueryChange={(next) => setFilters((prev) => ({ ...prev, query: next }))}
+              queryPlaceholder="Suche nach Nummer, Kunde, Projekt ..."
+              queryAriaLabel="Aufmaßsuche"
+              showSearch={false}
+              tokens={activeFilterTokens}
+              onResetAll={resetFilters}
+            />
           }
           hasData={displayRecords.length > 0}
           emptyState={{

@@ -117,7 +117,7 @@ function SidebarProvider({
               ...style,
             } as React.CSSProperties
           }
-          className={cn('group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex h-svh w-full', className)}
+          className={cn('group/sidebar-wrapper has-data-[variant=inset]:bg-white flex h-svh w-full', className)}
           {...props}
         >
           {children}
@@ -145,7 +145,7 @@ function Sidebar({
     return (
       <div
         data-slot="sidebar"
-        className={cn('bg-sidebar text-sidebar-foreground flex h-full w-(--sidebar-width) flex-col', className)}
+        className={cn('bg-white text-sidebar-foreground flex h-full w-(--sidebar-width) flex-col', className)}
         {...props}
       >
         {children}
@@ -160,7 +160,7 @@ function Sidebar({
           data-sidebar="sidebar"
           data-slot="sidebar"
           data-mobile="true"
-          className="bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden"
+          className="bg-white text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden"
           style={
             {
               '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
@@ -215,7 +215,7 @@ function Sidebar({
         <div
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
-          className="bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm"
+          className="bg-white group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm"
         >
           {children}
         </div>

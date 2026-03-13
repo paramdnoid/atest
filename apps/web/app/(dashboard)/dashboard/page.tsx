@@ -258,6 +258,7 @@ export default function DashboardPage() {
           value: data.memberCount,
           subtitle:
             data.memberCount === 1 ? 'Person im Workspace' : 'Personen im Workspace',
+          tone: 'blue',
         },
         {
           icon: CreditCard,
@@ -265,12 +266,14 @@ export default function DashboardPage() {
           value: data.planName,
           trialLabel: data.trialLabel ?? undefined,
           accent: true,
+          tone: 'primary',
         },
         {
           icon: ShieldCheck,
           label: 'Abo-Status',
           value: statusLabel,
           subtitle: statusSubtitle,
+          tone: 'emerald',
         },
       ]}
       mainContent={<RecentActivity events={data.recentEvents} className="h-full" />}

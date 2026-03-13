@@ -13,7 +13,7 @@ export function DashboardCard({
   return (
     <div
       className={cn(
-        'flex flex-col overflow-hidden rounded-xl border border-border bg-sidebar/40',
+        'flex flex-col overflow-hidden rounded-xl border border-border bg-white',
         className,
       )}
     >
