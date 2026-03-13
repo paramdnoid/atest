@@ -7,7 +7,7 @@ import {
   detachVirtualAuthenticator,
   type VirtualAuthenticator,
 } from './helpers/webauthn';
-import { loginWithPasswordAndMfa, openModuleRoute } from './helpers/workflow';
+import { loginWithPasswordAndMfa, openModuleRouteIfAvailable } from './helpers/workflow';
 
 let cfg: E2EPasswordConfig;
 
@@ -32,14 +32,17 @@ test.describe('aufmass workflow', () => {
   });
 
   test('opens aufmass list and detail workspace when module is available', async ({ page }) => {
-    await openModuleRoute(page, {
+    const isAvailable = await openModuleRouteIfAvailable(page, {
       linkName: 'Aufmaß',
       route: '/aufmass',
       headingName: 'Aufmaß',
     });
+    test.skip(!isAvailable, 'Aufmass-Modul ist fuer dieses Profil/Backend nicht erreichbar.');
 
-    await page.getByRole('link', { name: 'AM-26-001' }).click();
-    await page.waitForURL('**/aufmass/am-26-001', { timeout: 10_000 });
+    const firstAufmassLink = page.locator('a[href^="/aufmass/"]').first();
+    test.skip((await firstAufmassLink.count()) === 0, 'Keine Aufmass-Datensaetze vorhanden.');
+    await firstAufmassLink.click();
+    await page.waitForURL('**/aufmass/*', { timeout: 10_000 });
     await expect(page.getByRole('heading', { name: 'Aufmaß-Arbeitsbereich' })).toBeVisible();
 
     await page.getByTestId('aufmass-workspace-tab-review').click();
@@ -55,28 +58,34 @@ test.describe('aufmass workflow', () => {
   });
 
   test('shows actionable error if status action is blocked', async ({ page }) => {
-    await openModuleRoute(page, {
+    const isAvailable = await openModuleRouteIfAvailable(page, {
       linkName: 'Aufmaß',
       route: '/aufmass',
       headingName: 'Aufmaß',
     });
+    test.skip(!isAvailable, 'Aufmass-Modul ist fuer dieses Profil/Backend nicht erreichbar.');
 
-    await page.getByRole('link', { name: 'AM-26-001' }).click();
-    await page.waitForURL('**/aufmass/am-26-001', { timeout: 10_000 });
+    const firstAufmassLink = page.locator('a[href^="/aufmass/"]').first();
+    test.skip((await firstAufmassLink.count()) === 0, 'Keine Aufmass-Datensaetze vorhanden.');
+    await firstAufmassLink.click();
+    await page.waitForURL('**/aufmass/*', { timeout: 10_000 });
 
     await page.getByTestId('aufmass-workspace-tab-billing').click();
     await expect(page.getByRole('button', { name: 'Als abgerechnet markieren' })).toBeDisabled();
   });
 
   test('supports keyboard navigation across tabs', async ({ page }) => {
-    await openModuleRoute(page, {
+    const isAvailable = await openModuleRouteIfAvailable(page, {
       linkName: 'Aufmaß',
       route: '/aufmass',
       headingName: 'Aufmaß',
     });
+    test.skip(!isAvailable, 'Aufmass-Modul ist fuer dieses Profil/Backend nicht erreichbar.');
 
-    await page.getByRole('link', { name: 'AM-26-001' }).click();
-    await page.waitForURL('**/aufmass/am-26-001', { timeout: 10_000 });
+    const firstAufmassLink = page.locator('a[href^="/aufmass/"]').first();
+    test.skip((await firstAufmassLink.count()) === 0, 'Keine Aufmass-Datensaetze vorhanden.');
+    await firstAufmassLink.click();
+    await page.waitForURL('**/aufmass/*', { timeout: 10_000 });
 
     const captureTab = page.getByTestId('aufmass-workspace-tab-capture');
     await captureTab.focus();

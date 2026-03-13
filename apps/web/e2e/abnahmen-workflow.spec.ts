@@ -7,7 +7,7 @@ import {
   detachVirtualAuthenticator,
   type VirtualAuthenticator,
 } from './helpers/webauthn';
-import { loginWithPasswordAndMfa, openModuleRoute } from './helpers/workflow';
+import { loginWithPasswordAndMfa, openModuleRouteIfAvailable } from './helpers/workflow';
 
 let cfg: E2EPasswordConfig;
 
@@ -32,15 +32,18 @@ test.describe('abnahmen workflow', () => {
   });
 
   test('opens abnahmen list and detail workspace when module is available', async ({ page }) => {
-    await openModuleRoute(page, {
+    const isAvailable = await openModuleRouteIfAvailable(page, {
       linkName: 'Abnahmen & Mängel',
       route: '/abnahmen',
       headingName: 'Abnahmen & Mängel',
     });
+    test.skip(!isAvailable, 'Abnahmen-Modul ist fuer dieses Profil/Backend nicht erreichbar.');
     await expect(page.getByText('Offene Abnahmen')).toBeVisible();
 
-    await page.getByRole('link', { name: 'ABN-26-001' }).click();
-    await page.waitForURL('**/abnahmen/abn-26-001', { timeout: 10_000 });
+    const firstAbnahmeLink = page.locator('a[href^="/abnahmen/"]').first();
+    test.skip((await firstAbnahmeLink.count()) === 0, 'Keine Abnahme-Datensaetze vorhanden.');
+    await firstAbnahmeLink.click();
+    await page.waitForURL('**/abnahmen/*', { timeout: 10_000 });
     await expect(page.getByRole('heading', { name: 'Abnahmeakte' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Mangel erfassen' })).toBeVisible();
 

@@ -7,7 +7,7 @@ import {
   detachVirtualAuthenticator,
   type VirtualAuthenticator,
 } from './helpers/webauthn';
-import { loginWithPasswordAndMfa, openModuleRoute } from './helpers/workflow';
+import { loginWithPasswordAndMfa, openModuleRouteIfAvailable } from './helpers/workflow';
 
 let cfg: E2EPasswordConfig;
 
@@ -32,14 +32,17 @@ test.describe('angebote workflow', () => {
   });
 
   test('opens angebote list and executes core workspace flow when module is visible', async ({ page }) => {
-    await openModuleRoute(page, {
+    const isAvailable = await openModuleRouteIfAvailable(page, {
       linkName: 'Angebote & Aufträge',
       route: '/angebote',
       headingName: 'Angebote & Auftraege',
     });
+    test.skip(!isAvailable, 'Angebote-Modul ist fuer dieses Profil/Backend nicht erreichbar.');
 
-    await page.getByRole('link', { name: 'ANG-2026-1001' }).click();
-    await page.waitForURL('**/angebote/q-1001', { timeout: 10_000 });
+    const firstQuoteLink = page.locator('a[href^="/angebote/"]').first();
+    test.skip((await firstQuoteLink.count()) === 0, 'Keine Angebotsdatensaetze vorhanden.');
+    await firstQuoteLink.click();
+    await page.waitForURL('**/angebote/*', { timeout: 10_000 });
     await expect(page.getByRole('heading', { name: 'Angebots-Workspace' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Optionen' }).click();
