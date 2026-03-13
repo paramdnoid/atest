@@ -157,7 +157,65 @@ export function AngeboteListTable({
 
   return (
     <div className="space-y-2">
-      <div className="max-h-128 overflow-auto rounded-lg border border-border/60 bg-background/80">
+      <div className="space-y-2 xl:hidden">
+        {pagedRecords.map((record) => {
+          const totals = getQuoteTotals(record);
+          const isHighlighted = highlightedId === record.id;
+          const isSelected = selectedIds.includes(record.id);
+          return (
+            <div
+              key={record.id}
+              className={
+                isSelected
+                  ? 'rounded-lg border border-border/80 bg-muted/55 p-3 ring-1 ring-border/80'
+                  : isHighlighted
+                    ? 'rounded-lg border border-border/70 bg-muted/40 p-3 ring-1 ring-border/60'
+                    : 'rounded-lg border border-border/70 bg-background/80 p-3'
+              }
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <Link
+                    href={`/angebote/${record.id}`}
+                    className="font-mono text-xs font-semibold text-primary/95 hover:text-primary hover:underline"
+                  >
+                    {record.number}
+                  </Link>
+                  {isHighlighted ? <p className="mt-0.5 text-[10px] font-medium text-primary">Vorschlag</p> : null}
+                </div>
+                <FormCheckbox
+                  checked={isSelected}
+                  onChange={() => onToggleSelected(record.id)}
+                  ariaLabel={`Angebot ${record.number} auswaehlen`}
+                />
+              </div>
+              <p className="mt-2 text-sm font-semibold">{record.customerName}</p>
+              <p className="text-sm text-muted-foreground">{record.projectName}</p>
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <AngeboteStatusBadge status={record.status} />
+                <span className={totals.marginPercent < 18 ? 'text-xs text-amber-700' : 'text-xs text-emerald-700'}>
+                  Marge: {totals.marginPercent.toFixed(1)}%
+                </span>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                <span>Gueltig bis: {formatDate(record.validUntil)}</span>
+                <span>Netto: {formatCurrency(totals.totalNet)}</span>
+                <span>{record.owner}</span>
+              </div>
+              <div className="mt-3">
+                <Button asChild size="sm" className="w-full">
+                  <Link href={`/angebote/${record.id}`}>
+                    <FilePenLine className="h-3.5 w-3.5" />
+                    Öffnen
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden max-h-128 overflow-auto rounded-lg border border-border/60 bg-background/80 xl:block">
         <Table className="min-w-305 table-auto">
           <TableHeader className="sticky top-0 z-10 bg-slate-100/95 backdrop-blur supports-backdrop-filter:bg-slate-100/95 dark:bg-slate-900/95">
             <TableRow className="hover:bg-transparent">
@@ -307,25 +365,30 @@ export function AngeboteListTable({
           </TableBody>
         </Table>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-muted-foreground">
         <div className="flex flex-wrap items-center gap-3">
-          <span>
+          <span className="hidden md:inline">
             {records.length} {isSearchActive ? 'Treffer' : 'Einträge'} · {selectedIds.length} markiert
           </span>
-          <span>
+          <span className="hidden md:inline">
             Seite {safePage} von {totalPages}
           </span>
+          <span className="block md:hidden">
+            Seite {safePage}/{totalPages} · {selectedIds.length} markiert
+          </span>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2 w-full sm:w-auto">
           {selectedIds.length > 0 ? (
-            <Button size="sm" className="h-7 min-w-43" onClick={onRunBatchReadyForReview}>
+            <Button size="sm" className="h-7 min-w-43 flex-1 sm:flex-none" onClick={onRunBatchReadyForReview}>
               <Workflow className="h-4 w-4" />
-              {selectedIds.length} zur Pruefung
+              <span className="hidden sm:inline">{selectedIds.length} zur Prüfung</span>
+              <span className="sm:hidden">{selectedIds.length}x</span>
             </Button>
           ) : (
-            <Button size="sm" variant="outline" className="h-7 min-w-43" disabled>
+            <Button size="sm" variant="outline" className="h-7 min-w-43 flex-1 sm:flex-none" disabled>
               <Workflow className="h-4 w-4" />
-              Batch zur Pruefung
+              <span className="hidden sm:inline">Batch zur Prüfung</span>
+              <span className="sm:hidden">Batch</span>
             </Button>
           )}
           <Button
@@ -333,16 +396,20 @@ export function AngeboteListTable({
             variant="default"
             disabled={safePage <= 1}
             onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+            className="flex-1 sm:flex-none"
           >
-            Zurück
+            <span className="hidden sm:inline">Zurück</span>
+            <span className="sm:hidden">‹</span>
           </Button>
           <Button
             size="sm"
             variant="default"
             disabled={safePage >= totalPages}
             onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+            className="flex-1 sm:flex-none"
           >
-            Weiter
+            <span className="hidden sm:inline">Weiter</span>
+            <span className="sm:hidden">›</span>
           </Button>
         </div>
       </div>

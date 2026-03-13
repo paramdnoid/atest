@@ -17,8 +17,10 @@ export type KpiStripItem = {
 export function KpiStrip({ items, dense = false }: { items: KpiStripItem[]; dense?: boolean }) {
   const gridClassName =
     items.length === 3
-      ? 'grid gap-2 grid-cols-1 [@media(min-width:480px)]:grid-cols-3'
-      : dashboardUiTokens.kpiGrid;
+      ? 'grid gap-2 grid-cols-1 sm:grid-cols-3'
+      : items.length === 4
+        ? 'grid gap-2 grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
+        : dashboardUiTokens.kpiGrid;
 
   return (
     <div className={cn(gridClassName)}>
