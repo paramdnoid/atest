@@ -36,6 +36,13 @@ import java.util.UUID;
 @RequestMapping("/v1/auth")
 public class AuthController {
 
+    private static final String CACHE_CONTROL_NO_STORE = "no-store, no-cache, must-revalidate, max-age=0";
+    private static final String PRAGMA_NO_CACHE = "no-cache";
+    private static final String EXPIRES_IMMEDIATELY = "0";
+    private static final String INVALID_CREDENTIALS_MESSAGE = "Invalid credentials";
+    private static final String INVALID_REFRESH_TOKEN_MESSAGE = "Invalid refresh token";
+    private static final String INVALID_MFA_MESSAGE = "Invalid MFA verification";
+
     private final IdentityService identityService;
     private final JwtService jwtService;
     private final AuthCookieService authCookieService;
@@ -145,6 +152,10 @@ public class AuthController {
         @RequestHeader(value = "X-Forwarded-For", required = false) String forwardedFor,
         HttpServletRequest servletRequest
     ) {
+        if (request == null || !hasText(request.email()) || !hasText(request.password())) {
+            return badRequest("Email and password required");
+        }
+
         AuthRateLimitService.RateLimitDecision rateLimit = authRateLimitService.checkLogin(
             request.email(),
             clientFingerprint(forwardedFor, servletRequest),
@@ -157,8 +168,10 @@ public class AuthController {
         try {
             LoginResult result = identityService.login(request.email(), request.password());
             return withLoginResult(result);
+        } catch (IllegalArgumentException ex) {
+            return unauthorized(INVALID_CREDENTIALS_MESSAGE);
         } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", ex.getMessage()));
+            return unauthorized(INVALID_CREDENTIALS_MESSAGE);
         }
     }
 
@@ -168,6 +181,17 @@ public class AuthController {
         @RequestHeader(value = "X-Forwarded-For", required = false) String forwardedFor,
         HttpServletRequest servletRequest
     ) {
+        if (request == null || !hasText(request.email())) {
+            return badRequest("Email required");
+        }
+
+        PasskeyMode mode;
+        try {
+            mode = parsePasskeyMode(request.mode());
+        } catch (IllegalArgumentException ex) {
+            return badRequest(ex.getMessage());
+        }
+
         AuthRateLimitService.RateLimitDecision rateLimit = authRateLimitService.checkPasskey(
             request.email(),
             clientFingerprint(forwardedFor, servletRequest),
@@ -178,7 +202,6 @@ public class AuthController {
         }
 
         try {
-            PasskeyMode mode = "register".equalsIgnoreCase(request.mode()) ? PasskeyMode.REGISTER : PasskeyMode.AUTHENTICATE;
             PasskeyBeginResult result = identityService.beginPasskey(request.email(), mode);
             return ResponseEntity.ok(Map.of(
                 "challenge", result.challenge(),
@@ -186,8 +209,10 @@ public class AuthController {
                 "mode", result.mode().name().toLowerCase(),
                 "options", result.optionsJson()
             ));
+        } catch (IllegalArgumentException ex) {
+            return badRequest(safeMessage(ex, "Invalid passkey request"));
         } catch (Exception ex) {
-            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+            return badRequest("Invalid passkey request");
         }
     }
 
@@ -197,6 +222,20 @@ public class AuthController {
         @RequestHeader(value = "X-Forwarded-For", required = false) String forwardedFor,
         HttpServletRequest servletRequest
     ) {
+        if (request == null
+            || !hasText(request.email())
+            || !hasText(request.challengeId())
+            || !hasText(request.credentialJson())) {
+            return badRequest("email, challengeId and credentialJson required");
+        }
+
+        PasskeyMode mode;
+        try {
+            mode = parsePasskeyMode(request.mode());
+        } catch (IllegalArgumentException ex) {
+            return badRequest(ex.getMessage());
+        }
+
         AuthRateLimitService.RateLimitDecision rateLimit = authRateLimitService.checkPasskey(
             request.email(),
             clientFingerprint(forwardedFor, servletRequest),
@@ -207,11 +246,12 @@ public class AuthController {
         }
 
         try {
-            PasskeyMode mode = "register".equalsIgnoreCase(request.mode()) ? PasskeyMode.REGISTER : PasskeyMode.AUTHENTICATE;
             LoginResult result = identityService.verifyPasskey(request.email(), request.challengeId(), request.credentialJson(), mode);
             return withLoginResult(result);
+        } catch (IllegalArgumentException ex) {
+            return unauthorized(INVALID_CREDENTIALS_MESSAGE);
         } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", ex.getMessage()));
+            return unauthorized(INVALID_CREDENTIALS_MESSAGE);
         }
     }
 
@@ -222,7 +262,7 @@ public class AuthController {
     ) {
         try {
             if (authorization == null || !authorization.startsWith("Bearer ")) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Missing bearer token"));
+                return unauthorized("Missing bearer token");
             }
 
             UUID requestedUserId = UUID.fromString(request.userId());
@@ -237,8 +277,10 @@ public class AuthController {
                 "provisioningUri", enrollment.provisioningUri(),
                 "backupCodes", enrollment.backupCodes()
             ));
+        } catch (IllegalArgumentException ex) {
+            return badRequest(safeMessage(ex, "Invalid MFA enable request"));
         } catch (Exception ex) {
-            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+            return badRequest("Invalid MFA enable request");
         }
     }
 
@@ -248,6 +290,13 @@ public class AuthController {
         @RequestHeader(value = "X-Forwarded-For", required = false) String forwardedFor,
         HttpServletRequest servletRequest
     ) {
+        if (request == null || !hasText(request.userId()) || !hasText(request.mfaToken())) {
+            return badRequest("userId and mfaToken required");
+        }
+        if (!hasText(request.code()) && !hasText(request.backupCode()) && !hasText(request.emailCode())) {
+            return badRequest("One verification code is required");
+        }
+
         AuthRateLimitService.RateLimitDecision rateLimit = authRateLimitService.checkMfa(
             request.userId(),
             clientFingerprint(forwardedFor, servletRequest),
@@ -268,15 +317,17 @@ public class AuthController {
 
             ResponseCookie cookie = authCookieService.buildRefreshCookie(result.refreshToken());
 
-            return ResponseEntity.ok()
+            return noStore(ResponseEntity.ok())
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(Map.of(
                     "verified", result.verified(),
                     "accessToken", result.accessToken(),
                     "expiresAt", result.accessTokenExpiresAt().toString()
                 ));
+        } catch (IllegalArgumentException ex) {
+            return unauthorized(INVALID_MFA_MESSAGE);
         } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", ex.getMessage()));
+            return unauthorized(INVALID_MFA_MESSAGE);
         }
     }
 
@@ -286,7 +337,7 @@ public class AuthController {
         @RequestHeader(value = "X-Forwarded-For", required = false) String forwardedFor,
         HttpServletRequest servletRequest
     ) {
-        if (request.userId() == null || request.mfaToken() == null) {
+        if (request == null || !hasText(request.userId()) || !hasText(request.mfaToken())) {
             return ResponseEntity.badRequest().body(Map.of("error", "userId and mfaToken required"));
         }
 
@@ -302,8 +353,10 @@ public class AuthController {
         try {
             identityService.sendMfaEmailCode(UUID.fromString(request.userId()), request.mfaToken());
             return ResponseEntity.ok(Map.of("sent", true));
+        } catch (IllegalArgumentException ex) {
+            return badRequest(safeMessage(ex, "Invalid MFA email request"));
         } catch (Exception ex) {
-            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+            return badRequest("Invalid MFA email request");
         }
     }
 
@@ -359,7 +412,7 @@ public class AuthController {
         }
 
         if (refreshToken == null || refreshToken.isBlank()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Missing refresh token"));
+            return unauthorized("Missing refresh token");
         }
 
         AuthRateLimitService.RateLimitDecision rateLimit = authRateLimitService.checkRefreshLike(
@@ -375,14 +428,16 @@ public class AuthController {
             RefreshResult result = identityService.refreshToken(refreshToken);
             ResponseCookie cookie = authCookieService.buildRefreshCookie(result.refreshToken());
 
-            return ResponseEntity.ok()
+            return noStore(ResponseEntity.ok())
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(Map.of(
                     "accessToken", result.accessToken(),
                     "expiresAt", result.accessTokenExpiresAt().toString()
                 ));
+        } catch (IllegalArgumentException ex) {
+            return unauthorized(INVALID_REFRESH_TOKEN_MESSAGE);
         } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", ex.getMessage()));
+            return unauthorized(INVALID_REFRESH_TOKEN_MESSAGE);
         }
     }
 
@@ -398,7 +453,7 @@ public class AuthController {
             refreshToken = extractCookie(cookieHeader, AuthCookieService.REFRESH_COOKIE);
         }
         if (refreshToken == null || refreshToken.isBlank()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Missing refresh token"));
+            return unauthorized("Missing refresh token");
         }
 
         AuthRateLimitService.RateLimitDecision rateLimit = authRateLimitService.checkRefreshLike(
@@ -412,7 +467,7 @@ public class AuthController {
 
         boolean revoked = identityService.logout(refreshToken);
         if (!revoked) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid refresh token"));
+            return unauthorized(INVALID_REFRESH_TOKEN_MESSAGE);
         }
 
         return ResponseEntity.ok()
@@ -441,7 +496,7 @@ public class AuthController {
 
         boolean revoked = identityService.revokeTokenFamily(body.refreshToken());
         if (!revoked) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid refresh token"));
+            return unauthorized(INVALID_REFRESH_TOKEN_MESSAGE);
         }
 
         return ResponseEntity.ok(Map.of("revoked", true));
@@ -449,7 +504,7 @@ public class AuthController {
 
     private ResponseEntity<?> withLoginResult(LoginResult result) {
         if (result.mfaRequired()) {
-            return ResponseEntity.ok(Map.of(
+            return noStore(ResponseEntity.ok()).body(Map.of(
                 "state", "MFA_REQUIRED",
                 "userId", result.userId().toString(),
                 "tenantId", result.tenantId().toString(),
@@ -460,7 +515,7 @@ public class AuthController {
 
         ResponseCookie cookie = authCookieService.buildRefreshCookie(result.refreshToken());
 
-        return ResponseEntity.ok()
+        return noStore(ResponseEntity.ok())
             .header(HttpHeaders.SET_COOKIE, cookie.toString())
             .body(Map.of(
                 "state", "AUTHENTICATED",
@@ -485,6 +540,7 @@ public class AuthController {
 
     private ResponseEntity<Map<String, Object>> rateLimited(String action, long retryAfterSeconds) {
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+            .header(HttpHeaders.RETRY_AFTER, String.valueOf(retryAfterSeconds))
             .body(Map.of(
                 "error",
                 "rate_limited",
@@ -508,6 +564,45 @@ public class AuthController {
             }
         }
         return request.getRemoteAddr() == null ? "unknown" : request.getRemoteAddr();
+    }
+
+    private ResponseEntity.BodyBuilder noStore(ResponseEntity.BodyBuilder builder) {
+        return builder
+            .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_NO_STORE)
+            .header(HttpHeaders.PRAGMA, PRAGMA_NO_CACHE)
+            .header(HttpHeaders.EXPIRES, EXPIRES_IMMEDIATELY);
+    }
+
+    private ResponseEntity<Map<String, String>> badRequest(String message) {
+        return ResponseEntity.badRequest().body(Map.of("error", message));
+    }
+
+    private ResponseEntity<Map<String, String>> unauthorized(String message) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", message));
+    }
+
+    private String safeMessage(Exception ex, String fallback) {
+        if (ex.getMessage() == null || ex.getMessage().isBlank()) {
+            return fallback;
+        }
+        return ex.getMessage();
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private PasskeyMode parsePasskeyMode(String value) {
+        if (!hasText(value)) {
+            throw new IllegalArgumentException("mode required");
+        }
+        if ("register".equalsIgnoreCase(value)) {
+            return PasskeyMode.REGISTER;
+        }
+        if ("authenticate".equalsIgnoreCase(value)) {
+            return PasskeyMode.AUTHENTICATE;
+        }
+        throw new IllegalArgumentException("Unsupported passkey mode");
     }
 
     public record LoginHttpRequest(String email, String password) {
