@@ -9,21 +9,10 @@ type OpenModuleOptions = {
   headingName: string;
 };
 
-type LoginOptions = {
-  mockProfileId?: string;
-};
-
 export async function loginWithPasswordAndMfa(
   page: Page,
   cfg: E2EPasswordConfig,
-  options?: LoginOptions,
 ): Promise<void> {
-  if (options?.mockProfileId) {
-    await page.addInitScript((profileId) => {
-      window.localStorage.setItem('zg_mock_profile_id', profileId);
-    }, options.mockProfileId);
-  }
-
   await page.goto('/signin');
   await expect(page.getByRole('heading', { name: 'Willkommen zurück.' })).toBeVisible();
 

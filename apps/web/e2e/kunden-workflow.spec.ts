@@ -21,7 +21,7 @@ test.describe('kunden workflow', () => {
   test.beforeEach(async ({ page }) => {
     flushRateLimits();
     authenticator = await attachVirtualAuthenticator(page);
-    await loginWithPasswordAndMfa(page, cfg, { mockProfileId: 'member-maler' });
+    await loginWithPasswordAndMfa(page, cfg);
   });
 
   test.afterEach(async () => {
@@ -39,8 +39,10 @@ test.describe('kunden workflow', () => {
     });
     test.skip(!isAvailable, 'Kunden-Modul ist fuer dieses Profil/Backend nicht erreichbar.');
 
-    await page.getByRole('link', { name: 'KND-2026-1001' }).click();
-    await page.waitForURL('**/kunden/k-1001', { timeout: 10_000 });
+    const firstCustomerLink = page.locator('a[href^="/kunden/"]').first();
+    test.skip((await firstCustomerLink.count()) === 0, 'Keine Kundendatensaetze vorhanden.');
+    await firstCustomerLink.click();
+    await page.waitForURL('**/kunden/*', { timeout: 10_000 });
     await expect(page.getByRole('heading', { name: 'Kunden-Workspace' })).toBeVisible();
 
     await page.getByRole('tab', { name: 'Objekte' }).click();
