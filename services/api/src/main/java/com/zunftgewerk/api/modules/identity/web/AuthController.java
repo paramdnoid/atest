@@ -42,6 +42,12 @@ public class AuthController {
     private static final String INVALID_CREDENTIALS_MESSAGE = "Invalid credentials";
     private static final String INVALID_REFRESH_TOKEN_MESSAGE = "Invalid refresh token";
     private static final String INVALID_MFA_MESSAGE = "Invalid MFA verification";
+    private static final String INVALID_SIGNUP_MESSAGE = "Invalid signup request";
+    private static final String INVALID_RESET_MESSAGE = "Invalid reset token or password";
+    private static final String INVALID_PASSKEY_REQUEST_MESSAGE = "Invalid passkey request";
+    private static final String INVALID_MFA_ENABLE_MESSAGE = "Invalid MFA enable request";
+    private static final String INVALID_MFA_EMAIL_MESSAGE = "Invalid MFA email request";
+    private static final String INVALID_MFA_DISABLE_MESSAGE = "Invalid MFA disable request";
 
     private final IdentityService identityService;
     private final JwtService jwtService;
@@ -71,7 +77,8 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody SignupHttpRequest request) {
-        if (request.email() == null || request.email().isBlank()
+        if (request == null
+            || request.email() == null || request.email().isBlank()
             || request.password() == null || request.password().length() < 12
             || request.workspaceName() == null || request.workspaceName().isBlank()
             || request.planCode() == null || request.planCode().isBlank()) {
@@ -100,9 +107,9 @@ public class AuthController {
             return ResponseEntity.ok(Map.of("message", "Verification email sent"));
         } catch (IllegalArgumentException ex) {
             if ("User already exists".equals(ex.getMessage())) {
-                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "User already exists"));
             }
-            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+            return badRequest(INVALID_SIGNUP_MESSAGE);
         } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Registration failed"));
         }
@@ -124,7 +131,7 @@ public class AuthController {
 
     @PostMapping("/request-password-reset")
     public ResponseEntity<?> requestPasswordReset(@RequestBody PasswordResetRequestHttpRequest request) {
-        if (request.email() == null || request.email().isBlank()) {
+        if (request == null || request.email() == null || request.email().isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Email required"));
         }
         // Always returns success to prevent user enumeration.
@@ -134,7 +141,8 @@ public class AuthController {
 
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordHttpRequest request) {
-        if (request.token() == null || request.token().isBlank()
+        if (request == null
+            || request.token() == null || request.token().isBlank()
             || request.password() == null || request.password().length() < 12) {
             return ResponseEntity.badRequest().body(Map.of("error", "Token and password (min 12 chars) required"));
         }
@@ -142,7 +150,7 @@ public class AuthController {
             identityService.resetPassword(request.token(), request.password());
             return ResponseEntity.ok(Map.of("message", "Password updated"));
         } catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+            return badRequest(INVALID_RESET_MESSAGE);
         }
     }
 
@@ -189,7 +197,7 @@ public class AuthController {
         try {
             mode = parsePasskeyMode(request.mode());
         } catch (IllegalArgumentException ex) {
-            return badRequest(ex.getMessage());
+            return badRequest("Unsupported passkey mode");
         }
 
         AuthRateLimitService.RateLimitDecision rateLimit = authRateLimitService.checkPasskey(
@@ -210,9 +218,9 @@ public class AuthController {
                 "options", result.optionsJson()
             ));
         } catch (IllegalArgumentException ex) {
-            return badRequest(safeMessage(ex, "Invalid passkey request"));
+            return badRequest(INVALID_PASSKEY_REQUEST_MESSAGE);
         } catch (Exception ex) {
-            return badRequest("Invalid passkey request");
+            return badRequest(INVALID_PASSKEY_REQUEST_MESSAGE);
         }
     }
 
@@ -233,7 +241,7 @@ public class AuthController {
         try {
             mode = parsePasskeyMode(request.mode());
         } catch (IllegalArgumentException ex) {
-            return badRequest(ex.getMessage());
+            return badRequest("Unsupported passkey mode");
         }
 
         AuthRateLimitService.RateLimitDecision rateLimit = authRateLimitService.checkPasskey(
@@ -260,6 +268,9 @@ public class AuthController {
         @RequestBody EnableMfaHttpRequest request,
         @RequestHeader(value = "Authorization", required = false) String authorization
     ) {
+        if (request == null || !hasText(request.userId())) {
+            return badRequest("userId required");
+        }
         try {
             if (authorization == null || !authorization.startsWith("Bearer ")) {
                 return unauthorized("Missing bearer token");
@@ -278,9 +289,9 @@ public class AuthController {
                 "backupCodes", enrollment.backupCodes()
             ));
         } catch (IllegalArgumentException ex) {
-            return badRequest(safeMessage(ex, "Invalid MFA enable request"));
+            return badRequest(INVALID_MFA_ENABLE_MESSAGE);
         } catch (Exception ex) {
-            return badRequest("Invalid MFA enable request");
+            return badRequest(INVALID_MFA_ENABLE_MESSAGE);
         }
     }
 
@@ -338,7 +349,7 @@ public class AuthController {
         HttpServletRequest servletRequest
     ) {
         if (request == null || !hasText(request.userId()) || !hasText(request.mfaToken())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "userId and mfaToken required"));
+            return badRequest("userId and mfaToken required");
         }
 
         AuthRateLimitService.RateLimitDecision rateLimit = authRateLimitService.checkMfaEmailSend(
@@ -354,9 +365,9 @@ public class AuthController {
             identityService.sendMfaEmailCode(UUID.fromString(request.userId()), request.mfaToken());
             return ResponseEntity.ok(Map.of("sent", true));
         } catch (IllegalArgumentException ex) {
-            return badRequest(safeMessage(ex, "Invalid MFA email request"));
+            return badRequest(INVALID_MFA_EMAIL_MESSAGE);
         } catch (Exception ex) {
-            return badRequest("Invalid MFA email request");
+            return badRequest(INVALID_MFA_EMAIL_MESSAGE);
         }
     }
 
@@ -370,8 +381,7 @@ public class AuthController {
         java.util.Optional<RefreshTokenService.PeekedSession> session =
             refreshTokenService.peekUser(rawToken);
         if (session.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(Map.of("error", "Nicht authentifiziert"));
+            return unauthorized("Not authenticated");
         }
         boolean enabled = identityService.getMfaStatus(session.get().userId());
         return ResponseEntity.ok(Map.of("mfaEnabled", enabled));
@@ -382,20 +392,21 @@ public class AuthController {
         @RequestBody DisableMfaHttpRequest request,
         @RequestHeader(value = "Authorization", required = false) String authorization
     ) {
+        if (request == null || (!hasText(request.code()) && !hasText(request.backupCode()))) {
+            return badRequest("One verification code is required");
+        }
         try {
             if (authorization == null || !authorization.startsWith("Bearer ")) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Bearer-Token fehlt"));
+                return unauthorized("Missing bearer token");
             }
             JwtPrincipal principal = jwtService.verifyAccessToken(
                 authorization.substring("Bearer ".length()));
             identityService.disableMfa(principal.userId(), request.code(), request.backupCode());
             return ResponseEntity.ok(Map.of("disabled", true));
         } catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+            return badRequest(INVALID_MFA_DISABLE_MESSAGE);
         } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "MFA-Deaktivierung fehlgeschlagen"));
+            return badRequest(INVALID_MFA_DISABLE_MESSAGE);
         }
     }
 
@@ -482,7 +493,7 @@ public class AuthController {
         HttpServletRequest servletRequest
     ) {
         if (body == null || body.refreshToken() == null || body.refreshToken().isBlank()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Missing refresh token"));
+            return badRequest("Missing refresh token");
         }
 
         AuthRateLimitService.RateLimitDecision rateLimit = authRateLimitService.checkRefreshLike(
@@ -579,13 +590,6 @@ public class AuthController {
 
     private ResponseEntity<Map<String, String>> unauthorized(String message) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", message));
-    }
-
-    private String safeMessage(Exception ex, String fallback) {
-        if (ex.getMessage() == null || ex.getMessage().isBlank()) {
-            return fallback;
-        }
-        return ex.getMessage();
     }
 
     private boolean hasText(String value) {
