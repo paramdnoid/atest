@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Building2, ChevronDown, Network, PlusCircle, SlidersHorizontal, X } from 'lucide-react';
 
@@ -35,11 +35,6 @@ const defaultFilters: KundenFilters = {
 
 export default function KundenPage() {
   const searchParams = useSearchParams();
-  const [records] = useState(() => getKundenRecords());
-  const [filters, setFilters] = useState<KundenFilters>(defaultFilters);
-  const [activeSavedView, setActiveSavedView] = useState<KundenSavedViewId | null>(null);
-  const [filtersAdvancedOpen, setFiltersAdvancedOpen] = useState(false);
-  const [activeContextPanel, setActiveContextPanel] = useState<'workflow' | 'datennetz'>('workflow');
   const handoffFrom = searchParams.get('handoffFrom');
   const handoffQuery = [
     searchParams.get('handoffCustomer'),
@@ -48,6 +43,12 @@ export default function KundenPage() {
   ]
     .filter((entry): entry is string => Boolean(entry))
     .join(' ');
+  const initialQuery = handoffFrom && handoffQuery.trim().length > 0 ? handoffQuery : '';
+  const [records] = useState(() => getKundenRecords());
+  const [filters, setFilters] = useState<KundenFilters>({ ...defaultFilters, query: initialQuery });
+  const [activeSavedView, setActiveSavedView] = useState<KundenSavedViewId | null>(null);
+  const [filtersAdvancedOpen, setFiltersAdvancedOpen] = useState(false);
+  const [activeContextPanel, setActiveContextPanel] = useState<'workflow' | 'datennetz'>('workflow');
 
   const filteredRecords = useMemo(() => filterKunden(records, filters), [records, filters]);
   const handoffSuggestionId = searchParams.get('handoffSuggestionId') ?? undefined;
@@ -224,12 +225,6 @@ export default function KundenPage() {
       onlyConsentMissing: false,
     }));
   };
-
-  useEffect(() => {
-    if (!handoffFrom || handoffQuery.trim().length === 0) return;
-    setActiveSavedView(null);
-    setFilters((prev) => (prev.query === handoffQuery ? prev : { ...prev, query: handoffQuery }));
-  }, [handoffFrom, handoffQuery]);
 
   return (
     <ModulePageTemplate

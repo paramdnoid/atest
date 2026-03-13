@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ChevronDown, ClipboardCheck, Filter, Network, ShieldCheck, SlidersHorizontal, X } from 'lucide-react';
+import { ChevronDown, ClipboardCheck, Network, ShieldCheck, SlidersHorizontal, X } from 'lucide-react';
 
 import { getAbnahmenKpiItems } from '@/components/abnahmen/abnahmen-kpi-strip';
 import { AbnahmenListTable } from '@/components/abnahmen/abnahmen-list-table';
@@ -15,7 +15,6 @@ import {
 import { ModulePageTemplate } from '@/components/dashboard/module-page-template';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { filterAbnahmen } from '@/lib/abnahmen/selectors';
 import { getAbnahmenRecords } from '@/lib/abnahmen/mock-data';
 import { getVerknuepfungPortfolioSnapshot } from '@/lib/auftragsabwicklung/cross-module-intelligence';
@@ -24,9 +23,18 @@ import { cn } from '@/lib/utils';
 
 export default function AbnahmenPage() {
   const searchParams = useSearchParams();
+  const handoffFrom = searchParams.get('handoffFrom');
+  const handoffQuery = [
+    searchParams.get('handoffCustomer'),
+    searchParams.get('handoffProject'),
+    searchParams.get('handoffSite'),
+  ]
+    .filter((entry): entry is string => Boolean(entry))
+    .join(' ');
+  const initialQuery = handoffFrom && handoffQuery.trim().length > 0 ? handoffQuery : '';
   const records = useMemo(() => getAbnahmenRecords(), []);
   const [filters, setFilters] = useState<AbnahmenFilters>({
-    query: '',
+    query: initialQuery,
     status: 'ALL',
     onlyCritical: false,
     onlyOverdue: false,
@@ -44,19 +52,6 @@ export default function AbnahmenPage() {
       return 0;
     });
   }, [filteredRecords, handoffSuggestionId]);
-  const handoffFrom = searchParams.get('handoffFrom');
-  const handoffQuery = [
-    searchParams.get('handoffCustomer'),
-    searchParams.get('handoffProject'),
-    searchParams.get('handoffSite'),
-  ]
-    .filter((entry): entry is string => Boolean(entry))
-    .join(' ');
-
-  useEffect(() => {
-    if (!handoffFrom || handoffQuery.trim().length === 0) return;
-    setFilters((prev) => (prev.query === handoffQuery ? prev : { ...prev, query: handoffQuery }));
-  }, [handoffFrom, handoffQuery]);
   const portfolioSnapshot = useMemo(
     () => getVerknuepfungPortfolioSnapshot('ABNAHMEN', displayRecords.map((entry) => entry.id)),
     [displayRecords],

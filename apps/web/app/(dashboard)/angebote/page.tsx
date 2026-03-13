@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ChevronDown, Columns3, FileText, Network, PlusCircle, SlidersHorizontal, Workflow, X } from 'lucide-react';
 
@@ -63,8 +63,17 @@ function appendAudit(record: QuoteRecord, detail: string): QuoteRecord {
 
 export default function AngebotePage() {
   const searchParams = useSearchParams();
+  const handoffFrom = searchParams.get('handoffFrom');
+  const handoffQuery = [
+    searchParams.get('handoffCustomer'),
+    searchParams.get('handoffProject'),
+    searchParams.get('handoffSite'),
+  ]
+    .filter((entry): entry is string => Boolean(entry))
+    .join(' ');
+  const initialQuery = handoffFrom && handoffQuery.trim().length > 0 ? handoffQuery : '';
   const [records, setRecords] = useState(() => getQuoteRecords());
-  const [filters, setFilters] = useState<QuoteFilters>(defaultFilters);
+  const [filters, setFilters] = useState<QuoteFilters>({ ...defaultFilters, query: initialQuery });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [activeSavedView, setActiveSavedView] = useState<QuoteSavedViewId | null>(null);
   const [filtersAdvancedOpen, setFiltersAdvancedOpen] = useState(false);
@@ -89,14 +98,6 @@ export default function AngebotePage() {
       return 0;
     });
   }, [filteredRecords, handoffSuggestionId]);
-  const handoffFrom = searchParams.get('handoffFrom');
-  const handoffQuery = [
-    searchParams.get('handoffCustomer'),
-    searchParams.get('handoffProject'),
-    searchParams.get('handoffSite'),
-  ]
-    .filter((entry): entry is string => Boolean(entry))
-    .join(' ');
   const owners = useMemo(
     () => Array.from(new Set(records.map((record) => record.owner))).sort((a, b) => a.localeCompare(b)),
     [records],
@@ -203,12 +204,6 @@ export default function AngebotePage() {
         }
       : null,
   ].filter((token): token is ModuleListFilterToken => token !== null);
-
-  useEffect(() => {
-    if (!handoffFrom || handoffQuery.trim().length === 0) return;
-    setActiveSavedView(null);
-    setFilters((prev) => (prev.query === handoffQuery ? prev : { ...prev, query: handoffQuery }));
-  }, [handoffFrom, handoffQuery]);
 
   return (
     <ModulePageTemplate

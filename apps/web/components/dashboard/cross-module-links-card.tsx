@@ -45,7 +45,6 @@ export function CrossModuleLinksCard({
   context: VerknuepfungsKontext;
   title?: string;
 }) {
-  const handoffActions = getHandoffActions(context);
   return (
     <ModuleTableCard icon={Link2} label="Prozessgraph" title={title} hasData>
       <CrossModuleLinksContent snapshot={snapshot} context={context} />

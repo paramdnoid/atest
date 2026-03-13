@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown, FilePenLine, Workflow } from 'lucide-react';
 
 import { getSemanticBadgeClass } from '@/components/dashboard/semantic-badge';
@@ -34,6 +34,41 @@ type SortField =
   | 'margin'
   | 'totalNet';
 type SortDirection = 'asc' | 'desc';
+
+function SortIcon({ field, sortField, sortDirection }: { field: SortField; sortField: SortField; sortDirection: SortDirection }) {
+  if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/80" />;
+  return sortDirection === 'asc' ? (
+    <ArrowUp className="h-3.5 w-3.5 text-primary" />
+  ) : (
+    <ArrowDown className="h-3.5 w-3.5 text-primary" />
+  );
+}
+
+function SortButton({
+  field,
+  label,
+  sortField,
+  sortDirection,
+  onSort,
+}: {
+  field: SortField;
+  label: string;
+  sortField: SortField;
+  sortDirection: SortDirection;
+  onSort: (field: SortField) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(field)}
+      className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600 hover:text-foreground dark:text-slate-300"
+      aria-label={`${label} sortieren`}
+    >
+      {label}
+      <SortIcon field={field} sortField={sortField} sortDirection={sortDirection} />
+    </button>
+  );
+}
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('de-DE', {
@@ -121,39 +156,16 @@ export function AngeboteListTable({
   const allVisibleSelected =
     pagedRecords.length > 0 && pagedRecords.every((record) => selectedIds.includes(record.id));
 
-  useEffect(() => {
-    setPage(1);
-  }, [records, sortDirection, sortField]);
-
   const toggleSort = (nextField: SortField) => {
     if (sortField === nextField) {
       setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      setPage(1);
       return;
     }
     setSortField(nextField);
     setSortDirection('asc');
+    setPage(1);
   };
-
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/80" />;
-    return sortDirection === 'asc' ? (
-      <ArrowUp className="h-3.5 w-3.5 text-primary" />
-    ) : (
-      <ArrowDown className="h-3.5 w-3.5 text-primary" />
-    );
-  };
-
-  const SortButton = ({ field, label }: { field: SortField; label: string }) => (
-    <button
-      type="button"
-      onClick={() => toggleSort(field)}
-      className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600 hover:text-foreground dark:text-slate-300"
-      aria-label={`${label} sortieren`}
-    >
-      {label}
-      <SortIcon field={field} />
-    </button>
-  );
 
   return (
     <div className="space-y-2">
@@ -227,44 +239,44 @@ export function AngeboteListTable({
                 />
               </TableHead>
               <TableHead className="w-32.5 px-3 py-2.5">
-                <SortButton field="number" label="Nummer" />
+                <SortButton field="number" label="Nummer" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
               </TableHead>
               {visibleColumns.includes('customer') && (
                 <TableHead className="min-w-55 px-3 py-2.5">
-                  <SortButton field="customer" label="Kunde" />
+                  <SortButton field="customer" label="Kunde" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
                 </TableHead>
               )}
               {visibleColumns.includes('project') && (
                 <TableHead className="min-w-55 px-3 py-2.5">
-                  <SortButton field="project" label="Projekt" />
+                  <SortButton field="project" label="Projekt" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
                 </TableHead>
               )}
               {visibleColumns.includes('priority') && (
                 <TableHead className="w-27.5 px-3 py-2.5">
-                  <SortButton field="priority" label="Prioritaet" />
+                  <SortButton field="priority" label="Prioritaet" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
                 </TableHead>
               )}
               {visibleColumns.includes('owner') && (
                 <TableHead className="w-37.5 px-3 py-2.5">
-                  <SortButton field="owner" label="Verantwortlich" />
+                  <SortButton field="owner" label="Verantwortlich" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
                 </TableHead>
               )}
               <TableHead className="w-47.5 px-3 py-2.5">
-                <SortButton field="status" label="Status" />
+                <SortButton field="status" label="Status" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
               </TableHead>
               {visibleColumns.includes('validUntil') && (
                 <TableHead className="w-32.5 px-3 py-2.5">
-                  <SortButton field="validUntil" label="Gueltig bis" />
+                  <SortButton field="validUntil" label="Gueltig bis" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
                 </TableHead>
               )}
               {visibleColumns.includes('margin') && (
                 <TableHead className="w-25 px-3 py-2.5">
-                  <SortButton field="margin" label="Marge" />
+                  <SortButton field="margin" label="Marge" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
                 </TableHead>
               )}
               {visibleColumns.includes('totalNet') && (
                 <TableHead className="w-35 px-3 py-2.5 text-right">
-                  <SortButton field="totalNet" label="Netto" />
+                  <SortButton field="totalNet" label="Netto" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
                 </TableHead>
               )}
               <TableHead className="w-27.5 px-3 py-2.5 text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">Aktion</TableHead>
@@ -368,7 +380,7 @@ export function AngeboteListTable({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-muted-foreground">
         <div className="flex flex-wrap items-center gap-3">
           <span className="hidden md:inline">
-            {records.length} {isSearchActive ? 'Treffer' : 'Einträge'} · {selectedIds.length} markiert
+            {(isSearchActive ? records.length : totalEntries)} {isSearchActive ? 'Treffer' : 'Einträge'} · {selectedIds.length} markiert
           </span>
           <span className="hidden md:inline">
             Seite {safePage} von {totalPages}
