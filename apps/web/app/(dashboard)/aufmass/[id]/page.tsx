@@ -53,6 +53,24 @@ function appendAudit(
   ];
 }
 
+type StatusPrimaryAction = {
+  label: string;
+  shortLabel: string;
+  icon: typeof Send;
+  to?: AufmassStatus;
+  detail?: string;
+  disabled?: boolean;
+  disabledReason?: string;
+};
+
+type BlockerEntry = {
+  id: string;
+  title: string;
+  workspace: AufmassWorkspaceTab;
+  issueId?: string;
+  roomId?: string;
+};
+
 export default function AufmassDetailPage() {
   const params = useParams<{ id: string }>();
   const [activeWorkspace, setActiveWorkspace] = useState<AufmassWorkspaceTab>('capture');
@@ -139,6 +157,86 @@ export default function AufmassDetailPage() {
   const canApprove = record.status === 'IN_REVIEW' && effectiveReviewBlockers.length === 0;
   const billingBlockers = getTransitionBlockers(record, 'BILLED');
   const canBill = record.status === 'APPROVED' && billingBlockers.length === 0;
+  const helperTextByStatus: Record<AufmassStatus, string> = {
+    DRAFT: 'Erfassen und zur Prüfung übergeben.',
+    IN_REVIEW: 'Blocker lösen und Freigabe abschließen.',
+    APPROVED: 'Abrechnungsvorschau prüfen und abrechnen.',
+    BILLED: 'Abgeschlossen und revisionssicher dokumentiert.',
+  };
+
+  const primaryActionByStatus: Record<AufmassStatus, StatusPrimaryAction> = {
+    DRAFT: {
+      label: 'In Prüfung senden',
+      shortLabel: 'Prüfung',
+      icon: Send,
+      to: 'IN_REVIEW',
+      detail: 'Zur Prüfung übergeben.',
+      disabled: !canSubmitReview,
+      disabledReason: submitReviewBlockers[0],
+    },
+    IN_REVIEW: {
+      label: 'Als freigegeben markieren',
+      shortLabel: 'Freigeben',
+      icon: CheckCircle2,
+      to: 'APPROVED',
+      detail: 'Freigabe aus Prüfablauf gesetzt.',
+      disabled: !canApprove,
+      disabledReason: effectiveReviewBlockers[0],
+    },
+    APPROVED: {
+      label: 'Als abgerechnet markieren',
+      shortLabel: 'Abrechnen',
+      icon: CreditCard,
+      to: 'BILLED',
+      detail: 'Abrechnungsvorschau abgeschlossen.',
+      disabled: !canBill,
+      disabledReason: billingBlockers[0],
+    },
+    BILLED: {
+      label: 'Abrechnung abgeschlossen',
+      shortLabel: 'Abgeschlossen',
+      icon: CheckCircle2,
+      disabled: true,
+      disabledReason: 'Aufmaß ist bereits abgerechnet.',
+    },
+  };
+
+  const primaryAction = primaryActionByStatus[record.status];
+  const blockingReviewIssues = reviewIssues.filter((issue) => issue.severity === 'blocking');
+  const genericReviewBlockers = effectiveReviewBlockers.filter(
+    (entry) => !blockingReviewIssues.some((issue) => issue.title === entry),
+  );
+
+  const blockersByStatus: Record<AufmassStatus, BlockerEntry[]> = {
+    DRAFT: submitReviewBlockers.map((blocker, index) => ({
+      id: `draft-blocker-${index}`,
+      title: blocker,
+      workspace: 'capture',
+    })),
+    IN_REVIEW: [
+      ...blockingReviewIssues.map((issue) => ({
+        id: issue.id,
+        title: issue.title,
+        workspace: 'review' as const,
+        issueId: issue.id,
+        roomId: issue.roomId,
+      })),
+      ...genericReviewBlockers.map((blocker, index) => ({
+        id: `review-blocker-${index}`,
+        title: blocker,
+        workspace: 'review' as const,
+      })),
+    ],
+    APPROVED: billingBlockers.map((blocker, index) => ({
+      id: `billing-blocker-${index}`,
+      title: blocker,
+      workspace: 'billing',
+    })),
+    BILLED: [],
+  };
+  const activeBlockers = blockersByStatus[record.status];
+  const topBlockers = activeBlockers.slice(0, 3);
+  const PrimaryActionIcon = primaryAction.icon;
 
   const setStatus = (to: AufmassStatus, detail: string) => {
     const result = transitionRecordStatus(record, to);
@@ -159,6 +257,23 @@ export default function AufmassDetailPage() {
           }
         : prev,
     );
+  };
+
+  const jumpToWorkspaceBlocker = (blocker: BlockerEntry) => {
+    if (blocker.roomId) {
+      setActiveRoomId(blocker.roomId);
+    }
+    setActiveWorkspace(blocker.workspace);
+    if (blocker.issueId) {
+      setActiveReviewIssueId(blocker.issueId);
+      return;
+    }
+    window.setTimeout(() => {
+      const target = document.getElementById(`aufmass-workspace-panel-${blocker.workspace}`);
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      target.focus?.();
+    }, 80);
   };
 
   const onAddMeasurement = (measurement: AufmassMeasurement) => {
@@ -235,54 +350,92 @@ export default function AufmassDetailPage() {
         description={
           <div className="flex w-full min-w-0 items-center gap-2">
             <AufmassStatusBadge status={record.status} />
-            <span className="min-w-0 flex-1 truncate" title={`${record.customerName} · ${record.projectName}`}>
-              {record.customerName} · {record.projectName}
+            <span
+              className="min-w-0 flex-1 truncate"
+              title={`${record.customerName} · ${record.projectName} · ${helperTextByStatus[record.status]}`}
+            >
+              {record.customerName} · {record.projectName} · {helperTextByStatus[record.status]}
             </span>
           </div>
         }
         titleClassName="text-lg"
         descriptionClassName="-mt-0.5"
       >
-        {record.status === 'DRAFT' ? (
+        <Button
+          size="sm"
+          onClick={() => {
+            if (!primaryAction.to || !primaryAction.detail) return;
+            setStatus(primaryAction.to, primaryAction.detail);
+          }}
+          disabled={primaryAction.disabled}
+          aria-label={primaryAction.label}
+          title={primaryAction.disabledReason ?? primaryAction.label}
+        >
+          <PrimaryActionIcon className="h-4 w-4" />
+          <span className="hidden lg:inline ml-2">{primaryAction.label}</span>
+          <span className="lg:hidden ml-2">{primaryAction.shortLabel}</span>
+        </Button>
+        {record.status === 'IN_REVIEW' ? (
           <Button
             size="sm"
-            onClick={() => setStatus('IN_REVIEW', 'Zur Prüfung übergeben.')}
-            disabled={!canSubmitReview}
-            aria-label="In Prüfung senden"
-            title="In Prüfung senden"
+            variant="outline"
+            onClick={() => setStatus('DRAFT', 'Zurück in Entwurf gesetzt.')}
+            aria-label="Zurück zu Entwurf"
+            title="Zurück zu Entwurf"
           >
-            <Send className="h-4 w-4" />
-            <span className="hidden lg:inline ml-2">In Prüfung senden</span>
+            <RotateCcw className="h-4 w-4" />
           </Button>
-        ) : null}
-        {record.status === 'IN_REVIEW' ? (
-          <>
-            <Button
-              size="sm"
-              onClick={() => setStatus('APPROVED', 'Freigabe aus Prüfablauf gesetzt.')}
-              disabled={!canApprove}
-              aria-label="Als freigegeben markieren"
-              title="Als freigegeben markieren"
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              <span className="hidden lg:inline ml-2">Als freigegeben markieren</span>
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setStatus('DRAFT', 'Zurück in Entwurf gesetzt.')}
-              aria-label="Zurück zu Entwurf"
-              title="Zurück zu Entwurf"
-            >
-              <RotateCcw className="h-4 w-4" />
-            </Button>
-          </>
         ) : null}
       </PageHeader>
 
       <div className="space-y-3">
         <AufmassKpiStrip record={record} />
       </div>
+
+      {activeBlockers.length > 0 ? (
+        <section
+          className="sticky top-2 z-20 rounded-lg border border-amber-300/50 bg-amber-50/85 p-2.5 backdrop-blur"
+          aria-label="Offene Blocker"
+          data-testid="aufmass-blocker-banner"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <p className="flex items-center gap-1 text-xs font-semibold text-amber-900/90">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Offene Blocker: {activeBlockers.length}
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                if (!topBlockers[0]) return;
+                jumpToWorkspaceBlocker(topBlockers[0]);
+              }}
+            >
+              Zur Prüfung
+            </Button>
+          </div>
+          <div className="mt-2 space-y-1.5">
+            {topBlockers.map((blocker) => (
+              <button
+                key={blocker.id}
+                type="button"
+                className="flex w-full items-center justify-between rounded-md border border-amber-300/40 bg-white/85 px-2 py-1.5 text-left text-xs text-amber-900 transition hover:bg-amber-50"
+                onClick={() => jumpToWorkspaceBlocker(blocker)}
+              >
+                <span className="truncate">{blocker.title}</span>
+                <span className="ml-2 shrink-0 text-[10px] uppercase tracking-[0.08em] text-amber-800/80">
+                  {blocker.workspace === 'capture' ? 'Erfassung' : blocker.workspace === 'review' ? 'Prüfung' : 'Abrechnung'}
+                </span>
+              </button>
+            ))}
+            {activeBlockers.length > topBlockers.length ? (
+              <p className="text-[11px] text-amber-800/80">
+                +{activeBlockers.length - topBlockers.length} weitere Blocker vorhanden.
+              </p>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       {statusError ? (
         <ModuleTableCard icon={ClipboardList} label="Statuswechsel" title="Aktion nicht möglich" tone="emphasis" hasData>
@@ -315,6 +468,7 @@ export default function AufmassDetailPage() {
           id={`aufmass-workspace-panel-${activeWorkspace}`}
           role="tabpanel"
           aria-labelledby={`aufmass-workspace-tab-${activeWorkspace}`}
+          tabIndex={-1}
           className="space-y-3"
         >
           {activeWorkspace === 'capture' ? (

@@ -1,5 +1,5 @@
 import { CreditCard, DraftingCompass, ShieldCheck } from 'lucide-react';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ComponentType, KeyboardEvent, ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,12 @@ const tabs: Array<{
   { ...AUFMASS_WORKSPACE_TABS[2], icon: CreditCard },
 ];
 
+const guidanceText: Record<AufmassWorkspaceTab, string> = {
+  capture: 'Erfassen: Räume und Messwerte vollständig aufnehmen.',
+  review: 'Prüfen: Blocker lösen und Freigaberegeln abschließen.',
+  billing: 'Abrechnen: Vorschau prüfen und Abschluss ausführen.',
+};
+
 export function AufmassWorkspaceTabs({
   activeTab,
   onChange,
@@ -49,6 +55,7 @@ export function AufmassWorkspaceTabs({
   });
   const tabListRef = useRef<HTMLDivElement | null>(null);
   const [indicator, setIndicator] = useState({ x: 0, width: 0, ready: false });
+  const activeIndex = useMemo(() => tabs.findIndex((tab) => tab.id === activeTab), [activeTab]);
 
   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
     const nextTab = getWorkspaceTabByKey(currentIndex, event.key);
@@ -87,73 +94,85 @@ export function AufmassWorkspaceTabs({
     return () => observer.disconnect();
   }, [syncIndicator, reviewBadge]);
 
+  useEffect(() => {
+    const activeNode = tabRefs.current[activeTab];
+    if (!activeNode) return;
+    activeNode.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+  }, [activeTab]);
+
   return (
     <div className={cn('flex min-w-0 items-center gap-2', inline ? '' : 'rounded-lg border border-border/60 bg-background/70 p-1.5')}>
-      <div className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div
-          ref={tabListRef}
-          className="relative flex min-w-max items-center gap-1 rounded-lg border border-border/70 bg-muted/40 p-1"
-          role="tablist"
-          aria-label="Aufmaß Arbeitsbereiche"
-        >
-          <span
-            aria-hidden
-            className={cn(
-              'pointer-events-none absolute top-1 left-0 h-8 rounded-md border border-border/80 bg-white shadow-sm motion-reduce:transition-none',
-              indicator.ready ? 'opacity-100 transition-[transform,width,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]' : 'opacity-0',
-            )}
-            style={{
-              width: `${indicator.width}px`,
-              transform: `translateX(${indicator.x}px)`,
-            }}
-          />
+      <div className="min-w-0 flex-1">
+        <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div
+            ref={tabListRef}
+            className="relative flex min-w-max items-center gap-1 rounded-lg border border-border/70 bg-muted/40 p-1"
+            role="tablist"
+            aria-label="Aufmaß Arbeitsbereiche"
+          >
+            <span
+              aria-hidden
+              className={cn(
+                'pointer-events-none absolute top-1 left-0 h-8 rounded-md border border-border/80 bg-white shadow-sm motion-reduce:transition-none',
+                indicator.ready ? 'opacity-100 transition-[transform,width,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]' : 'opacity-0',
+              )}
+              style={{
+                width: `${indicator.width}px`,
+                transform: `translateX(${indicator.x}px)`,
+              }}
+            />
 
-          {tabs.map((tab, index) => {
-            const Icon = tab.icon;
-            const isActive = tab.id === activeTab;
-            const tabId = `aufmass-workspace-tab-${tab.id}`;
-            const panelId = `aufmass-workspace-panel-${tab.id}`;
-            const showReviewBadge = hasReviewBadge(tab.id, reviewBadge);
-            const badgeLabel = showReviewBadge ? getReviewBadgeLabel(reviewBadge) : undefined;
+            {tabs.map((tab, index) => {
+              const Icon = tab.icon;
+              const isActive = tab.id === activeTab;
+              const tabId = `aufmass-workspace-tab-${tab.id}`;
+              const panelId = `aufmass-workspace-panel-${tab.id}`;
+              const showReviewBadge = hasReviewBadge(tab.id, reviewBadge);
+              const badgeLabel = showReviewBadge ? getReviewBadgeLabel(reviewBadge) : undefined;
 
-            return (
-              <Button
-                key={tab.id}
-                id={tabId}
-                data-testid={`aufmass-workspace-tab-${tab.id}`}
-                size="sm"
-                variant="ghost"
-                role="tab"
-                aria-selected={isActive}
-                aria-controls={panelId}
-                aria-label={getTabAriaLabel(tab.id, tab.label, reviewBadge)}
-                className={cn(
-                  'relative z-10 h-8 border border-transparent px-2 lg:px-3 text-[11px] font-medium transition-colors duration-150 ease-out focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1',
-                  isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
-                )}
-                onClick={() => onChange(tab.id)}
-                tabIndex={isActive ? 0 : -1}
-                onKeyDown={(event) => onKeyDown(event, index)}
-                ref={(node) => {
-                  tabRefs.current[tab.id] = node;
-                }}
-              >
-                <Icon className={cn('h-4 w-4', isActive ? 'text-foreground' : 'text-muted-foreground')} />
-                <span className="hidden lg:inline ml-2">{tab.label}</span>
-                {showReviewBadge ? (
-                  <span
-                    className="ml-1 rounded-full border border-border/70 bg-background px-1.5 py-0 font-mono text-[10px] leading-none text-muted-foreground transition duration-150 ease-out hidden lg:inline"
-                    aria-label={badgeLabel}
-                  >
-                    {reviewBadge}
-                  </span>
-                ) : null}
-              </Button>
-            );
-          })}
+              return (
+                <Button
+                  key={tab.id}
+                  id={tabId}
+                  data-testid={`aufmass-workspace-tab-${tab.id}`}
+                  size="sm"
+                  variant="ghost"
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls={panelId}
+                  aria-label={getTabAriaLabel(tab.id, tab.label, reviewBadge)}
+                  className={cn(
+                    'relative z-10 h-8 border border-transparent px-2 lg:px-3 text-[11px] font-medium transition-colors duration-150 ease-out focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1',
+                    isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+                  )}
+                  onClick={() => onChange(tab.id)}
+                  tabIndex={isActive ? 0 : -1}
+                  onKeyDown={(event) => onKeyDown(event, index)}
+                  ref={(node) => {
+                    tabRefs.current[tab.id] = node;
+                  }}
+                >
+                  <Icon className={cn('h-4 w-4', isActive ? 'text-foreground' : 'text-muted-foreground')} />
+                  <span className="hidden lg:inline ml-2">{tab.label}</span>
+                  {showReviewBadge ? (
+                    <span
+                      className="ml-1 hidden rounded-full border border-rose-300/60 bg-rose-50 px-1.5 py-0 font-mono text-[10px] leading-none text-rose-700 transition duration-150 ease-out lg:inline"
+                      aria-label={badgeLabel}
+                      title="Blockierende Prüfpunkte"
+                    >
+                      {reviewBadge}
+                    </span>
+                  ) : null}
+                </Button>
+              );
+            })}
 
-          {quickCaptureSlot ? <div className="relative z-10 ml-1 shrink-0">{quickCaptureSlot}</div> : null}
+            {quickCaptureSlot ? <div className="relative z-10 ml-1 shrink-0">{quickCaptureSlot}</div> : null}
+          </div>
         </div>
+        <p className="mt-1.5 truncate text-[11px] text-muted-foreground" data-testid="aufmass-workspace-guidance">
+          {guidanceText[tabs[activeIndex]?.id ?? 'capture']}
+        </p>
       </div>
 
       {!quickCaptureSlot && onQuickCapture ? (

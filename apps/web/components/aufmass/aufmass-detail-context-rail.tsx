@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Brain, History } from 'lucide-react';
+import { Brain, ChevronDown, ChevronUp, History } from 'lucide-react';
 
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { dashboardUiTokens } from '@/components/dashboard/ui-tokens';
@@ -103,19 +103,64 @@ export function AufmassDetailContextRail({
   onOpenHistory,
 }: AufmassDetailContextRailProps) {
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
+  const [desktopExpanded, setDesktopExpanded] = useState(false);
+
+  const compactDesktopView = (
+    <div className="space-y-2.5">
+      <section className="rounded-lg border border-border/60 bg-white p-2.5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Analyse</p>
+        <p className="mt-1 font-mono text-xl font-semibold">{snapshot.readinessScore}/100</p>
+        <p className="mt-1 text-xs text-muted-foreground">{snapshot.nextBestActions[0] ?? 'Nächste Schritte sind verfügbar.'}</p>
+      </section>
+      <div className="grid grid-cols-2 gap-2">
+        <Button size="sm" variant="outline" className="rounded-lg" onClick={onOpenHistory}>
+          <History className="h-3.5 w-3.5 mr-1.5" />
+          Historie
+        </Button>
+        <Button size="sm" variant="outline" className="rounded-lg" onClick={() => setDesktopExpanded(true)}>
+          Mehr Kontext
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
     <>
       {/* Desktop Context Rail */}
       <div className={cn(dashboardUiTokens.contextRailStack, "hidden xl:block")}>
-        <ModuleTableCard icon={Brain} label="Kontext" title="Analyse, Datennetz und Historie" tone="muted" hasData>
-          <ContextContent
-            record={record}
-            snapshot={snapshot}
-            verknuepfungSnapshot={verknuepfungSnapshot}
-            onOpenHistory={onOpenHistory}
-            isMobile={false}
-          />
+        <ModuleTableCard
+          icon={Brain}
+          label={desktopExpanded ? 'Kontext' : 'Kontext kompakt'}
+          title={desktopExpanded ? 'Analyse, Datennetz und Historie' : 'Analyse und Schnellzugriffe'}
+          tone="muted"
+          hasData
+          action={
+            <Button size="sm" variant="outline" onClick={() => setDesktopExpanded((prev) => !prev)}>
+              {desktopExpanded ? (
+                <>
+                  <ChevronUp className="h-3.5 w-3.5 mr-1.5" />
+                  Kompakt
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-3.5 w-3.5 mr-1.5" />
+                  Erweitern
+                </>
+              )}
+            </Button>
+          }
+        >
+          {desktopExpanded ? (
+            <ContextContent
+              record={record}
+              snapshot={snapshot}
+              verknuepfungSnapshot={verknuepfungSnapshot}
+              onOpenHistory={onOpenHistory}
+              isMobile={false}
+            />
+          ) : (
+            compactDesktopView
+          )}
         </ModuleTableCard>
       </div>
 

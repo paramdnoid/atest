@@ -23,7 +23,7 @@ test('getWorkspaceTabByKey unterstuetzt Home und End', () => {
 test('review badge helper erzeugen konsistente labels', () => {
   assert.equal(hasReviewBadge('review', 2), true);
   assert.equal(hasReviewBadge('capture', 2), false);
-  assert.equal(getTabAriaLabel('review', 'Prüfung', 3), 'Prüfung, 3 offene Prüfblocker');
-  assert.equal(getTabAriaLabel('billing', 'Abrechnung', 3), 'Abrechnung');
+  assert.equal(getTabAriaLabel('review', 'Prüfen', 3), 'Prüfen, 3 offene Prüfblocker');
+  assert.equal(getTabAriaLabel('billing', 'Abrechnen', 3), 'Abrechnen');
   assert.equal(getReviewBadgeLabel(4), '4 offene Prüfblocker');
 });

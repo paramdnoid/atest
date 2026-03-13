@@ -4,9 +4,9 @@ export const AUFMASS_WORKSPACE_TABS: ReadonlyArray<{
   id: AufmassWorkspaceTab;
   label: string;
 }> = [
-  { id: 'capture', label: 'Erfassung' },
-  { id: 'review', label: 'Prüfung' },
-  { id: 'billing', label: 'Abrechnung' },
+  { id: 'capture', label: 'Erfassen' },
+  { id: 'review', label: 'Prüfen' },
+  { id: 'billing', label: 'Abrechnen' },
 ];
 
 export function getWorkspaceTabByKey(

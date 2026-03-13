@@ -43,11 +43,13 @@ test.describe('aufmass workflow', () => {
     await expect(page.getByRole('heading', { name: 'Aufmaß-Arbeitsbereich' })).toBeVisible();
 
     await page.getByTestId('aufmass-workspace-tab-review').click();
-    await expect(page.getByRole('tabpanel', { name: /Prüfung/ })).toBeVisible();
-    await expect(page.getByText('Freigaberegeln')).toBeVisible();
+    await expect(page.locator('#aufmass-workspace-panel-review')).toBeVisible();
+    await expect(
+      page.locator('#aufmass-workspace-panel-review summary').filter({ hasText: 'Freigaberegeln' }),
+    ).toBeVisible();
 
     await page.getByTestId('aufmass-workspace-tab-billing').click();
-    await expect(page.getByRole('tabpanel', { name: /Abrechnung/ })).toBeVisible();
+    await expect(page.locator('#aufmass-workspace-panel-billing')).toBeVisible();
     await expect(page.getByText('Brutto').first()).toBeVisible();
     await expect(page.getByText('Abzug').first()).toBeVisible();
   });
