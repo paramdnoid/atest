@@ -131,7 +131,7 @@ export function AppSidebar({
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="[-webkit-mask-image:linear-gradient(to_bottom,transparent_0,black_18px,black_calc(100%-18px),transparent_100%)] mask-[linear-gradient(to_bottom,transparent_0,black_18px,black_calc(100%-18px),transparent_100%)]">
         {isLoadingProfile ? (
           <SidebarGroup>
             <div className="space-y-2 px-2">

@@ -154,12 +154,12 @@ export function AufmassWorkspaceTabs({
               </Button>
             );
           })}
+
+          {quickCaptureSlot ? <div className="relative z-10 ml-1 shrink-0">{quickCaptureSlot}</div> : null}
         </div>
       </div>
 
-      {quickCaptureSlot ? (
-        <div className="shrink-0">{quickCaptureSlot}</div>
-      ) : onQuickCapture ? (
+      {!quickCaptureSlot && onQuickCapture ? (
         <Button
           size="sm"
           className="h-8 shrink-0 px-3 transition-[transform,background-color,box-shadow] duration-150 ease-out hover:-translate-y-px hover:bg-primary/90 active:translate-y-0"

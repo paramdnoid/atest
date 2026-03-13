@@ -224,6 +224,16 @@ export default function AufmassDetailPage() {
       };
     });
   };
+  const quickCaptureHeaderTrigger = (
+    <QuickCaptureDrawer
+      room={activeRoom}
+      positions={record.positions}
+      onAddMeasurement={onAddMeasurement}
+      iconOnly
+      iconTone="primary"
+      triggerClassName="h-8 w-8"
+    />
+  );
 
   return (
     <div className="space-y-3">
@@ -279,22 +289,13 @@ export default function AufmassDetailPage() {
           {activeWorkspace === 'capture' ? (
             <ModuleTableCard
               icon={LayoutPanelTop}
+              iconNode={quickCaptureHeaderTrigger}
               label="Erfassung"
               title={activeRoom ? `Arbeitsbereich · ${activeRoom.name}` : 'Arbeitsbereich'}
               className="relative border-border/70 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_12px_30px_-20px_rgba(15,23,42,0.22)] transition-shadow duration-200"
               headerClassName="bg-white"
               headerContentClassName="items-start"
               bodyClassName="space-y-3 bg-white"
-              footerContent={
-                <div className="w-full xl:max-w-65">
-                  <QuickCaptureDrawer
-                    room={activeRoom}
-                    positions={record.positions}
-                    onAddMeasurement={onAddMeasurement}
-                    triggerClassName="w-full justify-start"
-                  />
-                </div>
-              }
               action={
                 <AufmassWorkspaceTabs
                   activeTab={activeWorkspace}
@@ -330,16 +331,6 @@ export default function AufmassDetailPage() {
               headerClassName="bg-white"
               headerContentClassName="items-start"
               bodyClassName="space-y-3 bg-white"
-              footerContent={
-                <div className="w-full xl:max-w-65">
-                  <QuickCaptureDrawer
-                    room={activeRoom}
-                    positions={record.positions}
-                    onAddMeasurement={onAddMeasurement}
-                    triggerClassName="w-full justify-start"
-                  />
-                </div>
-              }
               action={
                 <AufmassWorkspaceTabs
                   activeTab={activeWorkspace}
@@ -429,16 +420,6 @@ export default function AufmassDetailPage() {
               headerClassName="bg-white"
               headerContentClassName="items-start"
               bodyClassName="space-y-3 bg-white"
-              footerContent={
-                <div className="w-full xl:max-w-65">
-                  <QuickCaptureDrawer
-                    room={activeRoom}
-                    positions={record.positions}
-                    onAddMeasurement={onAddMeasurement}
-                    triggerClassName="w-full justify-start"
-                  />
-                </div>
-              }
               action={
                 <AufmassWorkspaceTabs
                   activeTab={activeWorkspace}

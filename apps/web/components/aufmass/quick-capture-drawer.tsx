@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Camera, PlusCircle } from 'lucide-react';
+import { Camera, Plus } from 'lucide-react';
 
 import { FormulaBuilder } from '@/components/aufmass/formula-builder/formula-builder';
 import { Button } from '@/components/ui/button';
@@ -40,9 +40,18 @@ type QuickCaptureDrawerProps = {
   positions: AufmassPosition[];
   onAddMeasurement: (measurement: AufmassMeasurement) => void;
   triggerClassName?: string;
+  iconOnly?: boolean;
+  iconTone?: 'neutral' | 'primary';
 };
 
-export function QuickCaptureDrawer({ room, positions, onAddMeasurement, triggerClassName }: QuickCaptureDrawerProps) {
+export function QuickCaptureDrawer({
+  room,
+  positions,
+  onAddMeasurement,
+  triggerClassName,
+  iconOnly = false,
+  iconTone = 'neutral',
+}: QuickCaptureDrawerProps) {
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState('');
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(positions[0]?.id ?? null);
@@ -111,9 +120,23 @@ export function QuickCaptureDrawer({ room, positions, onAddMeasurement, triggerC
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button size="sm" disabled={!room} className={cn(triggerClassName)}>
-          <PlusCircle className="h-4 w-4" />
-          Schnell erfassen
+        <Button
+          size="sm"
+          variant={iconOnly ? (iconTone === 'primary' ? 'default' : 'ghost') : 'default'}
+          disabled={!room}
+          className={cn(
+            iconOnly
+              ? iconTone === 'primary'
+                ? 'h-8 w-8 rounded-full px-0 shadow-sm transition-[transform,box-shadow] duration-150 ease-out hover:-translate-y-px hover:shadow-md active:translate-y-0'
+                : 'h-8 w-8 rounded-full border border-border/80 bg-white px-0 text-muted-foreground shadow-sm transition-[transform,box-shadow,color] duration-150 ease-out hover:-translate-y-px hover:text-foreground hover:shadow-md active:translate-y-0'
+              : '',
+            triggerClassName,
+          )}
+          aria-label="Schnell erfassen"
+          title="Schnell erfassen"
+        >
+          <Plus className="h-6 w-6" />
+          {!iconOnly ? 'Schnell erfassen' : null}
         </Button>
       </SheetTrigger>
       <SheetContent side="bottom" className="max-h-[85vh] overflow-auto">

@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 
 type ModuleTableCardProps = {
   icon: React.ComponentType<{ className?: string }>;
+  iconNode?: ReactNode;
   label: string;
   title: string;
   titleClassName?: string;
@@ -27,6 +28,7 @@ type ModuleTableCardProps = {
 
 export function ModuleTableCard({
   icon,
+  iconNode,
   label,
   title,
   titleClassName,
@@ -61,6 +63,7 @@ export function ModuleTableCard({
     <DashboardCard className={cn(toneCardClassName, className)}>
       <DashboardCardHeader
         icon={icon}
+        iconNode={iconNode}
         label={label}
         title={title}
         titleClassName={titleClassName}
