@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { KeyRound, RefreshCw, ShieldCheck } from 'lucide-react';
 import { apiRequest } from '@/lib/api';
 import { getAccessToken } from '@/lib/session-token';
+import { expectRecord, optionalArray, optionalString } from '@/lib/validation';
 import { LicenseSeatTable } from '@/components/license-seat-table';
 import { Button } from '@/components/ui/button';
 import { ModulePageTemplate } from '@/components/dashboard/module-page-template';
@@ -18,13 +19,32 @@ type Seat = {
 };
 
 function parseSeatsPayload(payload: unknown): { seats?: Seat[] } | Seat[] {
-  if (!payload || typeof payload !== 'object') {
-    throw new Error('Ungueltige Antwort fuer Lizenz-Sitze.');
-  }
+  const normalizeSeat = (entry: unknown): Seat | null => {
+    const seat = typeof entry === 'object' && entry !== null ? (entry as Record<string, unknown>) : null;
+    if (!seat) return null;
+    const id = optionalString(seat.id);
+    const userEmail = optionalString(seat.userEmail);
+    if (!id || !userEmail) return null;
+    const rawStatus = optionalString(seat.status)?.toUpperCase();
+    const status: Seat['status'] =
+      rawStatus === 'ACTIVE' || rawStatus === 'REVOKED' || rawStatus === 'PENDING'
+        ? rawStatus
+        : 'PENDING';
+    return {
+      id,
+      userEmail,
+      status,
+      updatedAt: optionalString(seat.updatedAt) ?? '',
+    };
+  };
+
   if (Array.isArray(payload)) {
-    return payload as Seat[];
+    return optionalArray(payload, (entry) => normalizeSeat(entry));
   }
-  return payload as { seats?: Seat[] };
+  const record = expectRecord(payload, 'Lizenz-Sitze');
+  return {
+    seats: optionalArray(record.seats, (entry) => normalizeSeat(entry)),
+  };
 }
 
 export default function LicensesPage() {
