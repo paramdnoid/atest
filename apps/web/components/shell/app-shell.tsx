@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { CAPABILITY_PROFILE_STORAGE_KEY } from '@/lib/capability-mock';
 import { logoutSession } from '@/lib/auth-client';
 import { loadEffectiveProfile } from '@/lib/effective-profile';
 import type { EffectiveProfile } from '@/lib/effective-profile';
@@ -12,7 +11,6 @@ import type { ModuleGroup } from '@/lib/module-registry';
 import { clearAccessToken, getAccessToken } from '@/lib/session-token';
 import { AppSidebar } from '@/components/shell/app-sidebar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-const CAPABILITY_MOCK_ENABLED = process.env.NEXT_PUBLIC_ENABLE_CAPABILITY_MOCK === 'true';
 
 type ShellPhase = 'loading' | 'ready' | 'unauthenticated' | 'error';
 
@@ -60,11 +58,6 @@ function ShellContentSkeleton() {
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [activeProfileId] = useState<string | undefined>(() => {
-    if (typeof window === 'undefined') return undefined;
-    if (!CAPABILITY_MOCK_ENABLED) return undefined;
-    return localStorage.getItem(CAPABILITY_PROFILE_STORAGE_KEY) ?? undefined;
-  });
   const [state, setState] = useState<ShellState>({ phase: 'loading', profile: null });
 
   useEffect(() => {
@@ -80,7 +73,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       }
 
       try {
-        const effectiveProfile = await loadEffectiveProfile(token, activeProfileId);
+        const effectiveProfile = await loadEffectiveProfile(token);
         if (cancelled) return;
         setState({ phase: 'ready', profile: effectiveProfile });
       } catch {
@@ -94,7 +87,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [activeProfileId]);
+  }, []);
 
   useEffect(() => {
     if (state.phase === 'unauthenticated' || state.phase === 'error') {
@@ -148,9 +141,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       // Always clear local auth state even if remote logout fails.
     }
     clearAccessToken();
-    if (CAPABILITY_MOCK_ENABLED) {
-      localStorage.removeItem(CAPABILITY_PROFILE_STORAGE_KEY);
-    }
     router.push('/signin');
     router.refresh();
   }

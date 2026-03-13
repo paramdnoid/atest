@@ -1,5 +1,3 @@
-import { resolveCapabilityProfile } from '@/lib/capability-mock';
-
 export type Capability =
   | 'dashboard:view'
   | 'aufmass:view'
@@ -26,12 +24,10 @@ export type EffectiveProfile = {
   role: EffectiveRole;
   trade: EffectiveTrade;
   capabilities: Capability[];
-  source: 'api' | 'mock';
+  source: 'api';
 };
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8080';
-const CAPABILITY_MOCK_ENABLED = process.env.NEXT_PUBLIC_ENABLE_CAPABILITY_MOCK === 'true';
-
 const CAPABILITY_SET = new Set<Capability>([
   'dashboard:view',
   'aufmass:view',
@@ -328,10 +324,7 @@ async function fetchOptionalPayload(token: string, endpoint: string): Promise<un
 
 export async function loadEffectiveProfile(
   token: string,
-  fallbackProfileId?: string,
 ): Promise<EffectiveProfile> {
-  const fallback = resolveCapabilityProfile(fallbackProfileId);
-
   try {
     const payload = await fetchFirstSuccessfulProfilePayload(token);
     const normalized = normalizeEffectiveProfileResponse(payload);
@@ -355,45 +348,22 @@ export async function loadEffectiveProfile(
       };
     }
 
-    const role = parseRole(payload) ?? fallback.role;
-    const trade = parseTrade(payload) ?? fallback.trade;
-    const tenantName = parseTenantName(payload) ?? fallback.tenantName;
+    const role = parseRole(payload) ?? 'member';
+    const trade = parseTrade(payload) ?? 'MALER';
+    const tenantName = parseTenantName(payload) ?? 'Workspace';
     const directCapabilities = parseCapabilities(payload);
     const capabilities = resolveEffectiveCapabilities(role, trade, directCapabilities);
 
-    if (tenantName !== fallback.tenantName) {
-      return {
-        userName,
-        userEmail,
-        tenantName,
-        role,
-        trade,
-        capabilities,
-        source: 'api',
-      };
-    }
-
-    if (CAPABILITY_MOCK_ENABLED) {
-      return {
-        tenantName: fallback.tenantName,
-        role: fallback.role,
-        trade: fallback.trade,
-        capabilities: fallback.capabilities,
-        source: 'mock',
-      };
-    }
-
-    throw new Error('Effective profile payload is not resolvable');
+    return {
+      userName,
+      userEmail,
+      tenantName,
+      role,
+      trade,
+      capabilities,
+      source: 'api',
+    };
   } catch (error) {
-    if (CAPABILITY_MOCK_ENABLED) {
-      return {
-        tenantName: fallback.tenantName,
-        role: fallback.role,
-        trade: fallback.trade,
-        capabilities: fallback.capabilities,
-        source: 'mock',
-      };
-    }
     throw error;
   }
 }
