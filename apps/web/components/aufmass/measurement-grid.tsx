@@ -111,6 +111,7 @@ export function MeasurementGrid({ room, measurements, positions }: MeasurementGr
       }),
     [positionsById, roomMeasurements],
   );
+  const roomContextLabel = room ? `${room.building} · ${room.level} · ${room.name}` : 'Kein Raum ausgewählt';
 
   if (roomMeasurements.length === 0) {
     return (
@@ -128,6 +129,12 @@ export function MeasurementGrid({ room, measurements, positions }: MeasurementGr
 
   return (
     <>
+      <div className="mb-2 flex items-center justify-between rounded-md border border-border/60 bg-sidebar/20 px-2.5 py-1.5">
+        <p className="truncate text-[11px] text-muted-foreground" title={roomContextLabel}>
+          Raumkontext: {roomContextLabel}
+        </p>
+        <p className="shrink-0 text-[11px] font-medium text-foreground/80">{rows.length} Messwerte</p>
+      </div>
       {/* Desktop Table View */}
       <div className="hidden lg:block overflow-x-auto rounded-lg border border-border/60 bg-background/80">
         <Table>
@@ -162,6 +169,7 @@ export function MeasurementGrid({ room, measurements, positions }: MeasurementGr
               return (
                 <TableRow
                   key={entry.id}
+                  data-testid={`aufmass-measurement-row-${entry.id}`}
                   className={cn(
                     'cursor-pointer align-middle transition-colors duration-150',
                     hasException 
@@ -181,7 +189,10 @@ export function MeasurementGrid({ room, measurements, positions }: MeasurementGr
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="max-w-[18rem] truncate px-4 py-3 font-mono text-xs text-muted-foreground">
+                  <TableCell
+                    className="max-w-[18rem] truncate px-4 py-3 font-mono text-xs text-muted-foreground"
+                    title={entry.formulaAst ? serializeFormulaAst(entry.formulaAst) : entry.formula}
+                  >
                     {entry.formulaAst ? serializeFormulaAst(entry.formulaAst) : entry.formula}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-right font-mono text-xs font-semibold tabular-nums text-slate-800">
@@ -196,7 +207,7 @@ export function MeasurementGrid({ room, measurements, positions }: MeasurementGr
                   <TableCell className="px-4 py-3 text-xs text-muted-foreground">
                     {decision?.appliedRuleId ?? '—'}
                   </TableCell>
-                  <TableCell className="max-w-44 truncate px-4 py-3 text-xs text-muted-foreground">
+                  <TableCell className="max-w-44 truncate px-4 py-3 text-xs text-muted-foreground" title={entry.note ?? ''}>
                     {entry.note ?? '—'}
                   </TableCell>
                 </TableRow>

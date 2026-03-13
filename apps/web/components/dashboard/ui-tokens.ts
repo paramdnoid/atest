@@ -16,4 +16,11 @@ export const dashboardUiTokens = {
   iconShell: 'rounded-md border border-border/70 bg-muted/45 text-foreground/70',
   interactiveRing: 'focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2',
   kpiValue: 'font-mono text-2xl font-bold tabular-nums leading-none tracking-tight',
+  aufmassDensity: {
+    panelGap: 'space-y-2.5',
+    sectionGap: 'space-y-2',
+    compactGridGap: 'gap-2',
+    compactCardPadding: 'p-2.5',
+    compactKicker: 'text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground',
+  },
 } as const;
