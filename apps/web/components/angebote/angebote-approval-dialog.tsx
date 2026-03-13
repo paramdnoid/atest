@@ -12,7 +12,7 @@ export function AngeboteApprovalDialog({ onApprove, onReturnToDraft }: AngeboteA
   const [comment, setComment] = useState('');
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="rounded-lg border border-border bg-card p-4">
       <p className="text-sm font-medium">Freigabeentscheidung</p>
       <p className="mt-1 text-sm text-muted-foreground">
         Kommentar ist fuer Audit-Trail und Rueckfragen im Team sichtbar.

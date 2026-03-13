@@ -13,11 +13,6 @@ import type { EffectiveProfile } from '@/lib/effective-profile';
 import { moduleRegistry } from '@/lib/module-registry';
 import type { ModuleGroup } from '@/lib/module-registry';
 import { clearAccessToken, getAccessToken } from '@/lib/session-token';
-import {
-  applyDashboardDensity,
-  DASHBOARD_DENSITY_STORAGE_KEY,
-  resolveDashboardDensity,
-} from '@/lib/dashboard-density';
 import { AppSidebar } from '@/components/shell/app-sidebar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 
@@ -36,6 +31,26 @@ const groupLabels: Record<ModuleGroup, string> = {
   finanzen: 'Finanzen',
   verwaltung: 'Verwaltung',
 };
+
+function ShellContentSkeleton() {
+  return (
+    <div className="space-y-4 py-2">
+      <div className="h-8 w-52 animate-pulse rounded-md bg-muted/70" />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[1, 2, 3, 4].map((index) => (
+          <div key={index} className="h-24 animate-pulse rounded-lg border border-border/70 bg-muted/40" />
+        ))}
+      </div>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.85fr)]">
+        <div className="h-72 animate-pulse rounded-lg border border-border/70 bg-muted/40" />
+        <div className="space-y-4">
+          <div className="h-32 animate-pulse rounded-lg border border-border/70 bg-muted/40" />
+          <div className="h-32 animate-pulse rounded-lg border border-border/70 bg-muted/40" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -83,10 +98,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     };
   }, [activeProfileId, router]);
 
-  useEffect(() => {
-    const stored = resolveDashboardDensity(localStorage.getItem(DASHBOARD_DENSITY_STORAGE_KEY));
-    applyDashboardDensity(stored);
-  }, []);
 
   const visibleNavItems = useMemo(
     () =>
@@ -110,6 +121,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         .filter((group) => group.items.length > 0),
     [visibleNavItems],
   );
+  const hasVisibleModules = visibleNavItems.length > 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -164,9 +176,17 @@ export function AppShell({ children }: { children: ReactNode }) {
         onSignOut={handleSignOut}
       />
       <SidebarInset>
-        <div className="flex-1 overflow-y-auto rounded-xl border border-border/70 bg-background/70">
+        <div className="flex-1 overflow-y-auto rounded-lg border border-border/70 bg-background/70">
           <div id="main-content" className="mx-auto w-full px-4 pb-10 pt-2 sm:px-6 sm:pt-3">
-            {children}
+            {isLoadingProfile ? (
+              <ShellContentSkeleton />
+            ) : hasVisibleModules ? (
+              children
+            ) : (
+              <div className="rounded-lg border border-border/70 bg-muted/20 p-6 text-sm text-muted-foreground">
+                Keine Module für dieses Profil verfügbar. Bitte Rollen-/Berechtigungskonfiguration prüfen.
+              </div>
+            )}
           </div>
         </div>
       </SidebarInset>

@@ -114,14 +114,14 @@ export function KundenListTable({ records, totalEntries, isSearchActive, highlig
 
   return (
     <div className="space-y-2">
-      <div className="max-h-128 overflow-auto rounded-xl border border-border/60 bg-background/80">
+      <div className="max-h-128 overflow-auto rounded-lg border border-border/60 bg-background/80">
         <Table className="min-w-270 table-auto">
           <TableHeader className="sticky top-0 z-10 bg-slate-100/95 backdrop-blur supports-backdrop-filter:bg-slate-100/95 dark:bg-slate-900/95">
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-32.5 px-3 py-2.5">
                 <SortButton field="number" label="Nummer" />
               </TableHead>
-              <TableHead className="min-w-60 px-3 py-2.5">
+              <TableHead className="min-w-80 max-w-none px-3 py-2.5">
                 <SortButton field="name" label="Kunde" />
               </TableHead>
               <TableHead className="w-32.5 px-3 py-2.5">
@@ -167,7 +167,7 @@ export function KundenListTable({ records, totalEntries, isSearchActive, highlig
                     {isHighlighted ? <span className="ml-2 text-[10px] font-medium text-primary">Vorschlag</span> : null}
                   </TableCell>
                   <TableCell className="px-3 py-2 text-sm font-medium text-slate-800 dark:text-slate-100">
-                    <div className="max-w-75 truncate" title={record.name}>
+                    <div className="max-w-[20rem] lg:max-w-[28rem] xl:max-w-none truncate" title={record.name}>
                       {record.name}
                     </div>
                   </TableCell>

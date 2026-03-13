@@ -28,7 +28,7 @@ export function AngeboteOptionBuilder({ record, onSelectOption }: AngeboteOption
           <div
             key={option.id}
             className={[
-              'rounded-xl border p-4',
+              'rounded-lg border p-4',
               selected ? 'border-primary bg-primary/5' : 'border-border bg-card',
             ].join(' ')}
           >

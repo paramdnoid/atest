@@ -96,7 +96,7 @@ export function AufmassListCommandBar({
   return (
     <div
       className={cn(
-        'space-y-2 rounded-xl border border-border/70 bg-sidebar/35 p-2.5',
+        'space-y-2 rounded-lg border border-border/70 bg-sidebar/35 p-2.5',
         compact && 'rounded-lg p-2',
         chromeless && 'space-y-0 border-0 bg-transparent p-0',
       )}

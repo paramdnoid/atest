@@ -2,6 +2,7 @@ import type { ComponentType } from 'react';
 
 import { StatCard } from '@/components/dashboard/stat-card';
 import { dashboardUiTokens } from '@/components/dashboard/ui-tokens';
+import { cn } from '@/lib/utils';
 
 export type KpiStripItem = {
   icon: ComponentType<{ className?: string }>;
@@ -13,9 +14,14 @@ export type KpiStripItem = {
   tone?: 'neutral' | 'primary' | 'amber' | 'rose' | 'emerald' | 'teal' | 'blue';
 };
 
-export function KpiStrip({ items }: { items: KpiStripItem[] }) {
+export function KpiStrip({ items, dense = false }: { items: KpiStripItem[]; dense?: boolean }) {
+  const gridClassName =
+    items.length === 3
+      ? 'grid gap-2 grid-cols-1 [@media(min-width:480px)]:grid-cols-3'
+      : dashboardUiTokens.kpiGrid;
+
   return (
-    <div className={dashboardUiTokens.kpiGrid}>
+    <div className={cn(gridClassName)}>
       {items.map((item) => (
         <StatCard
           key={item.label}
@@ -27,6 +33,7 @@ export function KpiStrip({ items }: { items: KpiStripItem[] }) {
           accent={item.accent}
           tone={item.tone}
           compact
+          dense={dense}
         />
       ))}
     </div>

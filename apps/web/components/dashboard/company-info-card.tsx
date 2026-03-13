@@ -41,7 +41,7 @@ export function CompanyInfoCard({ workspace }: { workspace: CompanyInfoWorkspace
   const hasAddress = addressLines.length > 0;
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-border">
+    <div className="relative overflow-hidden rounded-lg border border-border">
       {hasCoords && (
         <div className="absolute inset-2 z-0 overflow-hidden rounded-lg border border-black/25">
           <div className="pointer-events-none absolute inset-0 z-10 rounded-lg" />

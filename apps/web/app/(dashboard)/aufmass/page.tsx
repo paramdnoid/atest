@@ -154,7 +154,8 @@ export default function AufmassPage() {
       >
         <Button size="sm" disabled title="Wird im nächsten Ausbauschritt aktiviert.">
           <PlusCircle className="h-4 w-4" />
-          Neues Aufmaß (folgt)
+          <span className="hidden md:inline ml-2">Neues Aufmaß (folgt)</span>
+          <span className="hidden sm:inline md:hidden ml-2">Neu (folgt)</span>
         </Button>
       </PageHeader>
 

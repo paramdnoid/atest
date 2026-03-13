@@ -1,14 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ClipboardList, LayoutPanelTop } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ClipboardList, CreditCard, LayoutPanelTop, RotateCcw, Send } from 'lucide-react';
 
-import { ApprovalDialog } from '@/components/aufmass/approval-dialog';
 import { AufmassDetailContextRail } from '@/components/aufmass/aufmass-detail-context-rail';
-import { AufmassDetailHeader } from '@/components/aufmass/aufmass-detail-header';
 import { AufmassKpiStrip } from '@/components/aufmass/aufmass-kpi-strip';
+import { AufmassStatusBadge } from '@/components/aufmass/aufmass-status-badge';
 import { AufmassWorkspaceTabs, type AufmassWorkspaceTab } from '@/components/aufmass/aufmass-workspace-tabs';
 import { AuditTimeline } from '@/components/aufmass/audit-timeline';
 import { BillingPreviewCard } from '@/components/aufmass/billing-preview-card';
@@ -67,8 +66,7 @@ export default function AufmassDetailPage() {
     to: AufmassStatus;
     detail: string;
   } | null>(null);
-  const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
-  const detailSplitGridClassName = 'grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.85fr)]';
+  const [activeReviewIssueId, setActiveReviewIssueId] = useState<string | null>(null);
 
   if (!record) {
     return (
@@ -140,6 +138,17 @@ export default function AufmassDetailPage() {
   const billingBlockers = useMemo(() => getTransitionBlockers(record, 'BILLED'), [record]);
   const canBill = record.status === 'APPROVED' && billingBlockers.length === 0;
 
+  useEffect(() => {
+    if (activeWorkspace !== 'review' || !activeReviewIssueId) return;
+    const timeout = window.setTimeout(() => {
+      const target = document.getElementById(`review-issue-${activeReviewIssueId}`);
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.focus?.();
+    }, 60);
+    return () => window.clearTimeout(timeout);
+  }, [activeWorkspace, activeReviewIssueId]);
+
   const setStatus = (to: AufmassStatus, detail: string) => {
     const result = transitionRecordStatus(record, to);
     if (!result.ok) {
@@ -159,39 +168,6 @@ export default function AufmassDetailPage() {
           }
         : prev,
     );
-  };
-
-  const onApprove = (comment: string) => {
-    setRecord((prev) => {
-      if (!prev) return prev;
-      const prepared = {
-        ...prev,
-        reviewIssues: prev.reviewIssues.filter((issue) => issue.severity !== 'blocking'),
-        auditTrail: appendAudit(
-          prev.auditTrail,
-          'Freigabe',
-          comment,
-        ),
-      };
-      const result = transitionRecordStatus(prepared, 'APPROVED');
-      if (!result.ok) {
-        setStatusError(`${result.blockers[0] ?? 'Freigabe nicht möglich.'} (Ziel: APPROVED)`);
-        setPendingStatusAction({ to: 'APPROVED', detail: 'Freigabe aus Prüfablauf gesetzt.' });
-        return prev;
-      }
-      setStatusError(null);
-      setPendingStatusAction(null);
-      return {
-        ...prepared,
-        status: 'APPROVED',
-        updatedAt: new Date().toISOString(),
-        auditTrail: appendAudit(prepared.auditTrail, 'Status geändert zu FREIGEGEBEN', 'Freigabe aus Prüfablauf gesetzt.'),
-      };
-    });
-  };
-
-  const onReturnToDraft = (comment: string) => {
-    setStatus('DRAFT', comment || 'Zurückgabe ohne Kommentar');
   };
 
   const onAddMeasurement = (measurement: AufmassMeasurement) => {
@@ -250,32 +226,83 @@ export default function AufmassDetailPage() {
       };
     });
   };
+  const quickCaptureHeaderTrigger = (
+    <QuickCaptureDrawer
+      room={activeRoom}
+      positions={record.positions}
+      onAddMeasurement={onAddMeasurement}
+      iconOnly
+      iconTone="primary"
+      triggerClassName="h-8 w-8"
+    />
+  );
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         title="Aufmaß-Arbeitsbereich"
-        description={`${record.number} · ${record.customerName}`}
+        description={
+          <div className="flex w-full min-w-0 items-center gap-2">
+            <AufmassStatusBadge status={record.status} />
+            <span className="min-w-0 flex-1 truncate" title={`${record.customerName} · ${record.projectName}`}>
+              {record.customerName} · {record.projectName}
+            </span>
+          </div>
+        }
         titleClassName="text-lg"
         descriptionClassName="-mt-0.5"
       >
-        <ApprovalDialog
-          currentStatus={record.status}
-          onApprove={onApprove}
-          onReturnToDraft={onReturnToDraft}
-          open={isApprovalDialogOpen}
-          onOpenChange={setIsApprovalDialogOpen}
-        />
+        {record.status === 'DRAFT' ? (
+          <Button
+            size="sm"
+            onClick={() => setStatus('IN_REVIEW', 'Zur Prüfung übergeben.')}
+            disabled={!canSubmitReview}
+            aria-label="In Prüfung senden"
+            title="In Prüfung senden"
+          >
+            <Send className="h-4 w-4" />
+            <span className="hidden lg:inline ml-2">In Prüfung senden</span>
+          </Button>
+        ) : null}
+        {record.status === 'IN_REVIEW' ? (
+          <>
+            <Button
+              size="sm"
+              onClick={() => setStatus('APPROVED', 'Freigabe aus Prüfablauf gesetzt.')}
+              disabled={!canApprove}
+              aria-label="Als freigegeben markieren"
+              title="Als freigegeben markieren"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              <span className="hidden lg:inline ml-2">Als freigegeben markieren</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setStatus('DRAFT', 'Zurück in Entwurf gesetzt.')}
+              aria-label="Zurück zu Entwurf"
+              title="Zurück zu Entwurf"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          </>
+        ) : null}
       </PageHeader>
 
+      <div className="space-y-3">
+        <AufmassKpiStrip record={record} />
+      </div>
+
       {statusError ? (
-        <ModuleTableCard icon={ClipboardList} label="Statuswechsel" title="Aktion nicht möglich" tone="emphasis">
+        <ModuleTableCard icon={ClipboardList} label="Statuswechsel" title="Aktion nicht möglich" tone="emphasis" hasData>
           <p className="text-sm text-muted-foreground">{statusError}</p>
           <p className="mt-1 text-xs text-muted-foreground/90">
             Prüfe die Blocker im Bereich "Prüfung" und versuche die Aktion erneut.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button size="sm" variant="outline" onClick={() => setActiveWorkspace('review')}>
-              Blocker anzeigen
+              <span className="sm:hidden">Prüfung</span>
+              <span className="hidden sm:inline">Blocker anzeigen</span>
             </Button>
             <Button
               size="sm"
@@ -285,92 +312,173 @@ export default function AufmassDetailPage() {
               }}
               disabled={!pendingStatusAction}
             >
-              Erneut versuchen
+              <span className="sm:hidden">Retry</span>
+              <span className="hidden sm:inline">Erneut versuchen</span>
             </Button>
           </div>
         </ModuleTableCard>
       ) : null}
 
-      <div className="space-y-3">
-        <AufmassDetailHeader
-          record={record}
-          blockers={record.status === 'IN_REVIEW' ? effectiveReviewBlockers : submitReviewBlockers}
-          canSubmitReview={canSubmitReview}
-          canApprove={canApprove}
-          canBill={canBill}
-          onSubmitForReview={() => setStatus('IN_REVIEW', 'Zur Prüfung übergeben.')}
-          onOpenApprovalDialog={() => setIsApprovalDialogOpen(true)}
-          onBill={() => setStatus('BILLED', 'Abrechnungsvorschau abgeschlossen.')}
-        />
-        <AufmassKpiStrip record={record} />
-      </div>
-
-      <AufmassWorkspaceTabs
-        activeTab={activeWorkspace}
-        onChange={setActiveWorkspace}
-        reviewBadge={reviewIssues.filter((issue) => issue.severity === 'blocking').length}
-      />
-
-      <section className={detailSplitGridClassName}>
-        <div className="space-y-4">
+      <section className="grid items-start gap-3 grid-cols-1 xl:grid-cols-[minmax(0,2.1fr)_minmax(260px,0.75fr)] 2xl:grid-cols-[minmax(0,2.35fr)_minmax(280px,0.65fr)]">
+        <div
+          id={`aufmass-workspace-panel-${activeWorkspace}`}
+          role="tabpanel"
+          aria-labelledby={`aufmass-workspace-tab-${activeWorkspace}`}
+          className="space-y-3"
+        >
           {activeWorkspace === 'capture' ? (
-            <>
-              <ModuleTableCard icon={LayoutPanelTop} label="Erfassung" title="Räume und Messwerte" hasData>
-                <div className="space-y-4">
-                  <RoomTreePanel rooms={record.rooms} activeRoomId={activeRoomId} onSelectRoom={setActiveRoomId} />
-                  <MeasurementGrid room={activeRoom} measurements={record.measurements} positions={record.positions} />
+            <ModuleTableCard
+              icon={LayoutPanelTop}
+              iconNode={quickCaptureHeaderTrigger}
+              label="Erfassung"
+              title={activeRoom ? `Arbeitsbereich · ${activeRoom.name}` : 'Arbeitsbereich'}
+              className="relative border-border/70 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_12px_30px_-20px_rgba(15,23,42,0.22)] transition-shadow duration-200"
+              headerClassName="bg-white"
+              headerContentClassName="items-start"
+              bodyClassName="space-y-3 bg-white"
+              action={
+                <AufmassWorkspaceTabs
+                  activeTab={activeWorkspace}
+                  onChange={setActiveWorkspace}
+                  reviewBadge={reviewIssues.filter((issue) => issue.severity === 'blocking').length}
+                  inline
+                />
+              }
+              hasData
+            >
+              <div className="space-y-3">
+                <div className="grid gap-3 grid-cols-1 lg:grid-cols-10">
+                  <section className="space-y-2 lg:col-span-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Objektstruktur</p>
+                    <RoomTreePanel rooms={record.rooms} activeRoomId={activeRoomId} onSelectRoom={setActiveRoomId} />
+                  </section>
+                  <section className="space-y-2 lg:col-span-7">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Messwerte</p>
+                    <MeasurementGrid room={activeRoom} measurements={record.measurements} positions={record.positions} />
+                  </section>
                 </div>
-              </ModuleTableCard>
-              <ModuleTableCard icon={LayoutPanelTop} label="Schnellerfassung" title="Baustellenmodus" hasData>
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    Schnellerfassung mit reduzierter Eingabe und direkter Zuordnung auf Positionen.
-                  </p>
-                  <QuickCaptureDrawer
-                    room={activeRoom}
-                    positions={record.positions}
-                    onAddMeasurement={onAddMeasurement}
-                  />
-                </div>
-              </ModuleTableCard>
-            </>
+              </div>
+            </ModuleTableCard>
           ) : null}
 
           {activeWorkspace === 'review' ? (
-            <>
-              <ReviewDiffPanel issues={reviewIssues} />
-              <ModuleTableCard icon={ClipboardList} label="Prüfhinweis" title="Freigaberegeln" hasData>
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <p>- Freigabe nur ohne offene Blocker.</p>
-                  <p>- Rückgabe an Entwurf erfordert Kommentar.</p>
-                  <p>- Statuswechsel folgen einem festen Ablauf.</p>
-                  <p>- Alte Formeln sollten vor Freigabe in den Formeleditor übernommen werden.</p>
-                </div>
-                {aufmassRolloutFlags.enableAssistedMigration && (
-                  <div className="mt-3 flex items-center justify-between rounded-md border border-border bg-sidebar/30 p-2">
-                    <p className="text-xs text-muted-foreground">
-                      Alte Formeln: {legacyCandidateCount}
-                    </p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={onMigrateLegacyFormulas}
-                      disabled={legacyCandidateCount === 0}
-                    >
-                      Jetzt umstellen
-                    </Button>
+            <ModuleTableCard
+              icon={CreditCard}
+              label="Prüfung"
+              title="Abweichungen, Regeln und Mapping"
+              tone="muted"
+              className="relative border-border/70 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_12px_30px_-20px_rgba(15,23,42,0.22)] transition-shadow duration-200"
+              headerClassName="bg-white"
+              headerContentClassName="items-start"
+              bodyClassName="space-y-3 bg-white"
+              action={
+                <AufmassWorkspaceTabs
+                  activeTab={activeWorkspace}
+                  onChange={setActiveWorkspace}
+                  reviewBadge={reviewIssues.filter((issue) => issue.severity === 'blocking').length}
+                  inline
+                />
+              }
+              hasData
+            >
+              <div className="space-y-3">
+                <section className="space-y-2">
+                  {effectiveReviewBlockers.length > 0 ? (
+                    <div className="rounded-lg border border-amber-300/40 bg-amber-50/55 p-2 text-xs text-amber-800/85 dark:bg-amber-950/20 dark:text-amber-200/85">
+                      <p className="flex items-center gap-1 font-medium">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Offene Voraussetzungen: {effectiveReviewBlockers.length}
+                      </p>
+                    </div>
+                  ) : null}
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Abweichungen und Prüfpunkte
+                  </p>
+                  <ReviewDiffPanel
+                    issues={reviewIssues}
+                    activeIssueId={activeReviewIssueId}
+                    embedded
+                    onJumpToIssue={(issue) => {
+                      if (issue.roomId) {
+                        setActiveRoomId(issue.roomId);
+                      }
+                      setActiveReviewIssueId(issue.id);
+                    }}
+                  />
+                </section>
+
+                <details className="rounded-lg border border-border/60 bg-sidebar/20 p-2.5" open>
+                  <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Freigaberegeln
+                  </summary>
+                  <div className="mt-2 space-y-2 text-sm text-muted-foreground">
+                    <p>- Freigabe nur ohne offene Blocker.</p>
+                    <p>- Rückgabe an Entwurf erfordert Kommentar.</p>
+                    <p>- Statuswechsel folgen einem festen Ablauf.</p>
+                    <p>- Alte Formeln sollten vor Freigabe in den Formeleditor übernommen werden.</p>
                   </div>
-                )}
-              </ModuleTableCard>
-              <PositionMappingTable
-                mappings={record.mappings}
-                positions={record.positions}
-                rooms={record.rooms}
-              />
-            </>
+                  {aufmassRolloutFlags.enableAssistedMigration && (
+                    <div className="mt-3 flex items-center justify-between rounded-md border border-border bg-white p-2">
+                      <p className="text-xs text-muted-foreground">Alte Formeln: {legacyCandidateCount}</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={onMigrateLegacyFormulas}
+                        disabled={legacyCandidateCount === 0}
+                      >
+                        <span className="sm:hidden">Migration</span>
+                        <span className="hidden sm:inline">Jetzt umstellen</span>
+                      </Button>
+                    </div>
+                  )}
+                </details>
+
+                <details className="rounded-lg border border-border/60 bg-sidebar/20 p-2.5" open>
+                  <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Positionsmapping
+                  </summary>
+                  <div className="mt-2">
+                    <PositionMappingTable
+                      mappings={record.mappings}
+                      positions={record.positions}
+                      rooms={record.rooms}
+                      embedded
+                    />
+                  </div>
+                </details>
+              </div>
+            </ModuleTableCard>
           ) : null}
 
-          {activeWorkspace === 'billing' ? <BillingPreviewCard record={record} /> : null}
+          {activeWorkspace === 'billing' ? (
+            <ModuleTableCard
+              icon={ClipboardList}
+              label="Abrechnung"
+              title="Ready Check und Abrechnungsvorschau"
+              tone="muted"
+              className="relative border-border/70 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_12px_30px_-20px_rgba(15,23,42,0.22)] transition-shadow duration-200"
+              headerClassName="bg-white"
+              headerContentClassName="items-start"
+              bodyClassName="space-y-3 bg-white"
+              action={
+                <AufmassWorkspaceTabs
+                  activeTab={activeWorkspace}
+                  onChange={setActiveWorkspace}
+                  reviewBadge={reviewIssues.filter((issue) => issue.severity === 'blocking').length}
+                  inline
+                />
+              }
+              hasData
+            >
+              <BillingPreviewCard
+                record={record}
+                canBill={canBill}
+                billingBlockers={billingBlockers}
+                onBill={() => setStatus('BILLED', 'Abrechnungsvorschau abgeschlossen.')}
+                embedded
+              />
+            </ModuleTableCard>
+          ) : null}
         </div>
 
         <AufmassDetailContextRail
@@ -386,6 +494,7 @@ export default function AufmassDetailPage() {
           icon={ClipboardList}
           label="Historie"
           title="Änderungsprotokoll"
+          tone="muted"
           action={
             <Button size="sm" variant="outline" onClick={() => setHistoryExpanded(false)}>
               Schließen

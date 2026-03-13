@@ -20,7 +20,7 @@ export function AngeboteDetailHeader({
   quickConvertEnabled,
 }: AngeboteDetailHeaderProps) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="rounded-lg border border-border bg-card p-4">
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
