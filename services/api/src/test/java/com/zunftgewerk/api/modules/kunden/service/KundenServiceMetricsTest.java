@@ -6,6 +6,7 @@ import com.zunftgewerk.api.modules.kunden.repository.KundenObjektRepository;
 import com.zunftgewerk.api.modules.kunden.repository.KundenReminderRepository;
 import com.zunftgewerk.api.modules.kunden.repository.KundenRepository;
 import com.zunftgewerk.api.shared.audit.DomainMutationAuditLogger;
+import com.zunftgewerk.api.shared.events.DomainEventPublisherService;
 import com.zunftgewerk.api.shared.monitoring.DomainMutationMetrics;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,7 @@ class KundenServiceMetricsTest {
         KundenAnsprechpartnerRepository ansprechpartnerRepository = mock(KundenAnsprechpartnerRepository.class);
         KundenReminderRepository reminderRepository = mock(KundenReminderRepository.class);
         DomainMutationAuditLogger auditLogger = mock(DomainMutationAuditLogger.class);
+        DomainEventPublisherService eventPublisherService = mock(DomainEventPublisherService.class);
 
         SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
         DomainMutationMetrics metrics = new DomainMutationMetrics(meterRegistry);
@@ -39,7 +41,8 @@ class KundenServiceMetricsTest {
             ansprechpartnerRepository,
             reminderRepository,
             metrics,
-            auditLogger
+            auditLogger,
+            eventPublisherService
         );
 
         UUID tenantId = UUID.randomUUID();

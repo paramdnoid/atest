@@ -9,6 +9,7 @@ import com.zunftgewerk.api.modules.kunden.repository.KundenObjektRepository;
 import com.zunftgewerk.api.modules.kunden.repository.KundenReminderRepository;
 import com.zunftgewerk.api.modules.kunden.repository.KundenRepository;
 import com.zunftgewerk.api.shared.audit.DomainMutationAuditLogger;
+import com.zunftgewerk.api.shared.events.DomainEventPublisherService;
 import com.zunftgewerk.api.shared.monitoring.DomainMutationMetrics;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,7 @@ public class KundenService {
     private final KundenReminderRepository reminderRepository;
     private final DomainMutationMetrics domainMutationMetrics;
     private final DomainMutationAuditLogger domainMutationAuditLogger;
+    private final DomainEventPublisherService domainEventPublisherService;
 
     public KundenService(
         KundenRepository kundenRepository,
@@ -37,7 +39,8 @@ public class KundenService {
         KundenAnsprechpartnerRepository ansprechpartnerRepository,
         KundenReminderRepository reminderRepository,
         DomainMutationMetrics domainMutationMetrics,
-        DomainMutationAuditLogger domainMutationAuditLogger
+        DomainMutationAuditLogger domainMutationAuditLogger,
+        DomainEventPublisherService domainEventPublisherService
     ) {
         this.kundenRepository = kundenRepository;
         this.objektRepository = objektRepository;
@@ -45,6 +48,7 @@ public class KundenService {
         this.reminderRepository = reminderRepository;
         this.domainMutationMetrics = domainMutationMetrics;
         this.domainMutationAuditLogger = domainMutationAuditLogger;
+        this.domainEventPublisherService = domainEventPublisherService;
     }
 
     public List<KundenEntity> listKunden(UUID tenantId, String search, String status) {
@@ -89,6 +93,7 @@ public class KundenService {
         KundenEntity saved = kundenRepository.save(entity);
         domainMutationMetrics.recordCreate("kunden");
         domainMutationAuditLogger.recordMutation("kunden", "create", tenantId, actorUserId, saved.getId());
+        domainEventPublisherService.publishMutation("kunden", "create", tenantId, actorUserId, saved.getId(), Map.of());
         return saved;
     }
 
@@ -128,6 +133,7 @@ public class KundenService {
         entity.setUpdatedAt(OffsetDateTime.now());
         KundenEntity saved = kundenRepository.save(entity);
         domainMutationMetrics.recordUpdate("kunden");
+        domainEventPublisherService.publishMutation("kunden", "update", tenantId, null, saved.getId(), Map.of());
         return saved;
     }
 
@@ -141,6 +147,7 @@ public class KundenService {
         KundenEntity saved = kundenRepository.save(entity);
         domainMutationMetrics.recordDelete("kunden");
         domainMutationAuditLogger.recordMutation("kunden", "delete", tenantId, actorUserId, saved.getId());
+        domainEventPublisherService.publishMutation("kunden", "delete", tenantId, actorUserId, saved.getId(), Map.of());
         return saved;
     }
 
@@ -154,6 +161,7 @@ public class KundenService {
         entity.setUpdatedAt(OffsetDateTime.now());
         KundenEntity saved = kundenRepository.save(entity);
         domainMutationMetrics.recordRestore("kunden");
+        domainEventPublisherService.publishMutation("kunden", "restore", tenantId, null, saved.getId(), Map.of());
         return saved;
     }
 

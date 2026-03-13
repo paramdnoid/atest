@@ -7,6 +7,7 @@ import com.zunftgewerk.api.modules.angebote.repository.AngebotOptionRepository;
 import com.zunftgewerk.api.modules.angebote.repository.AngebotPositionRepository;
 import com.zunftgewerk.api.modules.angebote.repository.AngebotRepository;
 import com.zunftgewerk.api.shared.audit.DomainMutationAuditLogger;
+import com.zunftgewerk.api.shared.events.DomainEventPublisherService;
 import com.zunftgewerk.api.shared.monitoring.DomainMutationMetrics;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,19 +29,22 @@ public class AngebotService {
     private final AngebotOptionRepository optionRepository;
     private final DomainMutationMetrics domainMutationMetrics;
     private final DomainMutationAuditLogger domainMutationAuditLogger;
+    private final DomainEventPublisherService domainEventPublisherService;
 
     public AngebotService(
         AngebotRepository angebotRepository,
         AngebotPositionRepository positionRepository,
         AngebotOptionRepository optionRepository,
         DomainMutationMetrics domainMutationMetrics,
-        DomainMutationAuditLogger domainMutationAuditLogger
+        DomainMutationAuditLogger domainMutationAuditLogger,
+        DomainEventPublisherService domainEventPublisherService
     ) {
         this.angebotRepository = angebotRepository;
         this.positionRepository = positionRepository;
         this.optionRepository = optionRepository;
         this.domainMutationMetrics = domainMutationMetrics;
         this.domainMutationAuditLogger = domainMutationAuditLogger;
+        this.domainEventPublisherService = domainEventPublisherService;
     }
 
     public List<AngebotEntity> list(UUID tenantId, String status) {
@@ -81,6 +85,7 @@ public class AngebotService {
         AngebotEntity saved = angebotRepository.save(entity);
         domainMutationMetrics.recordCreate("angebote");
         domainMutationAuditLogger.recordMutation("angebote", "create", tenantId, actorUserId, saved.getId());
+        domainEventPublisherService.publishMutation("angebote", "create", tenantId, actorUserId, saved.getId(), Map.of());
         return saved;
     }
 
@@ -120,6 +125,7 @@ public class AngebotService {
         entity.setUpdatedAt(OffsetDateTime.now());
         AngebotEntity saved = angebotRepository.save(entity);
         domainMutationMetrics.recordUpdate("angebote");
+        domainEventPublisherService.publishMutation("angebote", "update", tenantId, null, saved.getId(), Map.of());
         return saved;
     }
 
@@ -133,6 +139,7 @@ public class AngebotService {
         AngebotEntity saved = angebotRepository.save(entity);
         domainMutationMetrics.recordDelete("angebote");
         domainMutationAuditLogger.recordMutation("angebote", "delete", tenantId, actorUserId, saved.getId());
+        domainEventPublisherService.publishMutation("angebote", "delete", tenantId, actorUserId, saved.getId(), Map.of());
         return saved;
     }
 
@@ -146,6 +153,7 @@ public class AngebotService {
         entity.setUpdatedAt(OffsetDateTime.now());
         AngebotEntity saved = angebotRepository.save(entity);
         domainMutationMetrics.recordRestore("angebote");
+        domainEventPublisherService.publishMutation("angebote", "restore", tenantId, null, saved.getId(), Map.of());
         return saved;
     }
 

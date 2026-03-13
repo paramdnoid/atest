@@ -13,6 +13,7 @@ import com.zunftgewerk.api.modules.abnahmen.repository.AbnahmeProtocolRepository
 import com.zunftgewerk.api.modules.abnahmen.repository.AbnahmeRecordRepository;
 import com.zunftgewerk.api.modules.abnahmen.repository.AbnahmeReworkRepository;
 import com.zunftgewerk.api.shared.audit.DomainMutationAuditLogger;
+import com.zunftgewerk.api.shared.events.DomainEventPublisherService;
 import com.zunftgewerk.api.shared.monitoring.DomainMutationMetrics;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +37,7 @@ public class AbnahmeService {
     private final AbnahmeEvidenceRepository evidenceRepository;
     private final DomainMutationMetrics domainMutationMetrics;
     private final DomainMutationAuditLogger domainMutationAuditLogger;
+    private final DomainEventPublisherService domainEventPublisherService;
 
     public AbnahmeService(
         AbnahmeRecordRepository recordRepository,
@@ -45,7 +47,8 @@ public class AbnahmeService {
         AbnahmeReworkRepository reworkRepository,
         AbnahmeEvidenceRepository evidenceRepository,
         DomainMutationMetrics domainMutationMetrics,
-        DomainMutationAuditLogger domainMutationAuditLogger
+        DomainMutationAuditLogger domainMutationAuditLogger,
+        DomainEventPublisherService domainEventPublisherService
     ) {
         this.recordRepository = recordRepository;
         this.protocolRepository = protocolRepository;
@@ -55,6 +58,7 @@ public class AbnahmeService {
         this.evidenceRepository = evidenceRepository;
         this.domainMutationMetrics = domainMutationMetrics;
         this.domainMutationAuditLogger = domainMutationAuditLogger;
+        this.domainEventPublisherService = domainEventPublisherService;
     }
 
     public List<AbnahmeRecordEntity> list(UUID tenantId, String status) {
@@ -93,6 +97,7 @@ public class AbnahmeService {
         AbnahmeRecordEntity saved = recordRepository.save(entity);
         domainMutationMetrics.recordCreate("abnahmen");
         domainMutationAuditLogger.recordMutation("abnahmen", "create", tenantId, actorUserId, saved.getId());
+        domainEventPublisherService.publishMutation("abnahmen", "create", tenantId, actorUserId, saved.getId(), Map.of());
         return saved;
     }
 
@@ -126,6 +131,7 @@ public class AbnahmeService {
         entity.setUpdatedAt(OffsetDateTime.now());
         AbnahmeRecordEntity saved = recordRepository.save(entity);
         domainMutationMetrics.recordUpdate("abnahmen");
+        domainEventPublisherService.publishMutation("abnahmen", "update", tenantId, null, saved.getId(), Map.of());
         return saved;
     }
 
@@ -139,6 +145,7 @@ public class AbnahmeService {
         AbnahmeRecordEntity saved = recordRepository.save(entity);
         domainMutationMetrics.recordDelete("abnahmen");
         domainMutationAuditLogger.recordMutation("abnahmen", "delete", tenantId, actorUserId, saved.getId());
+        domainEventPublisherService.publishMutation("abnahmen", "delete", tenantId, actorUserId, saved.getId(), Map.of());
     }
 
     @Transactional
@@ -151,6 +158,7 @@ public class AbnahmeService {
         entity.setUpdatedAt(OffsetDateTime.now());
         AbnahmeRecordEntity saved = recordRepository.save(entity);
         domainMutationMetrics.recordRestore("abnahmen");
+        domainEventPublisherService.publishMutation("abnahmen", "restore", tenantId, null, saved.getId(), Map.of());
         return saved;
     }
 

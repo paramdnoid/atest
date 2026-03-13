@@ -40,6 +40,33 @@ class KundenControllerTest {
     }
 
     @Test
+    void shouldRejectListWithoutSession() {
+        when(refreshTokenService.peekUser(any())).thenReturn(Optional.empty());
+
+        ResponseEntity<?> response = kundenController.listKunden(null, null, null);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        verifyNoInteractions(kundenService);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldReturnListForAuthenticatedSession() {
+        UUID tenantId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        when(refreshTokenService.peekUser(any()))
+            .thenReturn(Optional.of(new RefreshTokenService.PeekedSession(userId, tenantId)));
+        when(kundenService.listKunden(tenantId, "must", "AKTIV")).thenReturn(List.of());
+
+        ResponseEntity<?> response = kundenController.listKunden("zg_refresh_token=abc", "must", "AKTIV");
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, Object> payload = (Map<String, Object>) response.getBody();
+        assertThat(payload).containsKey("items");
+        verify(kundenService).listKunden(tenantId, "must", "AKTIV");
+    }
+
+    @Test
     void shouldRejectCreateWithoutSession() {
         when(refreshTokenService.peekUser(any())).thenReturn(Optional.empty());
 

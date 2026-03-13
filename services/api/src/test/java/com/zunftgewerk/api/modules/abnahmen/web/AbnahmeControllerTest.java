@@ -40,6 +40,33 @@ class AbnahmeControllerTest {
     }
 
     @Test
+    void shouldRejectListWithoutSession() {
+        when(refreshTokenService.peekUser(any())).thenReturn(Optional.empty());
+
+        ResponseEntity<?> response = abnahmeController.list(null, null);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        verifyNoInteractions(abnahmeService);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldReturnListForAuthenticatedSession() {
+        UUID tenantId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        when(refreshTokenService.peekUser(any()))
+            .thenReturn(Optional.of(new RefreshTokenService.PeekedSession(userId, tenantId)));
+        when(abnahmeService.list(tenantId, "OPEN")).thenReturn(List.of());
+
+        ResponseEntity<?> response = abnahmeController.list("zg_refresh_token=abc", "OPEN");
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, Object> payload = (Map<String, Object>) response.getBody();
+        assertThat(payload).containsKey("items");
+        verify(abnahmeService).list(tenantId, "OPEN");
+    }
+
+    @Test
     void shouldRejectCreateWithoutSession() {
         when(refreshTokenService.peekUser(any())).thenReturn(Optional.empty());
         ResponseEntity<?> response = abnahmeController.create(

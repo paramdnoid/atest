@@ -40,6 +40,33 @@ class AufmassControllerTest {
     }
 
     @Test
+    void shouldRejectListWithoutSession() {
+        when(refreshTokenService.peekUser(any())).thenReturn(Optional.empty());
+
+        ResponseEntity<?> response = aufmassController.list(null, null);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        verifyNoInteractions(aufmassService);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldReturnListForAuthenticatedSession() {
+        UUID tenantId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        when(refreshTokenService.peekUser(any()))
+            .thenReturn(Optional.of(new RefreshTokenService.PeekedSession(userId, tenantId)));
+        when(aufmassService.list(tenantId, "DRAFT")).thenReturn(List.of());
+
+        ResponseEntity<?> response = aufmassController.list("zg_refresh_token=abc", "DRAFT");
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, Object> payload = (Map<String, Object>) response.getBody();
+        assertThat(payload).containsKey("items");
+        verify(aufmassService).list(tenantId, "DRAFT");
+    }
+
+    @Test
     void shouldRejectCreateWithoutSession() {
         when(refreshTokenService.peekUser(any())).thenReturn(Optional.empty());
         ResponseEntity<?> response = aufmassController.create(

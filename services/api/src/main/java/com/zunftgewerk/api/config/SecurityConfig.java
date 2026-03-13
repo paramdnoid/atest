@@ -35,6 +35,7 @@ public class SecurityConfig {
                 .requestMatchers("/v1/admin/audit-export", "/v1/admin/flags").permitAll()
                 .requestMatchers(
                     "/v1/ops/workflow/overview",
+                    "/v1/ops/read-model/overview",
                     "/v1/ops/encryption/rotation/status",
                     "/v1/ops/encryption/rotation/validate"
                 ).permitAll()

@@ -11,6 +11,7 @@ import com.zunftgewerk.api.modules.aufmass.repository.AufmassPositionRepository;
 import com.zunftgewerk.api.modules.aufmass.repository.AufmassRecordRepository;
 import com.zunftgewerk.api.modules.aufmass.repository.AufmassRoomRepository;
 import com.zunftgewerk.api.shared.audit.DomainMutationAuditLogger;
+import com.zunftgewerk.api.shared.events.DomainEventPublisherService;
 import com.zunftgewerk.api.shared.monitoring.DomainMutationMetrics;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +35,7 @@ public class AufmassService {
     private final AufmassMappingRepository mappingRepository;
     private final DomainMutationMetrics domainMutationMetrics;
     private final DomainMutationAuditLogger domainMutationAuditLogger;
+    private final DomainEventPublisherService domainEventPublisherService;
 
     public AufmassService(
         AufmassRecordRepository recordRepository,
@@ -42,7 +44,8 @@ public class AufmassService {
         AufmassMeasurementRepository measurementRepository,
         AufmassMappingRepository mappingRepository,
         DomainMutationMetrics domainMutationMetrics,
-        DomainMutationAuditLogger domainMutationAuditLogger
+        DomainMutationAuditLogger domainMutationAuditLogger,
+        DomainEventPublisherService domainEventPublisherService
     ) {
         this.recordRepository = recordRepository;
         this.roomRepository = roomRepository;
@@ -51,6 +54,7 @@ public class AufmassService {
         this.mappingRepository = mappingRepository;
         this.domainMutationMetrics = domainMutationMetrics;
         this.domainMutationAuditLogger = domainMutationAuditLogger;
+        this.domainEventPublisherService = domainEventPublisherService;
     }
 
     public List<AufmassRecordEntity> list(UUID tenantId, String status) {
@@ -89,6 +93,7 @@ public class AufmassService {
         AufmassRecordEntity saved = recordRepository.save(entity);
         domainMutationMetrics.recordCreate("aufmass");
         domainMutationAuditLogger.recordMutation("aufmass", "create", tenantId, actorUserId, saved.getId());
+        domainEventPublisherService.publishMutation("aufmass", "create", tenantId, actorUserId, saved.getId(), Map.of());
         return saved;
     }
 
@@ -122,6 +127,7 @@ public class AufmassService {
         entity.setUpdatedAt(OffsetDateTime.now());
         AufmassRecordEntity saved = recordRepository.save(entity);
         domainMutationMetrics.recordUpdate("aufmass");
+        domainEventPublisherService.publishMutation("aufmass", "update", tenantId, null, saved.getId(), Map.of());
         return saved;
     }
 
@@ -135,6 +141,7 @@ public class AufmassService {
         AufmassRecordEntity saved = recordRepository.save(entity);
         domainMutationMetrics.recordDelete("aufmass");
         domainMutationAuditLogger.recordMutation("aufmass", "delete", tenantId, actorUserId, saved.getId());
+        domainEventPublisherService.publishMutation("aufmass", "delete", tenantId, actorUserId, saved.getId(), Map.of());
     }
 
     @Transactional
@@ -147,6 +154,7 @@ public class AufmassService {
         entity.setUpdatedAt(OffsetDateTime.now());
         AufmassRecordEntity saved = recordRepository.save(entity);
         domainMutationMetrics.recordRestore("aufmass");
+        domainEventPublisherService.publishMutation("aufmass", "restore", tenantId, null, saved.getId(), Map.of());
         return saved;
     }
 
