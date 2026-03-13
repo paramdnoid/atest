@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type KeyboardEvent } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Brain, ClipboardList, FileSpreadsheet, History, LayoutPanelTop } from 'lucide-react';
@@ -17,17 +17,28 @@ import { QuickCaptureDrawer } from '@/components/aufmass/quick-capture-drawer';
 import { ReviewDiffPanel } from '@/components/aufmass/review-diff-panel';
 import { RoomTreePanel } from '@/components/aufmass/room-tree-panel';
 import { PageHeader } from '@/components/dashboard/page-header';
+import {
+  DashboardTabs,
+  getDashboardTabId,
+  getDashboardTabPanelId,
+} from '@/components/dashboard/dashboard-tabs';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { EmptyState } from '@/components/dashboard/states';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { getAufmassRecordById, getAufmassRecords } from '@/lib/aufmass/mock-data';
+import { getAufmassRecordSync, listAufmassRecordsSync } from '@/lib/aufmass/data-adapter';
 import { aufmassRolloutFlags } from '@/lib/aufmass/rollout-flags';
 import { getTransitionBlockers, transitionRecordStatus } from '@/lib/aufmass/state-machine';
 import { getRecordOvermeasureIssues } from '@/lib/aufmass/selectors';
 import { migrateLegacyFormula } from '@/lib/aufmass/formula-builder';
 import { getIntelligenceSnapshot } from '@/lib/aufmass/intelligence';
-import type { AufmassAuditEvent, AufmassMeasurement, AufmassReviewIssue, AufmassStatus } from '@/lib/aufmass/types';
+import type {
+  AufmassAuditEvent,
+  AufmassMeasurement,
+  AufmassRecord,
+  AufmassReviewIssue,
+  AufmassStatus,
+} from '@/lib/aufmass/types';
 
 type TabKey = 'overview' | 'rooms' | 'positions' | 'review' | 'billing' | 'history' | 'insights';
 
@@ -40,14 +51,6 @@ const tabs: Array<{ id: TabKey; label: string; icon: React.ComponentType<{ class
   { id: 'insights', label: 'Insights', icon: Brain },
   { id: 'history', label: 'Historie', icon: History },
 ];
-
-function getTabId(id: TabKey): string {
-  return `aufmass-tab-${id}`;
-}
-
-function getPanelId(id: TabKey): string {
-  return `aufmass-tabpanel-${id}`;
-}
 
 function appendAudit(
   events: AufmassAuditEvent[],
@@ -69,12 +72,17 @@ function appendAudit(
 
 export default function AufmassDetailPage() {
   const params = useParams<{ id: string }>();
-  const allRecords = useMemo(() => getAufmassRecords(), []);
-  const initial = useMemo(() => getAufmassRecordById(params.id), [params.id]);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
-
-  const [record, setRecord] = useState(initial);
-  const [activeRoomId, setActiveRoomId] = useState(initial?.rooms[0]?.id);
+  const allRecords = useMemo<AufmassRecord[]>(() => listAufmassRecordsSync(), []);
+  const initial = useMemo(() => getAufmassRecordSync(params.id), [params.id]);
+  const [record, setRecord] = useState<AufmassRecord | null>(initial);
+  const [activeRoomId, setActiveRoomId] = useState<string | undefined>(initial?.rooms[0]?.id);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [pendingStatusAction, setPendingStatusAction] = useState<{
+    to: AufmassStatus;
+    detail: string;
+  } | null>(null);
+  const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
 
   if (!record) {
     return (
@@ -92,13 +100,14 @@ export default function AufmassDetailPage() {
   }
 
   const activeRoom = record.rooms.find((room) => room.id === activeRoomId);
-  const legacyMigrationIssues: AufmassReviewIssue[] = [];
-  if (aufmassRolloutFlags.enableAssistedMigration) {
+  const legacyMigrationIssues = useMemo<AufmassReviewIssue[]>(() => {
+    if (!aufmassRolloutFlags.enableAssistedMigration) return [];
+    const issues: AufmassReviewIssue[] = [];
     for (const measurement of record.measurements) {
       if (measurement.formulaAst || measurement.formula.trim().length === 0) continue;
       const migration = migrateLegacyFormula(measurement.formula);
       if (migration.status === 'migrated_confident') continue;
-      legacyMigrationIssues.push({
+      issues.push({
         id: `legacy-formula-${measurement.id}`,
         type: migration.status === 'migrated_partial' ? 'legacy_formula_partial' : 'legacy_formula_unparsed',
         title:
@@ -109,12 +118,17 @@ export default function AufmassDetailPage() {
         severity: migration.status === 'migrated_partial' ? 'warning' : 'blocking',
         positionId: measurement.positionId,
         roomId: measurement.roomId,
-        createdAt: new Date().toISOString(),
+        createdAt: measurement.createdAt,
       });
     }
-  }
-  const reviewIssues = [...getRecordOvermeasureIssues(record), ...legacyMigrationIssues];
-  const reviewBlockers = getTransitionBlockers(record, 'APPROVED');
+    return issues;
+  }, [record]);
+  const generatedReviewIssues = useMemo(() => getRecordOvermeasureIssues(record), [record]);
+  const reviewIssues = useMemo(
+    () => [...generatedReviewIssues, ...legacyMigrationIssues],
+    [generatedReviewIssues, legacyMigrationIssues],
+  );
+  const reviewBlockers = useMemo(() => getTransitionBlockers(record, 'APPROVED'), [record]);
   const intelligenceSnapshot = useMemo(
     () => getIntelligenceSnapshot(record, allRecords),
     [record, allRecords],
@@ -130,14 +144,21 @@ export default function AufmassDetailPage() {
     (measurement) => !measurement.formulaAst && measurement.formula.trim().length > 0,
   ).length;
   const effectiveReviewBlockers = [...reviewBlockers, ...legacyReviewBlockers, ...scoreGateBlockers];
-  const submitReviewBlockers = getTransitionBlockers(record, 'IN_REVIEW');
+  const submitReviewBlockers = useMemo(() => getTransitionBlockers(record, 'IN_REVIEW'), [record]);
   const canSubmitReview = record.status === 'DRAFT' && submitReviewBlockers.length === 0;
   const canApprove = record.status === 'IN_REVIEW' && effectiveReviewBlockers.length === 0;
-  const canBill = record.status === 'APPROVED' && getTransitionBlockers(record, 'BILLED').length === 0;
+  const billingBlockers = useMemo(() => getTransitionBlockers(record, 'BILLED'), [record]);
+  const canBill = record.status === 'APPROVED' && billingBlockers.length === 0;
 
   const setStatus = (to: AufmassStatus, detail: string) => {
     const result = transitionRecordStatus(record, to);
-    if (!result.ok) return;
+    if (!result.ok) {
+      setStatusError(`${result.blockers[0] ?? 'Statuswechsel nicht möglich.'} (Ziel: ${to})`);
+      setPendingStatusAction({ to, detail });
+      return;
+    }
+    setStatusError(null);
+    setPendingStatusAction(null);
     setRecord((prev) =>
       prev
         ? {
@@ -151,20 +172,32 @@ export default function AufmassDetailPage() {
   };
 
   const onApprove = (comment: string) => {
-    setRecord((prev) =>
-      prev
-        ? {
-            ...prev,
-            reviewIssues: prev.reviewIssues.filter((issue) => issue.severity !== 'blocking'),
-            auditTrail: appendAudit(
-              prev.auditTrail,
-              'Freigabe',
-              comment || 'Freigabe ohne Zusatzkommentar',
-            ),
-          }
-        : prev,
-    );
-    setStatus('APPROVED', 'Freigabe aus Prüfworkflow gesetzt.');
+    setRecord((prev) => {
+      if (!prev) return prev;
+      const prepared = {
+        ...prev,
+        reviewIssues: prev.reviewIssues.filter((issue) => issue.severity !== 'blocking'),
+        auditTrail: appendAudit(
+          prev.auditTrail,
+          'Freigabe',
+          comment,
+        ),
+      };
+      const result = transitionRecordStatus(prepared, 'APPROVED');
+      if (!result.ok) {
+        setStatusError(`${result.blockers[0] ?? 'Freigabe nicht möglich.'} (Ziel: APPROVED)`);
+        setPendingStatusAction({ to: 'APPROVED', detail: 'Freigabe aus Prüfworkflow gesetzt.' });
+        return prev;
+      }
+      setStatusError(null);
+      setPendingStatusAction(null);
+      return {
+        ...prepared,
+        status: 'APPROVED',
+        updatedAt: new Date().toISOString(),
+        auditTrail: appendAudit(prepared.auditTrail, 'Status -> APPROVED', 'Freigabe aus Prüfworkflow gesetzt.'),
+      };
+    });
   };
 
   const onReturnToDraft = (comment: string) => {
@@ -227,25 +260,6 @@ export default function AufmassDetailPage() {
       };
     });
   };
-  const onTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
-    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
-      event.preventDefault();
-      const direction = event.key === 'ArrowRight' ? 1 : -1;
-      const nextIndex = (currentIndex + direction + tabs.length) % tabs.length;
-      setActiveTab(tabs[nextIndex].id);
-      return;
-    }
-    if (event.key === 'Home') {
-      event.preventDefault();
-      setActiveTab(tabs[0].id);
-      return;
-    }
-    if (event.key === 'End') {
-      event.preventDefault();
-      setActiveTab(tabs[tabs.length - 1].id);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -261,8 +275,34 @@ export default function AufmassDetailPage() {
           currentStatus={record.status}
           onApprove={onApprove}
           onReturnToDraft={onReturnToDraft}
+          open={isApprovalDialogOpen}
+          onOpenChange={setIsApprovalDialogOpen}
         />
       </PageHeader>
+
+      {statusError ? (
+        <ModuleTableCard icon={ClipboardList} label="Statuswechsel" title="Aktion nicht möglich" tone="emphasis">
+          <p className="text-sm text-muted-foreground">{statusError}</p>
+          <p className="mt-1 text-xs text-muted-foreground/90">
+            Prüfe die Blocker im Reiter "Prüfung" und versuche die Aktion erneut.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => setActiveTab('review')}>
+              Blocker anzeigen
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (!pendingStatusAction) return;
+                setStatus(pendingStatusAction.to, pendingStatusAction.detail);
+              }}
+              disabled={!pendingStatusAction}
+            >
+              Erneut versuchen
+            </Button>
+          </div>
+        </ModuleTableCard>
+      ) : null}
 
       <AufmassDetailHeader
         record={record}
@@ -271,40 +311,25 @@ export default function AufmassDetailPage() {
         canApprove={canApprove}
         canBill={canBill}
         onSubmitForReview={() => setStatus('IN_REVIEW', 'Zur Prüfung übergeben.')}
-        onApprove={() => onApprove('Freigabe über Header-Aktion')}
+        onOpenApprovalDialog={() => setIsApprovalDialogOpen(true)}
         onBill={() => setStatus('BILLED', 'Abrechnungsvorschau abgeschlossen.')}
       />
 
       <AufmassKpiStrip record={record} />
 
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Aufmassbereiche">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <Button
-              key={tab.id}
-              size="sm"
-              variant={activeTab === tab.id ? 'default' : 'outline'}
-              onClick={() => setActiveTab(tab.id)}
-              role="tab"
-              id={getTabId(tab.id)}
-              aria-selected={activeTab === tab.id}
-              aria-controls={getPanelId(tab.id)}
-              tabIndex={activeTab === tab.id ? 0 : -1}
-              onKeyDown={(event) => onTabKeyDown(event, tabs.findIndex((entry) => entry.id === tab.id))}
-            >
-              <Icon className="h-4 w-4" />
-              {tab.label}
-            </Button>
-          );
-        })}
-      </div>
+      <DashboardTabs
+        idPrefix="aufmass"
+        tabs={tabs}
+        activeTab={activeTab}
+        onChange={setActiveTab}
+        ariaLabel="Aufmassbereiche"
+      />
 
       {activeTab === 'overview' && (
         <section
           role="tabpanel"
-          id={getPanelId('overview')}
-          aria-labelledby={getTabId('overview')}
+          id={getDashboardTabPanelId('aufmass', 'overview')}
+          aria-labelledby={getDashboardTabId('aufmass', 'overview')}
           tabIndex={0}
           className="grid gap-4 lg:grid-cols-2"
         >
@@ -318,15 +343,15 @@ export default function AufmassDetailPage() {
             </div>
           </ModuleTableCard>
           <MeasurementGrid room={activeRoom} measurements={record.measurements} positions={record.positions} />
-          <AufmassIntelligencePanel record={record} allRecords={allRecords} />
+          <AufmassIntelligencePanel record={record} allRecords={allRecords} snapshot={intelligenceSnapshot} />
         </section>
       )}
 
       {activeTab === 'rooms' && (
         <section
           role="tabpanel"
-          id={getPanelId('rooms')}
-          aria-labelledby={getTabId('rooms')}
+          id={getDashboardTabPanelId('aufmass', 'rooms')}
+          aria-labelledby={getDashboardTabId('aufmass', 'rooms')}
           tabIndex={0}
           className="grid gap-4 lg:grid-cols-2"
         >
@@ -336,7 +361,12 @@ export default function AufmassDetailPage() {
       )}
 
       {activeTab === 'positions' && (
-        <section role="tabpanel" id={getPanelId('positions')} aria-labelledby={getTabId('positions')} tabIndex={0}>
+        <section
+          role="tabpanel"
+          id={getDashboardTabPanelId('aufmass', 'positions')}
+          aria-labelledby={getDashboardTabId('aufmass', 'positions')}
+          tabIndex={0}
+        >
           <PositionMappingTable
             mappings={record.mappings}
             positions={record.positions}
@@ -348,8 +378,8 @@ export default function AufmassDetailPage() {
       {activeTab === 'review' && (
         <section
           role="tabpanel"
-          id={getPanelId('review')}
-          aria-labelledby={getTabId('review')}
+          id={getDashboardTabPanelId('aufmass', 'review')}
+          aria-labelledby={getDashboardTabId('aufmass', 'review')}
           tabIndex={0}
           className="grid gap-4 lg:grid-cols-2"
         >
@@ -382,7 +412,12 @@ export default function AufmassDetailPage() {
       )}
 
       {activeTab === 'billing' && (
-        <section role="tabpanel" id={getPanelId('billing')} aria-labelledby={getTabId('billing')} tabIndex={0}>
+        <section
+          role="tabpanel"
+          id={getDashboardTabPanelId('aufmass', 'billing')}
+          aria-labelledby={getDashboardTabId('aufmass', 'billing')}
+          tabIndex={0}
+        >
           <BillingPreviewCard record={record} />
         </section>
       )}
@@ -390,18 +425,23 @@ export default function AufmassDetailPage() {
       {activeTab === 'insights' && (
         <section
           role="tabpanel"
-          id={getPanelId('insights')}
-          aria-labelledby={getTabId('insights')}
+          id={getDashboardTabPanelId('aufmass', 'insights')}
+          aria-labelledby={getDashboardTabId('aufmass', 'insights')}
           tabIndex={0}
           className="grid gap-4 lg:grid-cols-2"
         >
-          <AufmassIntelligencePanel record={record} allRecords={allRecords} />
+          <AufmassIntelligencePanel record={record} allRecords={allRecords} snapshot={intelligenceSnapshot} />
           <ReviewDiffPanel issues={reviewIssues} />
         </section>
       )}
 
       {activeTab === 'history' && (
-        <section role="tabpanel" id={getPanelId('history')} aria-labelledby={getTabId('history')} tabIndex={0}>
+        <section
+          role="tabpanel"
+          id={getDashboardTabPanelId('aufmass', 'history')}
+          aria-labelledby={getDashboardTabId('aufmass', 'history')}
+          tabIndex={0}
+        >
           <AuditTimeline events={record.auditTrail} />
         </section>
       )}

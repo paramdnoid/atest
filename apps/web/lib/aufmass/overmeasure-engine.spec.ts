@@ -91,3 +91,19 @@ test('fehlende Maße erzeugen blocking issue', () => {
   assert.equal(issues.length, 1);
   assert.equal(issues[0].severity, 'blocking');
 });
+
+test('review issues übernehmen deterministischen createdAt timestamp', () => {
+  const issues = getOvermeasureReviewIssues(
+    {
+      ...measurementBase,
+      createdAt: '2026-02-02T10:00:00Z',
+      openingsOrNiches: [
+        { id: 'o-ts', kind: 'NICHE', roomId: 'r-1', positionId: 'p-1', width: 0, height: 1.2, count: 1 },
+      ],
+    },
+    '01.01',
+  );
+
+  assert.equal(issues.length, 1);
+  assert.equal(issues[0].createdAt, '2026-02-02T10:00:00Z');
+});

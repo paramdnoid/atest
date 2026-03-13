@@ -1,4 +1,7 @@
+'use client';
+
 import { Link2 } from 'lucide-react';
+import { useMemo } from 'react';
 
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import {
@@ -19,6 +22,9 @@ type PositionMappingTableProps = {
 };
 
 export function PositionMappingTable({ mappings, positions, rooms }: PositionMappingTableProps) {
+  const positionsById = useMemo(() => new Map(positions.map((entry) => [entry.id, entry])), [positions]);
+  const roomsById = useMemo(() => new Map(rooms.map((entry) => [entry.id, entry])), [rooms]);
+
   return (
     <ModuleTableCard
       icon={Link2}
@@ -42,8 +48,8 @@ export function PositionMappingTable({ mappings, positions, rooms }: PositionMap
         </TableHeader>
         <TableBody>
           {mappings.map((mapping) => {
-            const position = positions.find((entry) => entry.id === mapping.positionId);
-            const room = rooms.find((entry) => entry.id === mapping.roomId);
+            const position = positionsById.get(mapping.positionId);
+            const room = roomsById.get(mapping.roomId);
             return (
               <TableRow key={mapping.id}>
                 <TableCell className="px-4 py-3">

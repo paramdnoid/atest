@@ -21,9 +21,27 @@ type MeasurementGridProps = {
 };
 
 export function MeasurementGrid({ room, measurements, positions }: MeasurementGridProps) {
+  const positionsById = useMemo(
+    () => new Map(positions.map((position) => [position.id, position])),
+    [positions],
+  );
   const roomMeasurements = useMemo(
     () => (room ? measurements.filter((entry) => entry.roomId === room.id) : []),
     [room, measurements],
+  );
+  const rows = useMemo(
+    () =>
+      roomMeasurements.map((entry) => {
+        const position = positionsById.get(entry.positionId);
+        const breakdown = getOvermeasureBreakdown(entry, position?.code);
+        return {
+          entry,
+          position,
+          breakdown,
+          decision: breakdown.decisions[0],
+        };
+      }),
+    [positionsById, roomMeasurements],
   );
 
   return (
@@ -51,10 +69,7 @@ export function MeasurementGrid({ room, measurements, positions }: MeasurementGr
           </TableRow>
         </TableHeader>
         <TableBody>
-          {roomMeasurements.map((entry) => {
-            const position = positions.find((item) => item.id === entry.positionId);
-            const breakdown = getOvermeasureBreakdown(entry, position?.code);
-            const decision = breakdown.decisions[0];
+          {rows.map(({ entry, position, breakdown, decision }) => {
             return (
               <TableRow key={entry.id}>
                 <TableCell className="px-4 py-3 text-sm">{position?.title ?? entry.label}</TableCell>

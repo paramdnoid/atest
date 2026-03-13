@@ -43,13 +43,47 @@ test.describe('aufmass workflow', () => {
     await expect(page.getByRole('heading', { name: 'Aufmaß Workspace' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Quick-Capture' })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Prüfung' }).click();
+    await page.getByRole('tab', { name: /^Prüfung$/ }).click();
     await expect(page.getByRole('tabpanel')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Jetzt konvertieren' })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Abrechnung' }).click();
+    await page.getByRole('tab', { name: /^Abrechnung$/ }).click();
     await expect(page.getByRole('tabpanel')).toBeVisible();
-    await expect(page.getByText('Brutto')).toBeVisible();
-    await expect(page.getByText('Abzug')).toBeVisible();
+    await expect(page.getByText('Brutto').first()).toBeVisible();
+    await expect(page.getByText('Abzug').first()).toBeVisible();
+  });
+
+  test('shows actionable error if status action is blocked', async ({ page }) => {
+    await openModuleRoute(page, {
+      linkName: 'Aufmaß',
+      route: '/aufmass',
+      headingName: 'Aufmaß',
+    });
+
+    await page.getByRole('link', { name: 'AM-26-001' }).click();
+    await page.waitForURL('**/aufmass/am-26-001', { timeout: 10_000 });
+
+    await page.getByRole('tab', { name: /^Abrechnung$/ }).click();
+    await expect(page.getByRole('button', { name: 'Als abgerechnet markieren' })).toBeDisabled();
+  });
+
+  test('supports keyboard navigation across tabs', async ({ page }) => {
+    await openModuleRoute(page, {
+      linkName: 'Aufmaß',
+      route: '/aufmass',
+      headingName: 'Aufmaß',
+    });
+
+    await page.getByRole('link', { name: 'AM-26-001' }).click();
+    await page.waitForURL('**/aufmass/am-26-001', { timeout: 10_000 });
+
+    const overviewTab = page.getByRole('tab', { name: 'Überblick' });
+    await overviewTab.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByRole('tab', { name: 'Räume', selected: true })).toBeVisible();
+    await page.keyboard.press('End');
+    await expect(page.getByRole('tab', { name: 'Historie', selected: true })).toBeVisible();
+    await page.keyboard.press('Home');
+    await expect(page.getByRole('tab', { name: 'Überblick', selected: true })).toBeVisible();
   });
 });

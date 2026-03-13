@@ -118,6 +118,7 @@ export function getOvermeasureReviewIssues(
 ): AufmassReviewIssue[] {
   const issues: AufmassReviewIssue[] = [];
   const openings = measurement.openingsOrNiches ?? [];
+  const issueCreatedAt = measurement.createdAt;
 
   for (const item of openings) {
     const surfaceArea = getOpeningSurfaceArea(item);
@@ -130,7 +131,7 @@ export function getOvermeasureReviewIssues(
         severity: 'blocking',
         positionId: measurement.positionId,
         roomId: measurement.roomId,
-        createdAt: new Date().toISOString(),
+        createdAt: issueCreatedAt,
       });
       continue;
     }
@@ -145,7 +146,7 @@ export function getOvermeasureReviewIssues(
         severity: 'blocking',
         positionId: measurement.positionId,
         roomId: measurement.roomId,
-        createdAt: new Date().toISOString(),
+        createdAt: issueCreatedAt,
       });
     }
   }

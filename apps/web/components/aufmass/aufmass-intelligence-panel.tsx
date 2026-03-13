@@ -20,11 +20,13 @@ function getConfidenceVariant(confidence: 'low' | 'medium' | 'high'): 'secondary
 export function AufmassIntelligencePanel({
   record,
   allRecords,
+  snapshot: providedSnapshot,
 }: {
   record: AufmassRecord;
   allRecords?: AufmassRecord[];
+  snapshot?: ReturnType<typeof getIntelligenceSnapshot>;
 }) {
-  const snapshot = getIntelligenceSnapshot(record, allRecords ?? [record]);
+  const snapshot = providedSnapshot ?? getIntelligenceSnapshot(record, allRecords ?? [record]);
 
   return (
     <ModuleTableCard icon={Brain} label="Intelligence" title="Qualitäts- und Prüfreifeanalyse" hasData>

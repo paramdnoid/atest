@@ -13,7 +13,7 @@ type AufmassDetailHeaderProps = {
   canApprove: boolean;
   canBill: boolean;
   onSubmitForReview: () => void;
-  onApprove: () => void;
+  onOpenApprovalDialog: () => void;
   onBill: () => void;
 };
 
@@ -24,7 +24,7 @@ export function AufmassDetailHeader({
   canApprove,
   canBill,
   onSubmitForReview,
-  onApprove,
+  onOpenApprovalDialog,
   onBill,
 }: AufmassDetailHeaderProps) {
   const statusText: Record<AufmassStatus, string> = {
@@ -47,8 +47,8 @@ export function AufmassDetailHeader({
           <Button size="sm" variant="outline" onClick={onSubmitForReview} disabled={!canSubmitReview}>
             In Prüfung senden
           </Button>
-          <Button size="sm" onClick={onApprove} disabled={!canApprove}>
-            Freigeben
+          <Button size="sm" onClick={onOpenApprovalDialog} disabled={!canApprove}>
+            Prüfdialog öffnen
           </Button>
           <Button size="sm" variant="secondary" onClick={onBill} disabled={!canBill}>
             Als abgerechnet markieren

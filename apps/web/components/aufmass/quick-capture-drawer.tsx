@@ -24,6 +24,7 @@ import type {
 } from '@/lib/aufmass/types';
 import { getFormulaQuality } from '@/lib/aufmass/intelligence';
 import { getOvermeasureBreakdown } from '@/lib/aufmass/overmeasure-engine';
+import { parseOpeningKind } from '@/lib/aufmass/guards';
 import {
   buildFormulaAst,
   evaluateFormulaAst,
@@ -121,7 +122,7 @@ export function QuickCaptureDrawer({ room, positions, onAddMeasurement }: QuickC
           </SheetDescription>
         </SheetHeader>
         <div className="space-y-3 p-4 pt-0">
-          <div className="space-y-1">
+          <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="capture-label">
               Bezeichnung
             </label>
@@ -132,7 +133,7 @@ export function QuickCaptureDrawer({ room, positions, onAddMeasurement }: QuickC
               placeholder="z. B. Wände Nordseite"
             />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="capture-position">
               Position
             </label>
@@ -149,7 +150,7 @@ export function QuickCaptureDrawer({ room, positions, onAddMeasurement }: QuickC
               ))}
             </select>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-2">
             {selectedPosition && (
               <FormulaBuilder
                 unit={selectedPosition.unit}
@@ -169,30 +170,43 @@ export function QuickCaptureDrawer({ room, positions, onAddMeasurement }: QuickC
             <p className="text-sm font-semibold">Öffnung / Nische (VOB Overmeasure)</p>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               <select
+                id="capture-opening-kind"
                 value={openingKind}
-                onChange={(event) => setOpeningKind(event.target.value as OpeningOrNiche['kind'])}
+                onChange={(event) => {
+                  const next = parseOpeningKind(event.target.value);
+                  if (next) {
+                    setOpeningKind(next);
+                  }
+                }}
                 className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+                aria-label="Typ von Öffnung oder Nische"
               >
                 <option value="OPENING">Öffnung</option>
                 <option value="NICHE">Nische</option>
               </select>
               <Input
+                id="capture-opening-count"
                 type="number"
                 value={openingCount}
                 onChange={(event) => setOpeningCount(event.target.value)}
                 placeholder="Anzahl"
+                aria-label="Anzahl von Öffnungen oder Nischen"
               />
               <Input
+                id="capture-opening-width"
                 type="number"
                 value={openingWidth}
                 onChange={(event) => setOpeningWidth(event.target.value)}
                 placeholder="Breite (m)"
+                aria-label="Breite von Öffnung oder Nische in Metern"
               />
               <Input
+                id="capture-opening-height"
                 type="number"
                 value={openingHeight}
                 onChange={(event) => setOpeningHeight(event.target.value)}
                 placeholder="Höhe (m)"
+                aria-label="Höhe von Öffnung oder Nische in Metern"
               />
             </div>
             {overmeasurePreview && (
@@ -211,9 +225,15 @@ export function QuickCaptureDrawer({ room, positions, onAddMeasurement }: QuickC
               </div>
             )}
           </div>
-          <Button size="sm" variant="outline" className="w-full">
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full"
+            disabled
+            title="Foto-/Notiz-Upload ist im Frontend-Roadmap-Schritt noch nicht aktiviert."
+          >
             <Camera className="h-4 w-4" />
-            Foto/Notiz hinzufügen
+            Foto/Notiz hinzufügen (folgt)
           </Button>
         </div>
         <SheetFooter>

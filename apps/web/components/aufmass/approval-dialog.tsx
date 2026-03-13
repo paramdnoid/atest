@@ -20,11 +20,21 @@ type ApprovalDialogProps = {
   currentStatus: AufmassStatus;
   onApprove: (comment: string) => void;
   onReturnToDraft: (comment: string) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
-export function ApprovalDialog({ currentStatus, onApprove, onReturnToDraft }: ApprovalDialogProps) {
+export function ApprovalDialog({
+  currentStatus,
+  onApprove,
+  onReturnToDraft,
+  open: controlledOpen,
+  onOpenChange,
+}: ApprovalDialogProps) {
   const [comment, setComment] = useState('');
-  const [open, setOpen] = useState(false);
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = controlledOpen ?? localOpen;
+  const setOpen = onOpenChange ?? setLocalOpen;
 
   const canApprove = currentStatus === 'IN_REVIEW';
   const canReturn = currentStatus === 'IN_REVIEW';
@@ -58,7 +68,7 @@ export function ApprovalDialog({ currentStatus, onApprove, onReturnToDraft }: Ap
           <div className="flex w-full flex-col gap-2">
             <Button
               className="w-full"
-              disabled={!canApprove}
+              disabled={!canApprove || comment.trim().length === 0}
               onClick={() => {
                 onApprove(comment.trim());
                 setOpen(false);

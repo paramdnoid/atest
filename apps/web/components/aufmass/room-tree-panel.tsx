@@ -14,14 +14,16 @@ export function RoomTreePanel({ rooms, activeRoomId, onSelectRoom }: RoomTreePan
   return (
     <DashboardCard>
       <DashboardCardHeader icon={Home} label="Objektstruktur" title="Gebäude / Etage / Raum" />
-      <div className="space-y-1 p-4 pt-1">
+      <div className="space-y-2 p-4 pt-1" role="listbox" aria-label="Räume">
         {rooms.map((room) => (
           <button
             key={room.id}
             type="button"
             onClick={() => onSelectRoom(room.id)}
+            role="option"
+            aria-selected={room.id === activeRoomId}
             className={cn(
-              'w-full rounded-lg border px-3 py-2 text-left transition-colors',
+              'w-full rounded-lg border px-3 py-3 text-left transition-colors',
               room.id === activeRoomId
                 ? 'border-primary/40 bg-primary/10'
                 : 'border-border bg-sidebar/30 hover:bg-sidebar/50',
