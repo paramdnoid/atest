@@ -119,6 +119,9 @@ zunftgewerk:
     jwt-private-key-pem: ${JWT_PRIVATE_KEY_PEM:}
     jwt-public-key-pem: ${JWT_PUBLIC_KEY_PEM:}
     mfa-encryption-key: ${MFA_ENCRYPTION_KEY:dev-dev-dev-dev-dev-dev-dev-dev}
+    field-encryption-enabled: ${FIELD_ENCRYPTION_ENABLED:false}
+    field-encryption-key: ${FIELD_ENCRYPTION_KEY:}
+    field-encryption-key-version: ${FIELD_ENCRYPTION_KEY_VERSION:v1}
   passkey:
     rp-id: ${PASSKEY_RP_ID:localhost}
     rp-name: ${PASSKEY_RP_NAME:Zunftgewerk}
