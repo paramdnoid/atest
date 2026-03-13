@@ -196,10 +196,14 @@ export function AbnahmenListTable({
                   </TableCell>
                   <TableCell className="px-3 py-2 text-sm text-muted-foreground">{formatDate(record.updatedAt)}</TableCell>
                   <TableCell className="px-3 py-2 text-right">
-                    <Button asChild size="sm" variant="outline" className="h-7 rounded-md border-border/70 bg-background/90 px-2 text-xs">
-                      <Link href={`/abnahmen/${record.id}`}>
+                    <Button
+                      asChild
+                      size="icon"
+                      variant="outline"
+                      className="h-7 w-7 rounded-md border-border/70 bg-background/90"
+                    >
+                      <Link href={`/abnahmen/${record.id}`} aria-label="Abnahme oeffnen">
                         <FilePenLine className="h-3.5 w-3.5" />
-                        Oeffnen
                       </Link>
                     </Button>
                   </TableCell>

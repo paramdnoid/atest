@@ -290,10 +290,14 @@ export function AngeboteListTable({
                     <TableCell className="px-3 py-2 text-right text-sm font-medium tabular-nums">{formatCurrency(totals.totalNet)}</TableCell>
                   )}
                   <TableCell className="px-3 py-2 text-right">
-                    <Button asChild size="sm" variant="outline" className="h-7 rounded-md border-border/70 bg-background/90 px-2 text-xs">
-                      <Link href={`/angebote/${record.id}`}>
+                    <Button
+                      asChild
+                      size="icon"
+                      variant="outline"
+                      className="h-7 w-7 rounded-md border-border/70 bg-background/90"
+                    >
+                      <Link href={`/angebote/${record.id}`} aria-label="Angebot oeffnen">
                         <FilePenLine className="h-3.5 w-3.5" />
-                        Oeffnen
                       </Link>
                     </Button>
                   </TableCell>

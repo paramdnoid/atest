@@ -17,7 +17,7 @@ import {
 import type { AufmassRecord } from '@/lib/aufmass/types';
 import { formatDate } from '@/lib/format';
 
-type SortField = 'number' | 'projectName' | 'customerName' | 'status' | 'version' | 'updatedAt';
+type SortField = 'number' | 'projectName' | 'customerName' | 'status' | 'updatedAt';
 type SortDirection = 'asc' | 'desc';
 
 export function AufmassListTable({
@@ -41,9 +41,6 @@ export function AufmassListTable({
     return [...records].sort((left, right) => {
       let compare = 0;
       switch (sortField) {
-        case 'version':
-          compare = left.version - right.version;
-          break;
         case 'updatedAt':
           compare = new Date(left.updatedAt).getTime() - new Date(right.updatedAt).getTime();
           break;
@@ -108,7 +105,7 @@ export function AufmassListTable({
   return (
     <div className="space-y-2">
       <div className="max-h-128 overflow-auto rounded-xl border border-border/60 bg-background/80">
-        <Table className="min-w-245 table-auto">
+        <Table className="min-w-222 table-auto">
           <TableHeader className="sticky top-0 z-10 bg-linear-to-r from-slate-100/95 via-slate-50/95 to-orange-50/65 backdrop-blur supports-backdrop-filter:bg-linear-to-r dark:from-slate-900/95 dark:via-slate-900/95 dark:to-slate-800/90">
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-32.5 px-3 py-2.5">
@@ -120,16 +117,13 @@ export function AufmassListTable({
               <TableHead className="min-w-50 px-3 py-2.5">
                 <SortButton field="customerName" label="Kunde" />
               </TableHead>
-              <TableHead className="w-42.5 px-3 py-2.5">
+              <TableHead className="w-42.5 px-3 py-2.5 text-center">
                 <SortButton field="status" label="Status" />
               </TableHead>
-              <TableHead className="w-22.5 px-3 py-2.5">
-                <SortButton field="version" label="Version" />
-              </TableHead>
-              <TableHead className="w-32.5 px-3 py-2.5">
+              <TableHead className="w-32.5 px-3 py-2.5 text-center">
                 <SortButton field="updatedAt" label="Aktualisiert" />
               </TableHead>
-              <TableHead className="w-27.5 px-3 py-2.5 text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">Aktion</TableHead>
+              <TableHead className="w-27.5 px-3 py-2.5 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">Aktion</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -144,7 +138,7 @@ export function AufmassListTable({
                       ? 'cursor-pointer align-middle bg-primary/8 ring-1 ring-primary/25'
                       : isHighlighted
                         ? 'cursor-pointer align-middle bg-primary/5 ring-1 ring-primary/15'
-                        : 'cursor-pointer align-middle odd:bg-slate-50/40 hover:bg-slate-100/60 dark:odd:bg-slate-900/30 dark:hover:bg-slate-800/45'
+                        : 'cursor-pointer align-middle bg-white hover:bg-slate-100/60 dark:bg-slate-900/30 dark:hover:bg-slate-800/45'
                   }
                   onClick={() => onSelect?.(record.id)}
                 >
@@ -167,16 +161,19 @@ export function AufmassListTable({
                       {record.customerName}
                     </div>
                   </TableCell>
-                  <TableCell className="px-3 py-2">
+                  <TableCell className="px-3 py-2 text-center">
                     <AufmassStatusBadge status={record.status} />
                   </TableCell>
-                  <TableCell className="px-3 py-2 text-sm text-muted-foreground">v{record.version}</TableCell>
-                  <TableCell className="px-3 py-2 text-sm text-muted-foreground">{formatDate(record.updatedAt)}</TableCell>
-                  <TableCell className="px-3 py-2 text-right">
-                    <Button asChild size="sm" variant="outline" className="h-7 rounded-md border-border/70 bg-background/90 px-2 text-xs">
-                      <Link href={`/aufmass/${record.id}`}>
+                  <TableCell className="px-3 py-2 text-center text-sm text-muted-foreground">{formatDate(record.updatedAt)}</TableCell>
+                  <TableCell className="px-3 py-2 text-center">
+                    <Button
+                      asChild
+                      size="icon"
+                      variant="outline"
+                      className="h-7 w-7 rounded-md border-border/70 bg-background/90"
+                    >
+                      <Link href={`/aufmass/${record.id}`} aria-label="Aufmass oeffnen">
                         <FilePenLine className="h-3.5 w-3.5" />
-                        Oeffnen
                       </Link>
                     </Button>
                   </TableCell>
