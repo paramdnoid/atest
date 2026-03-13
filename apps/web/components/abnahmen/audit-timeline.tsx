@@ -10,6 +10,7 @@ export function AuditTimeline({ events }: { events: AbnahmeAuditEvent[] }) {
       icon={History}
       label="Historie"
       title="Audit-Trail"
+      className="bg-muted/35"
       hasData={events.length > 0}
       emptyState={{
         icon: <History className="h-8 w-8" />,

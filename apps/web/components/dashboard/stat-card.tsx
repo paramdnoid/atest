@@ -61,15 +61,15 @@ export function StatCard({
     <div
       className={cn(
         'flex flex-col rounded-xl border border-border bg-white',
-        compact ? (dense ? 'h-24 px-2 py-2' : 'h-30.5 px-2.5 pt-2.5 pb-3.5') : 'h-30.5 px-3 pt-3 pb-4',
+        compact ? (dense ? 'h-24 px-2 py-2 [@media(max-width:479px)]:h-20 [@media(max-width:479px)]:px-1.5 [@media(max-width:479px)]:py-1.5' : 'h-30.5 px-2.5 pt-2.5 pb-3.5 [@media(max-width:479px)]:h-28 [@media(max-width:479px)]:px-2 [@media(max-width:479px)]:pt-2 [@media(max-width:479px)]:pb-3') : 'h-30.5 px-3 pt-3 pb-4 [@media(max-width:479px)]:h-28 [@media(max-width:479px)]:px-2.5 [@media(max-width:479px)]:pt-2.5 [@media(max-width:479px)]:pb-3.5',
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+        <p className="text-[10px] [@media(max-width:479px)]:text-[9px] font-semibold uppercase tracking-widest text-muted-foreground truncate flex-1">
           {label}
         </p>
-        <div className={cn('p-1.5', dashboardUiTokens.iconShell)}>
-          <Icon className="h-3.5 w-3.5" />
+        <div className={cn('p-1.5 shrink-0', dashboardUiTokens.iconShell)}>
+          <Icon className="h-3.5 w-3.5 [@media(max-width:479px)]:h-3 [@media(max-width:479px)]:w-3" />
         </div>
       </div>
 
@@ -77,8 +77,8 @@ export function StatCard({
         <p
           className={cn(
             'truncate font-mono text-xl font-semibold leading-tight tabular-nums',
-            !compact && 'text-2xl',
-            'text-foreground',
+            !compact && 'text-2xl [@media(max-width:479px)]:text-xl',
+            'text-foreground [@media(max-width:479px)]:text-base',
           )}
         >
           {value}

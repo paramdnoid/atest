@@ -85,12 +85,6 @@
   --dashboard-card-padding: 0.875rem;
 }
 
-:root[data-dashboard-density='compact'] {
-  --dashboard-page-gap: 0.95rem;
-  --dashboard-section-gap: 0.55rem;
-  --dashboard-main-gap: 0.55rem;
-  --dashboard-card-padding: 0.65rem;
-}
 
 @layer base {
   * {

@@ -121,7 +121,7 @@ export function KundenListTable({ records, totalEntries, isSearchActive, highlig
               <TableHead className="w-32.5 px-3 py-2.5">
                 <SortButton field="number" label="Nummer" />
               </TableHead>
-              <TableHead className="min-w-60 px-3 py-2.5">
+              <TableHead className="min-w-80 max-w-none px-3 py-2.5">
                 <SortButton field="name" label="Kunde" />
               </TableHead>
               <TableHead className="w-32.5 px-3 py-2.5">
@@ -167,7 +167,7 @@ export function KundenListTable({ records, totalEntries, isSearchActive, highlig
                     {isHighlighted ? <span className="ml-2 text-[10px] font-medium text-primary">Vorschlag</span> : null}
                   </TableCell>
                   <TableCell className="px-3 py-2 text-sm font-medium text-slate-800 dark:text-slate-100">
-                    <div className="max-w-75 truncate" title={record.name}>
+                    <div className="max-w-[20rem] lg:max-w-[28rem] xl:max-w-none truncate" title={record.name}>
                       {record.name}
                     </div>
                   </TableCell>

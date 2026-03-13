@@ -25,7 +25,7 @@ export function RoomTreePanel({ rooms, activeRoomId, onSelectRoom }: RoomTreePan
 
   return (
     <div
-      className="max-h-[calc(100vh-19rem)] space-y-1.5 overflow-y-auto pr-1 [scrollbar-width:thin]"
+      className="max-h-[calc(100vh-20rem)] sm:max-h-[calc(100vh-19rem)] space-y-2 sm:space-y-1.5 overflow-y-auto pr-1 [scrollbar-width:thin]"
       role="listbox"
       aria-label="Räume"
     >
@@ -47,18 +47,18 @@ export function RoomTreePanel({ rooms, activeRoomId, onSelectRoom }: RoomTreePan
           aria-label={`Raum ${room.name}`}
           aria-selected={room.id === activeRoomId}
           className={cn(
-            'group w-full rounded-lg border px-2.5 py-1.5 text-left transition-[transform,background-color,border-color,box-shadow] duration-150 ease-out focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2',
+            'group w-full rounded-lg border px-3 sm:px-2.5 py-2 sm:py-1.5 text-left transition-[transform,background-color,border-color,box-shadow] duration-150 ease-out focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 touch-manipulation',
             room.id === activeRoomId
               ? 'border-border/80 bg-muted/60 shadow-[0_0_0_1px_rgba(255,255,255,0.7)_inset]'
               : 'border-border/80 bg-sidebar/20 hover:-translate-y-px hover:border-border hover:bg-sidebar/45',
           )}
         >
-          <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground transition-colors duration-150 group-hover:text-foreground/80">
-            <Home className="h-3 w-3" />
-            {room.building} · {room.level}
+          <p className="flex items-center gap-1.5 text-xs sm:text-[11px] text-muted-foreground transition-colors duration-150 group-hover:text-foreground/80">
+            <Home className="h-3.5 w-3.5 sm:h-3 sm:w-3 shrink-0" />
+            <span className="truncate">{room.building} · {room.level}</span>
           </p>
-          <p className="text-[13px] font-medium">{room.name}</p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-sm sm:text-[13px] font-medium truncate" title={room.name}>{room.name}</p>
+          <p className="text-xs sm:text-[11px] text-muted-foreground">
             {room.areaM2 ? `${room.areaM2.toFixed(1)} m²` : 'Ohne Flächenangabe'}
           </p>
         </button>

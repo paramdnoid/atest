@@ -32,6 +32,7 @@ export function DefectBoard({ defects }: { defects: DefectEntry[] }) {
       icon={AlertCircle}
       label="Mängelboard"
       title="Erfassung, Priorität und Fälligkeiten"
+      className="bg-muted/35"
       hasData={defects.length > 0}
       emptyState={{
         icon: <AlertCircle className="h-8 w-8" />,

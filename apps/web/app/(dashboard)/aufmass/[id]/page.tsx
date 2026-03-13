@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { AlertTriangle, ClipboardList, CreditCard, LayoutPanelTop } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ClipboardList, CreditCard, LayoutPanelTop, RotateCcw, Send } from 'lucide-react';
 
 import { AufmassDetailContextRail } from '@/components/aufmass/aufmass-detail-context-rail';
 import { AufmassKpiStrip } from '@/components/aufmass/aufmass-kpi-strip';
@@ -19,7 +19,6 @@ import { RoomTreePanel } from '@/components/aufmass/room-tree-panel';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
 import { EmptyState } from '@/components/dashboard/states';
-import { dashboardUiTokens } from '@/components/dashboard/ui-tokens';
 import { Button } from '@/components/ui/button';
 import { getAufmassRecordSync, listAufmassRecordsSync } from '@/lib/aufmass/data-adapter';
 import { aufmassRolloutFlags } from '@/lib/aufmass/rollout-flags';
@@ -133,6 +132,9 @@ export default function AufmassDetailPage() {
     (measurement) => !measurement.formulaAst && measurement.formula.trim().length > 0,
   ).length;
   const effectiveReviewBlockers = [...reviewBlockers, ...legacyReviewBlockers, ...scoreGateBlockers];
+  const submitReviewBlockers = useMemo(() => getTransitionBlockers(record, 'IN_REVIEW'), [record]);
+  const canSubmitReview = record.status === 'DRAFT' && submitReviewBlockers.length === 0;
+  const canApprove = record.status === 'IN_REVIEW' && effectiveReviewBlockers.length === 0;
   const billingBlockers = useMemo(() => getTransitionBlockers(record, 'BILLED'), [record]);
   const canBill = record.status === 'APPROVED' && billingBlockers.length === 0;
 
@@ -240,16 +242,52 @@ export default function AufmassDetailPage() {
       <PageHeader
         title="Aufmaß-Arbeitsbereich"
         description={
-          <span className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full min-w-0 items-center gap-2">
             <AufmassStatusBadge status={record.status} />
-            <span>
+            <span className="min-w-0 flex-1 truncate" title={`${record.customerName} · ${record.projectName}`}>
               {record.customerName} · {record.projectName}
             </span>
-          </span>
+          </div>
         }
         titleClassName="text-lg"
         descriptionClassName="-mt-0.5"
-      />
+      >
+        {record.status === 'DRAFT' ? (
+          <Button
+            size="sm"
+            onClick={() => setStatus('IN_REVIEW', 'Zur Prüfung übergeben.')}
+            disabled={!canSubmitReview}
+            aria-label="In Prüfung senden"
+            title="In Prüfung senden"
+          >
+            <Send className="h-4 w-4" />
+            <span className="hidden lg:inline ml-2">In Prüfung senden</span>
+          </Button>
+        ) : null}
+        {record.status === 'IN_REVIEW' ? (
+          <>
+            <Button
+              size="sm"
+              onClick={() => setStatus('APPROVED', 'Freigabe aus Prüfablauf gesetzt.')}
+              disabled={!canApprove}
+              aria-label="Als freigegeben markieren"
+              title="Als freigegeben markieren"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              <span className="hidden lg:inline ml-2">Als freigegeben markieren</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setStatus('DRAFT', 'Zurück in Entwurf gesetzt.')}
+              aria-label="Zurück zu Entwurf"
+              title="Zurück zu Entwurf"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          </>
+        ) : null}
+      </PageHeader>
 
       <div className="space-y-3">
         <AufmassKpiStrip record={record} />
@@ -263,7 +301,8 @@ export default function AufmassDetailPage() {
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button size="sm" variant="outline" onClick={() => setActiveWorkspace('review')}>
-              Blocker anzeigen
+              <span className="sm:hidden">Prüfung</span>
+              <span className="hidden sm:inline">Blocker anzeigen</span>
             </Button>
             <Button
               size="sm"
@@ -273,13 +312,14 @@ export default function AufmassDetailPage() {
               }}
               disabled={!pendingStatusAction}
             >
-              Erneut versuchen
+              <span className="sm:hidden">Retry</span>
+              <span className="hidden sm:inline">Erneut versuchen</span>
             </Button>
           </div>
         </ModuleTableCard>
       ) : null}
 
-      <section className="grid items-start gap-3 xl:grid-cols-[minmax(0,2.1fr)_minmax(260px,0.75fr)] 2xl:grid-cols-[minmax(0,2.35fr)_minmax(280px,0.65fr)]">
+      <section className="grid items-start gap-3 grid-cols-1 xl:grid-cols-[minmax(0,2.1fr)_minmax(260px,0.75fr)] 2xl:grid-cols-[minmax(0,2.35fr)_minmax(280px,0.65fr)]">
         <div
           id={`aufmass-workspace-panel-${activeWorkspace}`}
           role="tabpanel"
@@ -307,12 +347,12 @@ export default function AufmassDetailPage() {
               hasData
             >
               <div className="space-y-3">
-                <div className="grid gap-3 xl:grid-cols-[minmax(220px,0.42fr)_minmax(0,1.58fr)] 2xl:grid-cols-[minmax(240px,0.38fr)_minmax(0,1.62fr)]">
-                  <section className="space-y-2">
+                <div className="grid gap-3 grid-cols-1 lg:grid-cols-10">
+                  <section className="space-y-2 lg:col-span-3">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Objektstruktur</p>
                     <RoomTreePanel rooms={record.rooms} activeRoomId={activeRoomId} onSelectRoom={setActiveRoomId} />
                   </section>
-                  <section className="space-y-2">
+                  <section className="space-y-2 lg:col-span-7">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Messwerte</p>
                     <MeasurementGrid room={activeRoom} measurements={record.measurements} positions={record.positions} />
                   </section>
@@ -362,7 +402,6 @@ export default function AufmassDetailPage() {
                       if (issue.roomId) {
                         setActiveRoomId(issue.roomId);
                       }
-                      setActiveWorkspace('capture');
                       setActiveReviewIssueId(issue.id);
                     }}
                   />
@@ -387,7 +426,8 @@ export default function AufmassDetailPage() {
                         onClick={onMigrateLegacyFormulas}
                         disabled={legacyCandidateCount === 0}
                       >
-                        Jetzt umstellen
+                        <span className="sm:hidden">Migration</span>
+                        <span className="hidden sm:inline">Jetzt umstellen</span>
                       </Button>
                     </div>
                   )}

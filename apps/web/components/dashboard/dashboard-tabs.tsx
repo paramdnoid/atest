@@ -59,7 +59,7 @@ export function DashboardTabs<T extends string>({
   };
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border/60 bg-background/70 p-1">
+    <div className="overflow-x-auto rounded-xl border border-border/60 bg-muted/45 p-1">
       <div className="flex min-w-max gap-1" role="tablist" aria-label={ariaLabel}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -71,7 +71,7 @@ export function DashboardTabs<T extends string>({
               className={cn(
                 'h-8 border border-transparent px-3 text-[11px] font-medium',
                 activeTab === tab.id
-                  ? 'border-border bg-background text-foreground shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]'
+                  ? 'border-border bg-white text-foreground shadow-[inset_0_0_0_1px_rgba(255,255,255,0.45)]'
                   : 'text-muted-foreground hover:border-border/80 hover:bg-background/70 hover:text-foreground',
               )}
               onClick={() => onChange(tab.id)}

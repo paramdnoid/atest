@@ -129,9 +129,9 @@ export function AufmassWorkspaceTabs({
                 role="tab"
                 aria-selected={isActive}
                 aria-controls={panelId}
-                aria-label={tab.id === 'review' && reviewBadge > 0 ? `Prüfung, ${reviewBadge} offene Prüfblocker` : tab.label}
+                aria-label={tab.id === 'review' && reviewBadge > 0 ? `${tab.label}, ${reviewBadge} offene Prüfblocker` : tab.label}
                 className={cn(
-                  'relative z-10 h-8 border border-transparent px-3 text-[11px] font-medium transition-colors duration-150 ease-out focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1',
+                  'relative z-10 h-8 border border-transparent px-2 lg:px-3 text-[11px] font-medium transition-colors duration-150 ease-out focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1',
                   isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
                 )}
                 onClick={() => onChange(tab.id)}
@@ -142,10 +142,10 @@ export function AufmassWorkspaceTabs({
                 }}
               >
                 <Icon className={cn('h-4 w-4', isActive ? 'text-foreground' : 'text-muted-foreground')} />
-                {tab.label}
+                <span className="hidden lg:inline ml-2">{tab.label}</span>
                 {tab.id === 'review' && reviewBadge > 0 ? (
                   <span
-                    className="rounded-full border border-border/70 bg-background px-1.5 py-0 font-mono text-[10px] leading-none text-muted-foreground transition duration-150 ease-out"
+                    className="ml-1 rounded-full border border-border/70 bg-background px-1.5 py-0 font-mono text-[10px] leading-none text-muted-foreground transition duration-150 ease-out hidden lg:inline"
                     aria-label={badgeLabel}
                   >
                     {reviewBadge}
@@ -162,10 +162,12 @@ export function AufmassWorkspaceTabs({
       {!quickCaptureSlot && onQuickCapture ? (
         <Button
           size="sm"
-          className="h-8 shrink-0 px-3 transition-[transform,background-color,box-shadow] duration-150 ease-out hover:-translate-y-px hover:bg-primary/90 active:translate-y-0"
+          className="h-8 shrink-0 px-2 lg:px-3 transition-[transform,background-color,box-shadow] duration-150 ease-out hover:-translate-y-px hover:bg-primary/90 active:translate-y-0"
           onClick={onQuickCapture}
+          title="Schnell erfassen"
         >
-          Schnell erfassen
+          <span className="hidden lg:inline">Schnell erfassen</span>
+          <span className="lg:hidden">+</span>
         </Button>
       ) : null}
     </div>

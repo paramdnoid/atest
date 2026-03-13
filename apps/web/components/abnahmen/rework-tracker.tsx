@@ -25,6 +25,7 @@ export function ReworkTracker({ rework, defects }: ReworkTrackerProps) {
       icon={Wrench}
       label="Nacharbeit"
       title="Abarbeitung und Freigaben"
+      className="bg-muted/35"
       hasData={rework.length > 0}
       emptyState={{
         icon: <Wrench className="h-8 w-8" />,

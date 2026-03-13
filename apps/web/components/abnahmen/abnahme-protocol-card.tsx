@@ -7,7 +7,13 @@ import { formatDate } from '@/lib/format';
 
 export function AbnahmeProtocolCard({ protocol }: { protocol: AbnahmeProtocol }) {
   return (
-    <ModuleTableCard icon={FileCheck2} label="Protokoll" title="Abnahmeprotokoll und Vorbehalte" hasData>
+    <ModuleTableCard
+      icon={FileCheck2}
+      label="Protokoll"
+      title="Abnahmeprotokoll und Vorbehalte"
+      className="bg-muted/35"
+      hasData
+    >
       <div className="space-y-3">
         <div className="rounded-lg border border-border/70 bg-background/70 p-3">
           <div className="flex flex-wrap items-center gap-2">
