@@ -53,7 +53,7 @@ export function MeasurementGrid({ room, measurements, positions }: MeasurementGr
       emptyState={{
         icon: <DraftingCompass className="h-8 w-8" />,
         title: 'Keine Messwerte im Raum',
-        description: 'Im Quick-Capture können neue Maße direkt ergänzt werden.',
+        description: 'Über "Schnell erfassen" können neue Maße direkt ergänzt werden.',
       }}
     >
       <Table>

@@ -15,7 +15,7 @@ export function FormulaValidationBanner({ quality, evaluation }: FormulaValidati
       {quality && (
         <div className="flex items-center gap-2 pt-1">
           <Badge variant={quality.evaluation.ok ? 'default' : 'destructive'} className="font-mono">
-            Formel-Score {quality.score}
+            Formelbewertung {quality.score}
           </Badge>
           {quality.evaluation.ok && (
             <p className="text-xs text-muted-foreground">Ergebnis: {quality.evaluation.value?.toFixed(2)}</p>

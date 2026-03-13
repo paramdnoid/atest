@@ -35,13 +35,31 @@ export function AufmassDetailHeader({
   };
 
   return (
-    <DashboardCard>
+    <DashboardCard className="border-border/80 bg-sidebar/35">
       <DashboardCardHeader icon={FileCheck2} label="Aufmaßakte" title={`${record.number} · ${record.projectName}`} />
-      <div className="flex flex-col gap-4 p-4 pt-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <AufmassStatusBadge status={record.status} />
-          <span className="text-sm text-muted-foreground">{statusText[record.status]}</span>
+      <div className="flex flex-col gap-4 p-4 pt-1.5">
+        <div className="grid gap-2 rounded-xl border border-border/70 bg-background/70 p-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Kunde</p>
+            <p className="mt-1 text-sm font-medium">{record.customerName}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Projekt</p>
+            <p className="mt-1 text-sm font-medium">{record.projectName}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Version</p>
+            <p className="mt-1 text-sm font-medium">v{record.version}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Status</p>
+            <div className="mt-1">
+              <AufmassStatusBadge status={record.status} />
+            </div>
+          </div>
         </div>
+
+        <p className="text-sm text-muted-foreground">{statusText[record.status]}</p>
 
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" onClick={onSubmitForReview} disabled={!canSubmitReview}>
@@ -56,7 +74,7 @@ export function AufmassDetailHeader({
         </div>
 
         {blockers.length > 0 && (
-          <div className="rounded-lg border border-amber-300/50 bg-amber-50/70 p-3 text-sm dark:bg-amber-950/30">
+          <div className="rounded-xl border border-amber-300/50 bg-amber-50/70 p-3 text-sm dark:bg-amber-950/30">
             <p className="flex items-center gap-1.5 font-medium text-amber-700 dark:text-amber-300">
               <AlertTriangle className="h-4 w-4" />
               Offene Voraussetzungen für {getStatusLabel(record.status)}

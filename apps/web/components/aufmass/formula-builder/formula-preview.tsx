@@ -9,7 +9,7 @@ type FormulaPreviewProps = {
 export function FormulaPreview({ formulaText, quantity, unit }: FormulaPreviewProps) {
   return (
     <div className="space-y-2">
-      <p className="text-xs text-muted-foreground">Builder-Formel: {formulaText || '—'}</p>
+      <p className="text-xs text-muted-foreground">Formel: {formulaText || '—'}</p>
       <label className="text-sm font-medium">Berechnete Menge ({unit})</label>
       <div className="rounded-md border border-input bg-muted/40 px-3 py-2 font-mono text-sm">
         {quantity.toFixed(2)}

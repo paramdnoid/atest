@@ -3,28 +3,22 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Brain, ClipboardList, FileSpreadsheet, History, LayoutPanelTop, Network } from 'lucide-react';
+import { ClipboardList, LayoutPanelTop } from 'lucide-react';
 
 import { ApprovalDialog } from '@/components/aufmass/approval-dialog';
+import { AufmassDetailContextRail } from '@/components/aufmass/aufmass-detail-context-rail';
 import { AufmassDetailHeader } from '@/components/aufmass/aufmass-detail-header';
 import { AufmassKpiStrip } from '@/components/aufmass/aufmass-kpi-strip';
+import { AufmassWorkspaceTabs, type AufmassWorkspaceTab } from '@/components/aufmass/aufmass-workspace-tabs';
 import { AuditTimeline } from '@/components/aufmass/audit-timeline';
 import { BillingPreviewCard } from '@/components/aufmass/billing-preview-card';
-import { AufmassIntelligencePanel } from '@/components/aufmass/aufmass-intelligence-panel';
 import { MeasurementGrid } from '@/components/aufmass/measurement-grid';
 import { PositionMappingTable } from '@/components/aufmass/position-mapping-table';
 import { QuickCaptureDrawer } from '@/components/aufmass/quick-capture-drawer';
 import { ReviewDiffPanel } from '@/components/aufmass/review-diff-panel';
 import { RoomTreePanel } from '@/components/aufmass/room-tree-panel';
 import { PageHeader } from '@/components/dashboard/page-header';
-import {
-  DashboardTabs,
-  getDashboardTabId,
-  getDashboardTabPanelId,
-} from '@/components/dashboard/dashboard-tabs';
 import { ModuleTableCard } from '@/components/dashboard/module-table-card';
-import { CrossModuleLinksContent } from '@/components/dashboard/cross-module-links-card';
-import { ModuleSideTabsCard } from '@/components/dashboard/module-side-tabs-card';
 import { EmptyState } from '@/components/dashboard/states';
 import { Button } from '@/components/ui/button';
 import { getAufmassRecordSync, listAufmassRecordsSync } from '@/lib/aufmass/data-adapter';
@@ -41,18 +35,6 @@ import type {
   AufmassReviewIssue,
   AufmassStatus,
 } from '@/lib/aufmass/types';
-
-type TabKey = 'overview' | 'rooms' | 'positions' | 'review' | 'billing' | 'history' | 'insights';
-
-const tabs: Array<{ id: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }> = [
-  { id: 'overview', label: 'Überblick', icon: LayoutPanelTop },
-  { id: 'rooms', label: 'Räume', icon: LayoutPanelTop },
-  { id: 'positions', label: 'Positionen', icon: ClipboardList },
-  { id: 'review', label: 'Prüfung', icon: ClipboardList },
-  { id: 'billing', label: 'Abrechnung', icon: FileSpreadsheet },
-  { id: 'insights', label: 'Insights', icon: Brain },
-  { id: 'history', label: 'Historie', icon: History },
-];
 
 function appendAudit(
   events: AufmassAuditEvent[],
@@ -74,8 +56,8 @@ function appendAudit(
 
 export default function AufmassDetailPage() {
   const params = useParams<{ id: string }>();
-  const [activeTab, setActiveTab] = useState<TabKey>('overview');
-  const [overviewContextTab, setOverviewContextTab] = useState<'capture' | 'insights' | 'datennetz'>('capture');
+  const [activeWorkspace, setActiveWorkspace] = useState<AufmassWorkspaceTab>('capture');
+  const [historyExpanded, setHistoryExpanded] = useState(false);
   const allRecords = useMemo<AufmassRecord[]>(() => listAufmassRecordsSync(), []);
   const initial = useMemo(() => getAufmassRecordSync(params.id), [params.id]);
   const [record, setRecord] = useState<AufmassRecord | null>(initial);
@@ -116,9 +98,9 @@ export default function AufmassDetailPage() {
         type: migration.status === 'migrated_partial' ? 'legacy_formula_partial' : 'legacy_formula_unparsed',
         title:
           migration.status === 'migrated_partial'
-            ? 'Legacy-Formel nur teilweise migrierbar'
-            : 'Legacy-Formel nicht migrierbar',
-        message: `Messwert "${measurement.label}": ${migration.reason ?? 'Formel prüfen und im Builder neu erfassen.'}`,
+            ? 'Alte Formel nur teilweise umstellbar'
+            : 'Alte Formel nicht umstellbar',
+        message: `Messwert "${measurement.label}": ${migration.reason ?? 'Formel prüfen und im Formeleditor neu erfassen.'}`,
         severity: migration.status === 'migrated_partial' ? 'warning' : 'blocking',
         positionId: measurement.positionId,
         roomId: measurement.roomId,
@@ -143,7 +125,7 @@ export default function AufmassDetailPage() {
   );
   const scoreGateBlockers =
     aufmassRolloutFlags.enforceBuilderScoreGate && intelligenceSnapshot.readinessScore < 75
-      ? [`Readiness-Score (${intelligenceSnapshot.readinessScore}) unterschreitet Gate 75.`]
+      ? [`Reifegrad (${intelligenceSnapshot.readinessScore}) ist kleiner als 75.`]
       : [];
   const legacyReviewBlockers = legacyMigrationIssues
     .filter((issue) => issue.severity === 'blocking')
@@ -173,7 +155,7 @@ export default function AufmassDetailPage() {
             ...prev,
             status: to,
             updatedAt: new Date().toISOString(),
-            auditTrail: appendAudit(prev.auditTrail, `Status -> ${to}`, detail),
+            auditTrail: appendAudit(prev.auditTrail, `Status geändert zu ${to}`, detail),
           }
         : prev,
     );
@@ -194,7 +176,7 @@ export default function AufmassDetailPage() {
       const result = transitionRecordStatus(prepared, 'APPROVED');
       if (!result.ok) {
         setStatusError(`${result.blockers[0] ?? 'Freigabe nicht möglich.'} (Ziel: APPROVED)`);
-        setPendingStatusAction({ to: 'APPROVED', detail: 'Freigabe aus Prüfworkflow gesetzt.' });
+        setPendingStatusAction({ to: 'APPROVED', detail: 'Freigabe aus Prüfablauf gesetzt.' });
         return prev;
       }
       setStatusError(null);
@@ -203,7 +185,7 @@ export default function AufmassDetailPage() {
         ...prepared,
         status: 'APPROVED',
         updatedAt: new Date().toISOString(),
-        auditTrail: appendAudit(prepared.auditTrail, 'Status -> APPROVED', 'Freigabe aus Prüfworkflow gesetzt.'),
+        auditTrail: appendAudit(prepared.auditTrail, 'Status geändert zu FREIGEGEBEN', 'Freigabe aus Prüfablauf gesetzt.'),
       };
     });
   };
@@ -221,7 +203,7 @@ export default function AufmassDetailPage() {
             updatedAt: new Date().toISOString(),
             auditTrail: appendAudit(
               prev.auditTrail,
-              'Quick-Capture',
+              'Schnellerfassung',
               `Messwert "${measurement.label}" ergänzt`,
             ),
           }
@@ -262,8 +244,8 @@ export default function AufmassDetailPage() {
         updatedAt: new Date().toISOString(),
         auditTrail: appendAudit(
           prev.auditTrail,
-          'Legacy-Migration',
-          `${migratedCount} Formel(n) automatisch in AST migriert.`,
+          'Alt-Formel-Umstellung',
+          `${migratedCount} Formel(n) automatisch in die neue Form überführt.`,
         ),
       };
     });
@@ -271,7 +253,7 @@ export default function AufmassDetailPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Aufmaß Workspace"
+        title="Aufmaß-Arbeitsbereich"
         description={`${record.number} · ${record.customerName}`}
       >
         <ApprovalDialog
@@ -287,10 +269,10 @@ export default function AufmassDetailPage() {
         <ModuleTableCard icon={ClipboardList} label="Statuswechsel" title="Aktion nicht möglich" tone="emphasis">
           <p className="text-sm text-muted-foreground">{statusError}</p>
           <p className="mt-1 text-xs text-muted-foreground/90">
-            Prüfe die Blocker im Reiter "Prüfung" und versuche die Aktion erneut.
+            Prüfe die Blocker im Bereich "Prüfung" und versuche die Aktion erneut.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" onClick={() => setActiveTab('review')}>
+            <Button size="sm" variant="outline" onClick={() => setActiveWorkspace('review')}>
               Blocker anzeigen
             </Button>
             <Button
@@ -321,184 +303,97 @@ export default function AufmassDetailPage() {
         <AufmassKpiStrip record={record} />
       </div>
 
-      <DashboardTabs
-        idPrefix="aufmass"
-        tabs={tabs}
-        activeTab={activeTab}
-        onChange={setActiveTab}
-        ariaLabel="Aufmassbereiche"
+      <AufmassWorkspaceTabs
+        activeTab={activeWorkspace}
+        onChange={setActiveWorkspace}
+        reviewBadge={reviewIssues.filter((issue) => issue.severity === 'blocking').length}
       />
 
-      {activeTab === 'overview' && (
-        <section
-          role="tabpanel"
-          id={getDashboardTabPanelId('aufmass', 'overview')}
-          aria-labelledby={getDashboardTabId('aufmass', 'overview')}
-          tabIndex={0}
-          className={detailSplitGridClassName}
-        >
-          <div className="space-y-4">
-            <RoomTreePanel rooms={record.rooms} activeRoomId={activeRoomId} onSelectRoom={setActiveRoomId} />
-            <MeasurementGrid room={activeRoom} measurements={record.measurements} positions={record.positions} />
-          </div>
-          <ModuleSideTabsCard
-            idPrefix="aufmass-detail-overview-context"
-            icon={LayoutPanelTop}
-            label="Kontext"
-            title="Erfassung, Insights und Datennetz"
-            activeTab={overviewContextTab}
-            onTabChange={setOverviewContextTab}
-            ariaLabel="Aufmaß Detailkontext"
-            tabs={[
-              {
-                id: 'capture',
-                label: 'Erfassung',
-                icon: LayoutPanelTop,
-                content: (
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      Schnellerfassung für Baustelle mit reduzierter Eingabe und optionalen Fotos.
+      <section className={detailSplitGridClassName}>
+        <div className="space-y-4">
+          {activeWorkspace === 'capture' ? (
+            <>
+              <ModuleTableCard icon={LayoutPanelTop} label="Erfassung" title="Räume und Messwerte" hasData>
+                <div className="space-y-4">
+                  <RoomTreePanel rooms={record.rooms} activeRoomId={activeRoomId} onSelectRoom={setActiveRoomId} />
+                  <MeasurementGrid room={activeRoom} measurements={record.measurements} positions={record.positions} />
+                </div>
+              </ModuleTableCard>
+              <ModuleTableCard icon={LayoutPanelTop} label="Schnellerfassung" title="Baustellenmodus" hasData>
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Schnellerfassung mit reduzierter Eingabe und direkter Zuordnung auf Positionen.
+                  </p>
+                  <QuickCaptureDrawer
+                    room={activeRoom}
+                    positions={record.positions}
+                    onAddMeasurement={onAddMeasurement}
+                  />
+                </div>
+              </ModuleTableCard>
+            </>
+          ) : null}
+
+          {activeWorkspace === 'review' ? (
+            <>
+              <ReviewDiffPanel issues={reviewIssues} />
+              <ModuleTableCard icon={ClipboardList} label="Prüfhinweis" title="Freigaberegeln" hasData>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <p>- Freigabe nur ohne offene Blocker.</p>
+                  <p>- Rückgabe an Entwurf erfordert Kommentar.</p>
+                  <p>- Statuswechsel folgen einem festen Ablauf.</p>
+                  <p>- Alte Formeln sollten vor Freigabe in den Formeleditor übernommen werden.</p>
+                </div>
+                {aufmassRolloutFlags.enableAssistedMigration && (
+                  <div className="mt-3 flex items-center justify-between rounded-md border border-border bg-sidebar/30 p-2">
+                    <p className="text-xs text-muted-foreground">
+                      Alte Formeln: {legacyCandidateCount}
                     </p>
-                    <QuickCaptureDrawer
-                      room={activeRoom}
-                      positions={record.positions}
-                      onAddMeasurement={onAddMeasurement}
-                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={onMigrateLegacyFormulas}
+                      disabled={legacyCandidateCount === 0}
+                    >
+                      Jetzt umstellen
+                    </Button>
                   </div>
-                ),
-              },
-              {
-                id: 'insights',
-                label: 'Insights',
-                icon: Brain,
-                content: (
-                  <AufmassIntelligencePanel
-                    record={record}
-                    allRecords={allRecords}
-                    snapshot={intelligenceSnapshot}
-                  />
-                ),
-              },
-              {
-                id: 'datennetz',
-                label: 'Datennetz',
-                icon: Network,
-                content: (
-                  <CrossModuleLinksContent
-                    snapshot={verknuepfungSnapshot}
-                    context={{
-                      module: 'AUFMASS',
-                      id: record.id,
-                      customerName: record.customerName,
-                      projectName: record.projectName,
-                      siteName: record.siteName,
-                    }}
-                  />
-                ),
-              },
-            ]}
-          />
-        </section>
-      )}
+                )}
+              </ModuleTableCard>
+              <PositionMappingTable
+                mappings={record.mappings}
+                positions={record.positions}
+                rooms={record.rooms}
+              />
+            </>
+          ) : null}
 
-      {activeTab === 'rooms' && (
-        <section
-          role="tabpanel"
-          id={getDashboardTabPanelId('aufmass', 'rooms')}
-          aria-labelledby={getDashboardTabId('aufmass', 'rooms')}
-          tabIndex={0}
-          className={detailSplitGridClassName}
-        >
-          <RoomTreePanel rooms={record.rooms} activeRoomId={activeRoomId} onSelectRoom={setActiveRoomId} />
-          <MeasurementGrid room={activeRoom} measurements={record.measurements} positions={record.positions} />
-        </section>
-      )}
+          {activeWorkspace === 'billing' ? <BillingPreviewCard record={record} /> : null}
+        </div>
 
-      {activeTab === 'positions' && (
-        <section
-          role="tabpanel"
-          id={getDashboardTabPanelId('aufmass', 'positions')}
-          aria-labelledby={getDashboardTabId('aufmass', 'positions')}
-          tabIndex={0}
-        >
-          <PositionMappingTable
-            mappings={record.mappings}
-            positions={record.positions}
-            rooms={record.rooms}
-          />
-        </section>
-      )}
+        <AufmassDetailContextRail
+          record={record}
+          snapshot={intelligenceSnapshot}
+          verknuepfungSnapshot={verknuepfungSnapshot}
+          onOpenHistory={() => setHistoryExpanded((prev) => !prev)}
+        />
+      </section>
 
-      {activeTab === 'review' && (
-        <section
-          role="tabpanel"
-          id={getDashboardTabPanelId('aufmass', 'review')}
-          aria-labelledby={getDashboardTabId('aufmass', 'review')}
-          tabIndex={0}
-          className={detailSplitGridClassName}
-        >
-          <ReviewDiffPanel issues={reviewIssues} />
-          <ModuleTableCard icon={ClipboardList} label="Prüfhinweis" title="Action Guards">
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <p>- Freigabe nur ohne offene Blocker.</p>
-              <p>- Rückgabe an Entwurf erfordert Kommentar.</p>
-              <p>- Statuswechsel sind über State-Machine begrenzt.</p>
-              <p>- Legacy-Formeln sollten vor Freigabe in Builder-Form überführt werden.</p>
-            </div>
-            {aufmassRolloutFlags.enableAssistedMigration && (
-              <div className="mt-3 flex items-center justify-between rounded-md border border-border bg-sidebar/30 p-2">
-                <p className="text-xs text-muted-foreground">
-                  Legacy-Kandidaten:{' '}
-                  {legacyCandidateCount}
-                </p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={onMigrateLegacyFormulas}
-                  disabled={legacyCandidateCount === 0}
-                >
-                  Jetzt konvertieren
-                </Button>
-              </div>
-            )}
-          </ModuleTableCard>
-        </section>
-      )}
-
-      {activeTab === 'billing' && (
-        <section
-          role="tabpanel"
-          id={getDashboardTabPanelId('aufmass', 'billing')}
-          aria-labelledby={getDashboardTabId('aufmass', 'billing')}
-          tabIndex={0}
-        >
-          <BillingPreviewCard record={record} />
-        </section>
-      )}
-
-      {activeTab === 'insights' && (
-        <section
-          role="tabpanel"
-          id={getDashboardTabPanelId('aufmass', 'insights')}
-          aria-labelledby={getDashboardTabId('aufmass', 'insights')}
-          tabIndex={0}
-          className={detailSplitGridClassName}
-        >
-          <AufmassIntelligencePanel record={record} allRecords={allRecords} snapshot={intelligenceSnapshot} />
-          <ReviewDiffPanel issues={reviewIssues} />
-        </section>
-      )}
-
-      {activeTab === 'history' && (
-        <section
-          role="tabpanel"
-          id={getDashboardTabPanelId('aufmass', 'history')}
-          aria-labelledby={getDashboardTabId('aufmass', 'history')}
-          tabIndex={0}
+      {historyExpanded ? (
+        <ModuleTableCard
+          icon={ClipboardList}
+          label="Historie"
+          title="Änderungsprotokoll"
+          action={
+            <Button size="sm" variant="outline" onClick={() => setHistoryExpanded(false)}>
+              Schließen
+            </Button>
+          }
+          hasData
         >
           <AuditTimeline events={record.auditTrail} />
-        </section>
-      )}
+        </ModuleTableCard>
+      ) : null}
     </div>
   );
 }

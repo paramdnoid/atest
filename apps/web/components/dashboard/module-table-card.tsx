@@ -9,7 +9,9 @@ type ModuleTableCardProps = {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   title: string;
+  titleClassName?: string;
   action?: ReactNode;
+  headerBottomContent?: ReactNode;
   className?: string;
   tone?: 'default' | 'emphasis' | 'muted';
   isLoading?: boolean;
@@ -23,7 +25,9 @@ export function ModuleTableCard({
   icon,
   label,
   title,
+  titleClassName,
   action,
+  headerBottomContent,
   className,
   tone = 'default',
   isLoading = false,
@@ -47,7 +51,14 @@ export function ModuleTableCard({
 
   return (
     <DashboardCard className={cn(toneCardClassName, className)}>
-      <DashboardCardHeader icon={icon} label={label} title={title} action={action} />
+      <DashboardCardHeader
+        icon={icon}
+        label={label}
+        title={title}
+        titleClassName={titleClassName}
+        action={action}
+        bottomContent={headerBottomContent}
+      />
       <div className={cn(dashboardUiTokens.cardBody, toneBodyClassName)}>
         {errorMessage && <ErrorBanner message={errorMessage} />}
         {isLoading ? (

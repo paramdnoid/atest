@@ -9,7 +9,7 @@ export function AuditTimeline({ events }: { events: AufmassAuditEvent[] }) {
     <ModuleTableCard
       icon={History}
       label="Historie"
-      title="Audit-Trail"
+      title="Änderungsverlauf"
       hasData={events.length > 0}
       emptyState={{
         icon: <History className="h-8 w-8" />,

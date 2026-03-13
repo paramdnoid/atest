@@ -29,10 +29,10 @@ export function AufmassIntelligencePanel({
   const snapshot = providedSnapshot ?? getIntelligenceSnapshot(record, allRecords ?? [record]);
 
   return (
-    <ModuleTableCard icon={Brain} label="Intelligence" title="Qualitäts- und Prüfreifeanalyse" hasData>
+    <ModuleTableCard icon={Brain} label="Analyse" title="Qualitäts- und Prüfreifeanalyse" hasData>
       <div className="space-y-3">
         <div className="flex items-center justify-between rounded-lg border border-border bg-sidebar/30 p-3">
-          <p className="text-sm font-medium">Readiness Score</p>
+          <p className="text-sm font-medium">Reifegrad</p>
           <Badge variant={getScoreVariant(snapshot.readinessScore)} className="font-mono">
             {snapshot.readinessScore}/100
           </Badge>
@@ -40,7 +40,7 @@ export function AufmassIntelligencePanel({
 
         <div className="space-y-1">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Next Best Actions
+            Nächste beste Schritte
           </p>
           {snapshot.nextBestActions.map((action) => (
             <p key={action} className="text-sm text-muted-foreground">
@@ -67,13 +67,13 @@ export function AufmassIntelligencePanel({
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Predictive Aufwand/Material
+                Prognose Aufwand/Material
               </p>
               <Badge
                 variant={getConfidenceVariant(snapshot.forecast.totals.confidence)}
                 className="font-mono text-[11px]"
               >
-                Confidence {snapshot.forecast.totals.confidence.toUpperCase()}
+                Sicherheit {snapshot.forecast.totals.confidence.toUpperCase()}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">

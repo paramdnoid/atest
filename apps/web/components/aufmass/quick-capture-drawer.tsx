@@ -111,7 +111,7 @@ export function QuickCaptureDrawer({ room, positions, onAddMeasurement }: QuickC
       <SheetTrigger asChild>
         <Button size="sm" disabled={!room}>
           <PlusCircle className="h-4 w-4" />
-          Quick-Capture
+          Schnell erfassen
         </Button>
       </SheetTrigger>
       <SheetContent side="bottom" className="max-h-[85vh] overflow-auto">

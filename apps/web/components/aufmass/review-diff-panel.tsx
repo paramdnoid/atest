@@ -5,6 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import type { AufmassReviewIssue } from '@/lib/aufmass/types';
 import { formatDate } from '@/lib/format';
 
+function severityLabel(severity: AufmassReviewIssue['severity']): string {
+  if (severity === 'blocking') return 'Muss behoben werden';
+  if (severity === 'warning') return 'Hinweis';
+  return 'Info';
+}
+
 export function ReviewDiffPanel({ issues }: { issues: AufmassReviewIssue[] }) {
   return (
     <ModuleTableCard
@@ -26,7 +32,7 @@ export function ReviewDiffPanel({ issues }: { issues: AufmassReviewIssue[] }) {
               <Badge
                 variant={issue.severity === 'blocking' ? 'destructive' : issue.severity === 'warning' ? 'outline' : 'secondary'}
               >
-                {issue.severity}
+                {severityLabel(issue.severity)}
               </Badge>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">{issue.message}</p>

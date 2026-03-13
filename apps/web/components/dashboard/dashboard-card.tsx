@@ -27,26 +27,33 @@ export function DashboardCardHeader({
   label,
   title,
   action,
+  titleClassName,
+  bottomContent,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   title: string;
   action?: ReactNode;
+  titleClassName?: string;
+  bottomContent?: ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 px-4 py-2.5">
-      <div className="flex items-center gap-3">
-        <div className={cn('flex h-7 w-7 shrink-0 items-center justify-center', dashboardUiTokens.iconShell)}>
-          <Icon className="h-3.5 w-3.5 text-primary/90" />
+    <div className="px-4 py-2.5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className={cn('flex h-7 w-7 shrink-0 items-center justify-center', dashboardUiTokens.iconShell)}>
+            <Icon className="h-3.5 w-3.5 text-primary/90" />
+          </div>
+          <div>
+            <p className={dashboardUiTokens.kickerAccent}>
+              {label}
+            </p>
+            <p className={cn('text-sm font-medium leading-tight', titleClassName)}>{title}</p>
+          </div>
         </div>
-        <div>
-          <p className={dashboardUiTokens.kickerAccent}>
-            {label}
-          </p>
-          <p className="text-sm font-medium leading-tight">{title}</p>
-        </div>
+        {action}
       </div>
-      {action}
+      {bottomContent ? <div className="mt-2">{bottomContent}</div> : null}
     </div>
   );
 }
